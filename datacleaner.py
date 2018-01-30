@@ -1,11 +1,10 @@
-import csv
 import sys
 import os
 
+if not len(sys.argv) > 1:
+    print "Usage: {} path_to_file.csv".format(sys.argv[0]) 
+    sys.exit(0)
 
-
-
-csv.field_size_limit(sys.maxsize)
 tfile = sys.argv[1]
 
 f_name, f_ext = os.path.splitext(tfile)
