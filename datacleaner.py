@@ -13,7 +13,7 @@ def ask_user_for_delimeter():
 
     return csv_delimeter, csv_column_count
 
-def guess_delimeter(F):
+def x_guess_delimeter(F):
 
     print "Guessing delimeter by looking first 100 lines"
 
@@ -96,6 +96,72 @@ def guess_delimeter(F):
     return csv_delimeter, csv_column_count
 
 
+def guess_delimeter(F):
+
+    delims = ('\t', ' ', ';', ':', ',', '|')
+
+    delim_counts_list={}
+    delim_freq = {}
+    for d in delims:
+        delim_counts_list[d]=[]
+        delim_freq[d] = {}
+
+    x=0
+
+    F.seek(0)
+
+    for l in F:
+        if x>=1000:
+            break
+        for d in delims:
+            delim_counts_list[d].append(l.count(d))
+        x+=1
+
+    most_frequent = (None, 0, 0)
+
+    for d in delims:
+        for c in delim_counts_list[d]:
+            if c:
+                if c in delim_freq[d]:
+                    delim_freq[d][c] +=1
+                else:
+                    delim_freq[d][c] = 1
+                
+    for d in delim_freq:
+        for c in delim_freq[d]:
+            
+            if delim_freq[d][c] > most_frequent[1]:
+                most_frequent = (d,  delim_freq[d][c], c)
+
+    csv_delimeter = most_frequent[0]
+    csv_column_count = most_frequent[2] + 1
+
+    print "Here is the first 10 lines\n"
+    print "-"*30
+    F.seek(0)
+    
+    c=0
+    
+    for l in F:
+        print l.strip()
+        if c>=10:
+            break
+        c +=1
+
+    print "-"*30
+    print
+
+    print "Gusessed delimeter -> {}".format('{tab}' if  csv_delimeter =='\t' else csv_delimeter)
+    print "Guessed column number", csv_column_count
+
+    r = raw_input("Do you want to proceed with these guessed values? [Y|n]: ")
+    if (not r) or (r in ('Y', 'y')):
+        return csv_delimeter, csv_column_count
+
+    else:
+        csv_delimeter, csv_column_count = ask_user_for_delimeter()
+        return csv_delimeter, csv_column_count
+
 
 def clean(e):
     while True:
@@ -119,8 +185,6 @@ def wrap_fields(l, wrapper='"'):
 
 
 def parse_file(tfile):
-
-    print (tfile)
 
     org_tfile = tfile
     
@@ -149,7 +213,7 @@ def parse_file(tfile):
 
         print "Escaping grabage characters"
         
-        gc_file = "{0}_gc".format(tfile)
+        gc_file = "{0}_gc~".format(tfile)
         
         gc_cmd = "tr -cd '\11\12\15\40-\176' < {} > {}".format(tfile, gc_file)
 
@@ -220,5 +284,6 @@ if __name__ == '__main__':
                     parse_file(tf)
 
     elif os.path.isfile(ppath):
+        print "parsing"
         parse_file(ppath)
 
