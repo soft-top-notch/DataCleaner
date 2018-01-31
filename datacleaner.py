@@ -1,13 +1,9 @@
-import sys
+import sys, shutil
 import os
 
 if not len(sys.argv) > 1:
     print "Usage: {} path_to_file.csv".format(sys.argv[0]) 
     sys.exit(0)
-
-tfile = sys.argv[1]
-
-f_name, f_ext = os.path.splitext(tfile)
 
 
 def ask_user_for_delimeter():
@@ -26,6 +22,7 @@ def guess_delimeter(F):
                 ';': [],
                 ':': [],
                 ',': [],
+                '|': [],
                 }
 
     csv_delimeter = None
@@ -36,11 +33,12 @@ def guess_delimeter(F):
         if c>=100:
             break
         ls=l.strip()
-        for d in delim_counts:
-            dc = ls.count(d)
-            if not dc in delim_counts[d]:
-                delim_counts[d].append(ls.count(d))
-        c +=1
+        if ls:
+            for d in delim_counts:
+                dc = ls.count(d)
+                if not dc in delim_counts[d]:
+                    delim_counts[d].append(ls.count(d))
+            c +=1
 
 
     delimeter_list = []
@@ -98,7 +96,6 @@ def guess_delimeter(F):
     return csv_delimeter, csv_column_count
 
 
-F = open(tfile,'rb')
 
 def clean(e):
     while True:
@@ -110,56 +107,118 @@ def clean(e):
         else:
             break
         
-    return e
+    return e.strip()
 
 
 def clean_fields(l):
     return [clean(x) for x in l]
 
 
-if f_ext in ('.csv' '.txt'):
+def wrap_fields(l, wrapper='"'):
+    return ['{0}{1}{0}'.format(wrapper, x) for x in l]
 
-    print "Escaping NULL bytes"
-    
-    os.system("sed -i -e 's|\\x0||g' "+tfile)
-    
 
-    print "Parsing file", tfile
+def parse_file(tfile):
 
-    csv_delimeter, csv_column_count = guess_delimeter(F)
+    print (tfile)
 
-    c=0
+    org_tfile = tfile
+    
+    tfile = org_tfile.replace('(','')
+    tfile = tfile.replace(')','')
+    tfile = tfile.replace(' ','')
+    tfile = tfile.replace(',','')
 
-    F.seek(0)
+    os.rename(org_tfile, tfile)
 
-    #df = csv.reader(open(tfile), delimiter=csv_delimeter, dialect=csv.excel_tab)
+    f_name, f_ext = os.path.splitext(tfile)
 
-    #df = open(tfile)
-    out_file_csv_name = f_name+'_parsed.csv'
-    out_file_err_name = f_name+'_error.csv'
+    fdirname = os.path.dirname(tfile)
+    fbasename = os.path.basename(tfile)
     
-    
-    out_file_csv_file = open(out_file_csv_name,'wb')
-    #csvwriter = csv.writer(out_file_csv_file, delimiter=csv_delimeter, quoting=csv.QUOTE_NONE)
-    
-                            #, doublequote=True,
-                            #quotechar='"', quoting=csv.QUOTE_ALL)
-    
-    out_file_err_file = open(out_file_err_name,'wb')
-    
-    for li in F:
-        l = li.strip().split(csv_delimeter)
-        if l:
-            if not l[-1]:
-                l.pop()
-            if len(l)== csv_column_count:
-                lc = clean_fields(l)
-                
-                out_file_csv_file.write(csv_delimeter.join(lc)+'\n')
-            else:
-                
-                out_file_err_file.write(csv_delimeter.join(l)+'\n')
+    completed_dir = os.path.join(fdirname, 'completed')
+    error_dir = os.path.join(fdirname, 'error')
+
+    if not os.path.exists(completed_dir):
+        os.mkdir(completed_dir)
+
+    if not os.path.exists(error_dir):
+        os.mkdir(error_dir)
+
+    if f_ext in ('.csv' '.txt'):
+
+        print "Escaping grabage characters"
         
-    print "Output file", out_file_csv_name, "were written"
-    print "Error file", out_file_err_name, "were written"
+        gc_file = "{0}_gc".format(tfile)
+        
+        gc_cmd = "tr -cd '\11\12\15\40-\176' < {} > {}".format(tfile, gc_file)
+
+        os.system(gc_cmd)
+
+        print "Parsing file", gc_file
+
+        F = open(gc_file,'rb')
+
+        csv_delimeter, csv_column_count = guess_delimeter(F)
+
+        c=0
+
+        F.seek(0)
+
+        out_file_csv_name = f_name+'_parsed.csv'
+        out_file_err_name = f_name+'_error.csv'
+        
+        write_delimeter = ','
+        
+        out_file_csv_file = open(out_file_csv_name+'~','wb')
+        
+        out_file_err_file = open(out_file_err_name+'~','wb')
+        
+        for li in F:
+            l = li.strip().split(csv_delimeter)
+            if l:
+                if not l[-1]:
+                    l.pop()
+
+                lc = clean_fields(l)
+                lc = wrap_fields(lc)
+
+                if len(l)== csv_column_count:
+                    out_file_csv_file.write(write_delimeter.join(lc)+'\n')
+                else:
+                    out_file_err_file.write(write_delimeter.join(l)+'\n')
+            
+        print "Output file", out_file_csv_name, "were written"
+        print "Error file", out_file_err_name, "were written"
+
+        print "Removing", gc_file
+        os.remove(gc_file)
+
+        print "Moving {} to completed folder".format(tfile)
+        os.rename(tfile, os.path.join(completed_dir, fbasename))
+        
+        err_basename = os.path.basename(out_file_err_name+'~')
+        
+        print "Moving {} to error folder".format(out_file_err_name+'~')
+        
+        err_basename = os.path.basename(out_file_err_name+'~')
+        
+        os.rename(out_file_err_name+'~', os.path.join(error_dir, err_basename[:-1]))
+
+        os.rename(out_file_csv_name+'~', out_file_csv_name)
+
+
+if __name__ == '__main__':
+
+    ppath = sys.argv[1]
+
+    if os.path.isdir(ppath):
+        for tfile in os.listdir(ppath):
+            tf = os.path.join(ppath,tfile)
+            if not tf.endswith('~'):
+                if os.path.isfile(tf):
+                    parse_file(tf)
+
+    elif os.path.isfile(ppath):
+        parse_file(ppath)
 
