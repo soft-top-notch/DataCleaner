@@ -114,8 +114,12 @@ def guess_delimeter(F):
         if x>=1000:
             break
         for d in delims:
-            delim_counts_list[d].append(l.count(d))
-        x+=1
+            cnt = l.count(d)
+            if l.strip():
+                if l.strip()[-1]==d:
+                    cnt -= 1
+                delim_counts_list[d].append(cnt)
+                x+=1
 
     most_frequent = (None, 0, 0)
 
