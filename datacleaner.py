@@ -96,6 +96,27 @@ def x_guess_delimeter(F):
     return csv_delimeter, csv_column_count
 
 
+def strip_delimeter(ls, csv_delimeter):
+
+    while True:
+        if ls:
+            if ls[0] == csv_delimeter:
+                ls = ls[1:]
+            else:
+                break
+        break
+
+    while True:
+        if ls:
+            if ls[-1] == csv_delimeter:
+                ls = ls[:-1]
+            else:
+                break
+        else:
+            break
+
+    return ls
+
 def guess_delimeter(F):
 
     delims = ('\t', ' ', ';', ':', ',', '|')
@@ -114,12 +135,11 @@ def guess_delimeter(F):
         if x>=1000:
             break
         for d in delims:
-            cnt = l.count(d)
-            if l.strip():
-                if l.strip()[-1]==d:
-                    cnt -= 1
-                delim_counts_list[d].append(cnt)
-                x+=1
+            ls = l.strip()
+            ls = strip_delimeter(ls, d)
+            cnt = ls.count(d)
+            delim_counts_list[d].append(cnt)
+            x+=1
 
     most_frequent = (None, 0, 0)
 
@@ -243,18 +263,21 @@ def parse_file(tfile):
         out_file_err_file = open(out_file_err_name+'~','wb')
         
         for li in F:
-            l = li.strip().split(csv_delimeter)
-            if l:
-                if not l[-1]:
-                    l.pop()
+            ls = li.strip()
+            if ls:
+                ls = strip_delimeter(ls, csv_delimeter)
+                l = ls.split(csv_delimeter)
+                if l:
+                    if not l[-1]:
+                        l.pop()
 
-                lc = clean_fields(l)
-                lc = wrap_fields(lc)
+                    lc = clean_fields(l)
+                    lc = wrap_fields(lc)
 
-                if len(l)== csv_column_count:
-                    out_file_csv_file.write(write_delimeter.join(lc)+'\n')
-                else:
-                    out_file_err_file.write(write_delimeter.join(l)+'\n')
+                    if len(l)== csv_column_count:
+                        out_file_csv_file.write(write_delimeter.join(lc)+'\n')
+                    else:
+                        out_file_err_file.write(write_delimeter.join(l)+'\n')
             
         print "Output file", out_file_csv_name, "were written"
         print "Error file", out_file_err_name, "were written"
