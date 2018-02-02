@@ -1,10 +1,17 @@
 import os, sys, shutil
 import csv, codecs, cStringIO
+import argparse
+
+csv.field_size_limit(sys.maxsize)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
+parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
+parser.add_argument("path", help="Path to csv file or folder")
+
+args = parser.parse_args()
 
 
-if not len(sys.argv) > 1:
-    print "Usage: {} path_to_file.csv".format(sys.argv[0]) 
-    sys.exit(0)
 
 delims = ('\t', ' ', ';', ':', ',', '|')
 
@@ -172,7 +179,7 @@ def guess_delimeter(F):
     if csv_guess:
         rdialect, csv_column_count = csv_guess
         csv_delimeter = rdialect.delimiter
-        print ">>> Guess method: CSV Sniffer\n"
+        print ">>> Guess method: CSV Sniffer delimiter -> {}\n".format(csv_delimeter)
     else:
         delim_counts_list={}
         delim_freq = {}
@@ -216,7 +223,26 @@ def guess_delimeter(F):
         rdialect = csv.excel
         rdialect.delimiter = csv_delimeter
 
-        print ">>> Guess method: Custom\n"
+        if csv_delimeter:
+
+            print ">>> Guess method: Custom delimiter -> {}\n".format(csv_delimeter)
+        
+        else:
+        
+            if not args.p:
+        
+                print "Delimiter could not determined"
+                csv_delimeter, csv_column_count = ask_user_for_delimeter()
+                rdialect = csv.excel
+                rdialect.delimiter = csv_delimeter
+
+                return rdialect, csv_column_count
+            else:
+                print "Delimiter could not determined, passing"
+                return False, False
+
+    if args.a:
+        return rdialect, csv_column_count
 
     print "Here is the first 10 lines\n"
     print "-"*30
@@ -308,75 +334,90 @@ def parse_file(tfile):
 
         F = open(gc_file,'rb')
 
+        print "Guessing delimiter"
         dialect, csv_column_count = guess_delimeter(F)
 
-        F.seek(0)
+        if dialect:
 
-        out_file_csv_name = f_name+'_cleaned.csv'
-        out_file_err_name = f_name+'_error.csv'
-        
-        
-        out_file_csv_file = open(out_file_csv_name+'~','wb')
-        
-        out_file_err_file = open(out_file_err_name+'~','wb')
+            F.seek(0)
 
-
-        orig_reader = UnicodeReader(F, dialect=dialect)
-        clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
-        error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
-
-        for l in orig_reader:
-
+            out_file_csv_name = f_name+'_cleaned.csv'
+            out_file_err_name = f_name+'_error.csv'
             
-            while True:
-                if not l:
-                    break
-                if not l[-1]:
-                    l.pop()
+            
+            out_file_csv_file = open(out_file_csv_name+'~','wb')
+            
+            out_file_err_file = open(out_file_err_name+'~','wb')
+
+
+            print "Cleaning ... \n"
+
+            orig_reader = UnicodeReader(F, dialect=dialect)
+            clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
+            error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
+
+            for l in orig_reader:
+                
+                while True:
+                    if not l:
+                        break
+                    if not l[-1]:
+                        l.pop()
+                    else:
+                        break
+                
+                if len(l) == csv_column_count:
+                    clean_writer.writerow(l)
                 else:
-                    break
+                    error_writer.writerow(l)
+
+            F.close()
+            out_file_csv_file.close()
+            out_file_err_file.close()
+
+
+            print "Output file", out_file_csv_name+'~', "were written"
+            print "Error file", out_file_err_name+'~', "were written"
+
+
+
+            print "Moving {} to completed folder".format(tfile)
+            os.rename(tfile, os.path.join(completed_dir, fbasename))
             
-            if len(l) == csv_column_count:
-                clean_writer.writerow(l)
-            else:
-                error_writer.writerow(l)
+            err_basename = os.path.basename(out_file_err_name+'~')
+            
+            print "Moving {} to error folder".format(out_file_err_name+'~')
+            
+            err_basename = os.path.basename(out_file_err_name+'~')
+            
+            os.rename(out_file_err_name+'~', os.path.join(error_dir, err_basename[:-1]))
 
-        F.close()
-        out_file_csv_file.close()
-        out_file_err_file.close()
-
-
-        print "Output file", out_file_csv_name+'~', "were written"
-        print "Error file", out_file_err_name+'~', "were written"
+            os.rename(out_file_csv_name+'~', out_file_csv_name)
 
         print "Removing", gc_file
         os.remove(gc_file)
-
-        print "Moving {} to completed folder".format(tfile)
-        os.rename(tfile, os.path.join(completed_dir, fbasename))
-        
-        err_basename = os.path.basename(out_file_err_name+'~')
-        
-        print "Moving {} to error folder".format(out_file_err_name+'~')
-        
-        err_basename = os.path.basename(out_file_err_name+'~')
-        
-        os.rename(out_file_err_name+'~', os.path.join(error_dir, err_basename[:-1]))
-
-        os.rename(out_file_csv_name+'~', out_file_csv_name)
-
         
 if __name__ == '__main__':
 
-    ppath = sys.argv[1]
+    mpath = args.path
 
-    if os.path.isdir(ppath):
-        for tfile in os.listdir(ppath):
-            tf = os.path.join(ppath,tfile)
-            if not tf.endswith('~'):
-                if os.path.isfile(tf):
-                    parse_file(tf)
+    print mpath
 
-    elif os.path.isfile(ppath):
-        parse_file(ppath)
+    if os.path.isdir(mpath):
+        for ppath in os.listdir(mpath):
+            ppath = os.path.join(mpath, ppath)
+            if os.path.isdir(ppath):
+                print "PATH"
+                for tfile in os.listdir(ppath):
+                    tf = os.path.join(ppath,tfile)
+                    if not tf.endswith('~'):
+                        if os.path.isfile(tf):
+                            parse_file(tf)
+
+            elif os.path.isfile(ppath):
+                parse_file(ppath)
+    elif os.path.isfile(mpath):
+        if not mpath.endswith('~'):
+            parse_file(mpath)
+        
 
