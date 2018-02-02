@@ -322,6 +322,8 @@ def parse_file(tfile):
 
     if f_ext in ('.csv' '.txt'):
 
+        print "\n---------------------------------------------\n"
+        
         print "Escaping grabage characters"
         
         gc_file = "{0}_gc~".format(tfile)
