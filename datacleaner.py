@@ -368,6 +368,9 @@ def parse_file(tfile):
                 
                 if len(l) == csv_column_count:
                     clean_writer.writerow(l)
+                elif len(l) == csv_column_count-1:
+                    l.append("")
+                    clean_writer.writerow(l)
                 else:
                     error_writer.writerow(l)
 
