@@ -7,28 +7,37 @@ from __future__ import print_function
 import attr
 import os
 import sys
-from pyparsing import alphanums, alphas, CaselessKeyword, CaselessLiteral, \
-    Combine, delimitedList, Group, NotAny, nums, Optional, OneOrMore, \
+from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
+    Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
     ParseException, ParseResults, quotedString, removeQuotes, Suppress, Word, \
     ZeroOrMore
 
 # pyparsing patterns for matching/parsing SQL
 BACKTICK = Suppress(Optional('`'))
 
+E = CaselessLiteral("E")
+binop = oneOf("= != < > >= <= eq ne lt le gt ge", caseless=True)
+arithSign = Word("+-", exact=1)
+realNum = Combine(
+    Optional(arithSign) + (Word(nums) + "." + Optional(Word(nums)) | (
+        "." + Word(nums))) + Optional(E + Optional(arithSign) + Word(nums)))
+intNum = Combine(
+    Optional(arithSign) + Word(nums) + Optional(E + Optional("+") + Word(nums))
+)
+
 # Field Names
 KEYS = (CaselessKeyword('PRIMARY') | CaselessKeyword('UNIQUE')
         | CaselessKeyword('KEY'))
-FIELD_TYPE = Combine(
-    Word(alphas) + Optional(Word('(') + Word(nums) + Word(')')))
-
-FIELD_SETTING = ZeroOrMore(Word(alphanums + '_'))
-FIELD_DEFAULT = quotedString
-FIELD_NAME = BACKTICK + NotAny(KEYS) + Word(
-    alphanums + '_'
-) + BACKTICK + Suppress(
-    Optional(FIELD_TYPE) + Optional(FIELD_SETTING) + Optional(FIELD_DEFAULT))
-FIELDS = Suppress('(') + Group(delimitedList(FIELD_NAME)).setResultsName(
-    'field_names') + Suppress(Optional(KEYS) + Optional(')'))
+FIELD_META = ZeroOrMore((Word('(' + alphanums + '_' + ',' + ')')
+                         | quotedString) + NotAny(KEYS))
+FIELD_NAME = BACKTICK + Word(alphanums + '_') + BACKTICK + Suppress(
+    Optional(','))
+FIELD_NAME_META = NotAny(KEYS) + FIELD_NAME + Suppress(Optional(FIELD_META))
+CREATE_FIELDS = Suppress('(') + Group(
+    OneOrMore(FIELD_NAME_META)).setResultsName('field_names') + Suppress(
+        Optional(KEYS) + Optional(')'))
+INSERT_FIELDS = Suppress('(') + Group(
+    OneOrMore(FIELD_NAME)).setResultsName('field_names') + Suppress(')')
 
 # CREATE TABLE
 USER_TABLE = BACKTICK + Combine(
@@ -38,10 +47,10 @@ CREATE = CaselessKeyword('CREATE TABLE')
 CREATE_EXISTS = CaselessKeyword('IF NOT EXISTS')
 CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE.setResultsName(
     'table_name')
-CREATE_FULL = CREATE_BEGIN + FIELDS
+CREATE_FULL = CREATE_BEGIN + CREATE_FIELDS
 
 VALUE = Combine(
-    Suppress(Optional(',')) + (Word(nums)
+    Suppress(Optional(',')) + (realNum | intNum
                                | quotedString.addParseAction(removeQuotes)
                                | 'NULL') + Suppress(Optional(',')))
 VALUES = Suppress('(') + Group(OneOrMore(VALUE)) + Suppress(')') + Suppress(
@@ -50,8 +59,8 @@ VALUES = Suppress('(') + Group(OneOrMore(VALUE)) + Suppress(')') + Suppress(
 # INSERT INTO
 INSERT = CaselessKeyword('INSERT INTO')
 INSERT_BEGIN = INSERT + USER_TABLE.setResultsName('table_name')
-INSERT_FULL = INSERT_BEGIN + Optional(FIELDS) + \
-              CaselessKeyword('VALUES') + Group(OneOrMore(VALUES)).setResultsName('values')
+INSERT_FULL = INSERT_BEGIN + Optional(INSERT_FIELDS) + CaselessKeyword(
+    'VALUES') + Group(OneOrMore(VALUES)).setResultsName('values')
 
 
 @attr.s()
@@ -189,7 +198,7 @@ def print_progress(filepath):
         filename = os.path.basename(filepath)
         msg = '{}: {}'.format(filename, data)
         if end:
-            print(msg + ' ' * 40)
+            print(msg + ' ' * 50)
         else:
             msg += '\r\r'
             sys.stdout.write(msg)
@@ -201,7 +210,7 @@ def print_progress(filepath):
 def raise_error(exc_info, line):
     """Combine Exception error msg with last line processed."""
     if len(line) > 5000:
-        line = line[0:5000] + '...LINE CUT...'
+        line = line[0:5000] + '...OUTPUT CUT DUE TO LENGTH...'
     error_msg = '{}\n\nLine:\n{}\n'.format(exc_info[1], line)
     print()
     raise exc_info[0], error_msg, exc_info[2]
