@@ -20,7 +20,7 @@ KEYS = (CaselessKeyword('PRIMARY') | CaselessKeyword('UNIQUE')
 FIELD_TYPE = Combine(
     Word(alphas) + Optional(Word('(') + Word(nums) + Word(')')))
 
-FIELD_SETTING = ZeroOrMore(Word(alphas + '_'))
+FIELD_SETTING = ZeroOrMore(Word(alphanums + '_'))
 FIELD_DEFAULT = quotedString
 FIELD_NAME = BACKTICK + NotAny(KEYS) + Word(
     alphanums + '_'
@@ -39,16 +39,18 @@ CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE.setResultsName(
     'table_name')
 CREATE_FULL = CREATE_BEGIN + FIELDS
 
-VALUE = Combine((nums | quotedString.addParseAction(removeQuotes)
-                 | 'NULL') + Optional(','))
-VALUES = Suppress('(') + OneOrMore(VALUE).setResultsName('values') + \
-         Suppress(')')
+VALUE = Combine(
+    Suppress(Optional(',')) + (alphanums
+                               | quotedString.addParseAction(removeQuotes)
+                               | 'NULL') + Suppress(Optional(',')))
+VALUES = Suppress('(') + Group(OneOrMore(VALUE)) + Suppress(')') + Suppress(
+    Optional(','))
 
 # INSERT INTO
 INSERT = CaselessKeyword('INSERT INTO')
 INSERT_BEGIN = INSERT + USER_TABLE.setResultsName('table_name')
 INSERT_FULL = INSERT_BEGIN + Optional(FIELDS) + \
-              CaselessKeyword('VALUES') + VALUES
+              CaselessKeyword('VALUES') + Group(OneOrMore(VALUES)).setResultsName('values')
 
 
 @attr.s()
@@ -123,8 +125,6 @@ def parse(filename):
         if create_table:
             result = parse_sql(create_table.statement, CREATE_FULL)
             if result and isinstance(result, ParseResults):
-                print()
-                print(create_table.statement)
                 field_names = result.asDict()['field_names']
             elif isinstance(result, tuple):
                 raise_error(result, create_table.statement)
@@ -150,23 +150,29 @@ def parse(filename):
         csvfile.write('\n')
         print_progress('Wrote csv field names')
 
-        inserts_len = len(inserts)
-        for entry, insert in enumerate(inserts):
+        total_data_lines = 0
+        insert_len = len(inserts)
+        for num, insert in enumerate(inserts):
+            print_progress('Processing insert {} of {}'.format(
+                num, insert_len))
             result = parse_sql(insert, INSERT_FULL)
             if result and isinstance(result, ParseResults):
-                values = result.asDict()['values']
-                csvfile.write(','.join(
-                    '"{}"'.format(value) for value in values))
-                csvfile.write('\n')
-                print_progress('Wrote {} of {} inserts...'.format(
-                    entry + 1, inserts_len))
+                values_list = result.asDict()['values']
+                for values in values_list:
+                    csvfile.write(','.join(
+                        '"{}"'.format(value) for value in values))
+                    csvfile.write('\n')
+                    total_data_lines += 1
+                    print_progress(
+                        'Wrote {} data line(s)...'.format(total_data_lines))
             elif isinstance(result, tuple):
                 raise_error(result, insert)
             else:
                 print()
                 raise Exception('Unknown error has occurred')
 
-        print_progress('Wrote {} insert(s)'.format(inserts_len + 1), end=True)
+        print_progress(
+            'Wrote {} total lines(s)'.format(total_data_lines + 1), end=True)
 
 
 def parse_sql(line, pattern):
@@ -177,9 +183,9 @@ def parse_sql(line, pattern):
 
 
 def print_progress(data, end=False):
-    msg = '{}: {}\r\r'.format(sys.argv[1], data)
+    msg = '{}: {}'.format(sys.argv[1], data) + ' ' * 10
+    msg += '\r\r'
     if end:
-        print()
         print(msg)
     else:
         sys.stdout.write(msg)
