@@ -5,6 +5,7 @@ Should be imported and used within datacleaner.py
 """
 from __future__ import print_function
 import attr
+import os
 import sys
 from pyparsing import alphanums, alphas, CaselessKeyword, CaselessLiteral, \
     Combine, delimitedList, Group, NotAny, nums, Optional, OneOrMore, \
@@ -40,7 +41,7 @@ CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE.setResultsName(
 CREATE_FULL = CREATE_BEGIN + FIELDS
 
 VALUE = Combine(
-    Suppress(Optional(',')) + (alphanums
+    Suppress(Optional(',')) + (Word(nums)
                                | quotedString.addParseAction(removeQuotes)
                                | 'NULL') + Suppress(Optional(',')))
 VALUES = Suppress('(') + Group(OneOrMore(VALUE)) + Suppress(')') + Suppress(
@@ -74,7 +75,7 @@ def main():
         sys.exit(138)
 
 
-def parse(filename):
+def parse(filepath):
     """Opens sql file and parses statements, outputing data into CSV."""
     field_names = []
     # Current CreateTable object
@@ -85,28 +86,28 @@ def parse(filename):
     inserts = []
     parsing = None
     line_count = 0
+    progress = print_progress(filepath)
 
     # Extract the CREATE TABLE and INSERT INTO statements for the user table
-    with open(filename) as sqlfile:
+    with open(filepath) as sqlfile:
         for line in sqlfile:
             line_count += 1
-            print_progress('Reading line {}...'.format(line_count))
+            progress('Reading line {}...'.format(line_count))
             # If not parsing a CREATE or INSERT statement, look for one
             if not parsing:
-                if not create_table:
+                insert = parse_sql(line, INSERT_BEGIN)
+                if insert and isinstance(insert, ParseResults):
+                    insert_into = InsertInto(line)
+                    if insert_into.ending not in line:
+                        parsing = insert_into
+                    else:
+                        inserts.append(insert_into.statement)
+                elif not create_table:
                     create = parse_sql(line, CREATE_BEGIN)
                     if create and isinstance(create, ParseResults):
                         create_table = CreateTable(line)
                         if create_table.ending not in line:
                             parsing = create_table
-                else:
-                    insert = parse_sql(line, INSERT_BEGIN)
-                    if insert and isinstance(insert, ParseResults):
-                        insert_into = InsertInto(line)
-                        if insert_into.ending not in line:
-                            parsing = insert_into
-                        else:
-                            inserts.append(insert_into.statement)
             # Continue parsing the current statement
             else:
                 parsing.statement += line
@@ -115,13 +116,14 @@ def parse(filename):
                         inserts.append(parsing.statement)
                     parsing = None
 
-    print_progress('Finished reading sql file')
+    progress('Finished reading sql file')
     if not inserts:
         print()
-        raise ValueError('No INSERT statements found!')
+        raise ValueError(
+            'No INSERT statements found! Last statement parsed: %s' % parsing)
 
     # Extract data from statements and write to csv file
-    with open(filename + '.csv', 'w') as csvfile:
+    with open(filepath + '.csv', 'w') as csvfile:
         if create_table:
             result = parse_sql(create_table.statement, CREATE_FULL)
             if result and isinstance(result, ParseResults):
@@ -132,7 +134,6 @@ def parse(filename):
                 print()
                 raise Exception('Unknown error has occurred')
         else:
-            print('ERROR: No CREATE TABLE statement matched!')
             result = parse_sql(inserts[0], INSERT_FULL)
             if result and isinstance(result, ParseResults):
                 field_names = result.asDict()['field_names']
@@ -148,13 +149,14 @@ def parse(filename):
 
         csvfile.write(','.join(field_names))
         csvfile.write('\n')
-        print_progress('Wrote csv field names')
+        progress('Wrote csv field names')
 
         total_data_lines = 0
         insert_len = len(inserts)
         for num, insert in enumerate(inserts):
-            print_progress('Processing insert {} of {}'.format(
-                num, insert_len))
+            insert_status = 'Processing insert {} of {}: '.format(
+                num + 1, insert_len)
+            progress(insert_status)
             result = parse_sql(insert, INSERT_FULL)
             if result and isinstance(result, ParseResults):
                 values_list = result.asDict()['values']
@@ -163,15 +165,15 @@ def parse(filename):
                         '"{}"'.format(value) for value in values))
                     csvfile.write('\n')
                     total_data_lines += 1
-                    print_progress(
-                        'Wrote {} data line(s)...'.format(total_data_lines))
+                    progress(insert_status + 'wrote {} data line(s)...'.format(
+                        total_data_lines))
             elif isinstance(result, tuple):
                 raise_error(result, insert)
             else:
                 print()
                 raise Exception('Unknown error has occurred')
 
-        print_progress(
+        progress(
             'Wrote {} total lines(s)'.format(total_data_lines + 1), end=True)
 
 
@@ -182,14 +184,18 @@ def parse_sql(line, pattern):
         return sys.exc_info()
 
 
-def print_progress(data, end=False):
-    msg = '{}: {}'.format(sys.argv[1], data) + ' ' * 10
-    msg += '\r\r'
-    if end:
-        print(msg)
-    else:
-        sys.stdout.write(msg)
-        sys.stdout.flush()
+def print_progress(filepath):
+    def progress(data, end=False):
+        filename = os.path.basename(filepath)
+        msg = '{}: {}'.format(filename, data)
+        if end:
+            print(msg + ' ' * 40)
+        else:
+            msg += '\r\r'
+            sys.stdout.write(msg)
+            sys.stdout.flush()
+
+    return progress
 
 
 def raise_error(exc_info, line):
