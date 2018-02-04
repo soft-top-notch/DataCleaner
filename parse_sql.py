@@ -1,16 +1,47 @@
 #!/usr/bin/env python2.7
 """Parse user data from SQL.
 
-Should be imported and used within datacleaner.py
+Called with filename argument for one or more sql files/dumps.  Will output
+csv and move sql source file to completed or failed directories depending on
+if there were any errors.
+
+Filename argument can be a list of files or wildcard (*).
+
+Usage:
+    parse_sql.py [-hV] [--completed=DIR] [--failed=DIR] [--exit-on-error] SQLFILE...
+
+Options:
+    --completed=DIR               Directory to store completed sql files [default: completed]
+    --exit-on-error               Exit on error, do not continue
+    --failed=DIR                  Directory to store sql files with errors [default: failed]
+    -h, --help                    This help output
+    -V, --version                 Print version and exit
+
+Examples:
+    parse_sql.py --completed='~/success' --failed='~/error' test.sql
+    parse_sql.py --exit-on-error ~/samples/*.sql
 """
 from __future__ import print_function
 import attr
 import os
 import sys
+from docopt import docopt
 from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
     ParseException, ParseResults, quotedString, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
+
+__author__ = 'Paul Howell'
+__version__ = '0.5.0'
+__license__ = """
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
 
 # pyparsing patterns for matching/parsing SQL
 BACKTICK = Suppress(Optional('`'))
@@ -78,13 +109,43 @@ class InsertInto(object):
     ending = attr.ib(default=');')
 
 
-def main():
+def main(args):
     """Executes main code."""
-    try:
-        parse(sys.argv[1])
-    except KeyboardInterrupt:
-        print('Control-c pressed...')
-        sys.exit(138)
+    for filepath in args['SQLFILE']:
+        try:
+            parse(filepath)
+        except KeyboardInterrupt:
+            print('Control-c pressed...')
+            sys.exit(138)
+        except Exception as e:
+            move(filepath, args['--failed'])
+            if args['--exit-on-error']:
+                raise
+            else:
+                if e.message:
+                    print('Error with {}: {}'.format(filepath, e.message))
+                else:
+                    print('There was an unknown error with ' + filepath)
+        else:
+            move(filepath, args['--completed'])
+
+
+def move(src, dest):
+    """Moves source file into success or failed directories.
+
+    Creates directory if needed.
+    """
+    filename = os.path.basename(src)
+    if '~' in dest:
+        dest_dir = os.path.expanduser(dest)
+    else:
+        dest_dir == dest
+
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+
+    new_path = '{}/{}'.format(dest_dir, filename)
+    os.rename(src, new_path)
 
 
 def parse(filepath):
@@ -221,4 +282,5 @@ def raise_error(exc_info, line):
 
 if __name__ == '__main__':
     """Executed if called from CLI directly."""
-    main()
+    args = docopt(__doc__, version=__version__)
+    main(args)
