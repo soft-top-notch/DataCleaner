@@ -422,33 +422,40 @@ if __name__ == '__main__':
         for ppath in os.listdir(mpath):
             ppath = os.path.join(mpath, ppath)
             if os.path.isdir(ppath):
-                for tfile in os.listdir(ppath):
-                    tf = os.path.join(ppath,tfile)
-                    if not tf.endswith('~'):
-                        if os.path.isfile(tf):
-                            if tf.lower().endswith('.sql'):
-                                sql_path_list.append(tf)
-                            else:
-                                parse_path_list.append(tf)
+                if not ppath in ('completed','error'):
+                    for tfile in os.listdir(ppath):
+                        tf = os.path.join(ppath,tfile)
+                        if not tf.endswith('~') and not tf.startswith('.'):
+                            if not '_cleaned.' in tf:
+                                if os.path.isfile(tf):
+                                    if tf.lower().endswith('.sql'):
+                                        sql_path_list.append(tf)
+                                    else:
+                                        parse_path_list.append(tf)
 
 
             elif os.path.isfile(ppath):
-                if not ppath.endswith('~'):
-                    if ppath.lower().endswith('.sql'):
-                        sql_path_list.append(ppath)
-                    else:
-                        parse_path_list.append(ppath)
+                if not ppath.endswith('~') and not ppath.startswith('.'):
+                    if not '_cleaned.' in ppath:
+                        if ppath.lower().endswith('.sql'):
+                            sql_path_list.append(ppath)
+                        else:
+                            parse_path_list.append(ppath)
 
     elif os.path.isfile(mpath):
         if not mpath.endswith('~'):
-            if mpath.lower().endswith('.sql'):
-                sql_path_list.append(mpath)
-            else:
-                parse_path_list.append(mpath)
+            
+            if not '_cleaned.' in mpath:
+                if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
+                    sql_path_list.append(mpath)
+
+                else:
+                    parse_path_list.append(mpath)
     
     print
     print "PARSING TXT and CSV FILES"
     print "-------------------------\n"
+    
     
     for f in parse_path_list:
         parse_file(f)
