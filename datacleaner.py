@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os, sys, shutil
 import csv, codecs, cStringIO
 import argparse
