@@ -110,9 +110,7 @@ class InsertInto(object):
 
 
 def main(args):
-    
-    print (args)
-    
+
     """Executes main code."""
     for filepath in args['SQLFILE']:
         try:

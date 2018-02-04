@@ -463,6 +463,7 @@ if __name__ == '__main__':
                 'SQLFILE': [sf],
                 '--failed': os.path.join(dir_name,'failed'),
                 '--completed': os.path.join(dir_name,'completed'),
+                '--exit-on-error': True,
                 }
         parse_sql.main(sARGS)
 
