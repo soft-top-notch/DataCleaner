@@ -110,6 +110,9 @@ class InsertInto(object):
 
 
 def main(args):
+    
+    print (args)
+    
     """Executes main code."""
     for filepath in args['SQLFILE']:
         try:
@@ -139,12 +142,13 @@ def move(src, dest):
     if '~' in dest:
         dest_dir = os.path.expanduser(dest)
     else:
-        dest_dir == dest
+        dest_dir = dest
 
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
     new_path = '{}/{}'.format(dest_dir, filename)
+    
     os.rename(src, new_path)
 
 
