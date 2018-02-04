@@ -53,7 +53,7 @@ CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE.setResultsName(
 CREATE_FULL = CREATE_BEGIN + CREATE_FIELDS
 
 VALUE = Combine(
-    Suppress(Optional(',')) + (realNum | intNum
+    Suppress(Optional(',')) + (realNum | intNum | alphanums
                                | quotedString.addParseAction(removeQuotes)
                                | 'NULL') + Suppress(Optional(',')))
 VALUES = Suppress('(') + Group(OneOrMore(VALUE)) + Suppress(')') + Suppress(
