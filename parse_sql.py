@@ -9,8 +9,8 @@ import os
 import sys
 from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
-    ParseException, ParseResults, quotedString, removeQuotes, Suppress, Word, \
-    ZeroOrMore
+    ParseException, ParseResults, quotedString, removeQuotes, \
+    Suppress, Word, WordEnd, ZeroOrMore
 
 # pyparsing patterns for matching/parsing SQL
 BACKTICK = Suppress(Optional('`'))
@@ -40,9 +40,12 @@ INSERT_FIELDS = Suppress('(') + Group(
     OneOrMore(FIELD_NAME)).setResultsName('field_names') + Suppress(')')
 
 # CREATE TABLE
-USER_TABLE = BACKTICK + Combine(
-    Optional(Word(alphanums) + Word('_')) + CaselessLiteral('users')) + \
-    BACKTICK
+USER_NAME = Combine(CaselessLiteral('user') + Optional(CaselessLiteral('s')))
+MEMBER_NAME = Combine(
+    CaselessLiteral('member') + Optional(CaselessLiteral('s')))
+TABLE_NAME = (USER_NAME | MEMBER_NAME)
+USER_TABLE = Combine(BACKTICK + Optional(Word(alphanums) + '_') + TABLE_NAME +
+                     BACKTICK) + WordEnd()
 CREATE = CaselessKeyword('CREATE TABLE')
 CREATE_EXISTS = CaselessKeyword('IF NOT EXISTS')
 CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE.setResultsName(
@@ -101,7 +104,7 @@ def parse(filepath):
     with open(filepath) as sqlfile:
         for line in sqlfile:
             line_count += 1
-            progress('Reading line {}...'.format(line_count))
+            progress('Analyzing line {}...'.format(line_count))
             # If not parsing a CREATE or INSERT statement, look for one
             if not parsing:
                 insert = parse_sql(line, INSERT_BEGIN)
@@ -174,8 +177,8 @@ def parse(filepath):
                         '"{}"'.format(value) for value in values))
                     csvfile.write('\n')
                     total_data_lines += 1
-                    progress(insert_status + 'wrote {} data line(s)...'.format(
-                        total_data_lines))
+                    progress(insert_status + ' wrote {} data line(s)...'.
+                             format(total_data_lines))
             elif isinstance(result, tuple):
                 raise_error(result, insert)
             else:
