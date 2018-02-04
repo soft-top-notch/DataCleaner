@@ -4,6 +4,7 @@ import os, sys, shutil
 import csv, codecs, cStringIO
 import argparse
 import parse_sql
+import StringIO
 
 csv.field_size_limit(sys.maxsize)
 
@@ -176,7 +177,6 @@ def strip_delimeter(ls, csv_delimeter):
 
 def guess_delimeter(F):
 
-    
     csv_guess = guess_delimeter_by_csv(F)
     
     if csv_guess:
@@ -357,32 +357,38 @@ def parse_file(tfile):
 
             print "Cleaning ... \n"
 
-            orig_reader = UnicodeReader(F, dialect=dialect)
+            
             clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
             error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
             l_count = 0
 
-            for l in orig_reader:
-                l_count +=1
-                print"\r Parsing line: {0}".format(l_count),
-                sys.stdout.flush()
-                
-                while True:
-                    if not l:
-                        break
-                    if not l[-1]:
-                        l.pop()
+            for lk in F:
+                a = StringIO.StringIO()
+                a.write(lk)
+                a.seek(0)
+                orig_reader = UnicodeReader(a, dialect=dialect)
+
+                for l in orig_reader:
+                    l_count +=1
+                    print"\r Parsing line: {0}".format(l_count),
+                    sys.stdout.flush()
+                    
+                    while True:
+                        if not l:
+                            break
+                        if not l[-1]:
+                            l.pop()
+                        else:
+                            break
+                    
+                    if len(l) == csv_column_count:
+                        clean_writer.writerow(l)
+                    elif len(l) == csv_column_count-1:
+                        l.append("")
+                        clean_writer.writerow(l)
                     else:
-                        break
-                
-                if len(l) == csv_column_count:
-                    clean_writer.writerow(l)
-                elif len(l) == csv_column_count-1:
-                    l.append("")
-                    clean_writer.writerow(l)
-                else:
-                    error_writer.writerow(l)
+                        error_writer.writerow(l)
 
             F.close()
             out_file_csv_file.close()
@@ -470,7 +476,7 @@ if __name__ == '__main__':
                 'SQLFILE': [sf],
                 '--failed': os.path.join(dir_name,'failed'),
                 '--completed': os.path.join(dir_name,'completed'),
-                '--exit-on-error': True,
+                '--exit-on-error': False,
                 }
         parse_sql.main(sARGS)
 
