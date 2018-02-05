@@ -30,7 +30,7 @@ import sys
 from docopt import docopt
 from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
-    ParseException, ParseResults, quotedString, removeQuotes, \
+    ParseException, ParseResults, quotedString, QuotedString, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
 __version__ = '0.5.0'
@@ -126,10 +126,11 @@ def main(args):
             if args['--exit-on-error']:
                 raise
             else:
-                if isinstance(error, ParseException):
-                    print(error)
+                progress = print_progress(filepath)
+                if error.message:
+                    progress('ERROR: ' + str(error.message), end=True)
                 else:
-                    print(error.message)
+                    progress('ERROR: ' + str(error), end=True)
         else:
             move(filepath, args['--completed'])
 
@@ -168,6 +169,10 @@ def parse(filepath):
     m = magic.Magic(mime_encoding=True)
     encoding = m.from_file(filepath)
 
+    # Unrecognized encoding, guess iso-8859-1
+    if encoding == 'unknown-8bit':
+        encoding = 'iso-8859-1'
+
     # Extract the CREATE TABLE and INSERT INTO statements for the user table
     with codecs.open(filepath, encoding=encoding) as sqlfile:
         for line in sqlfile:
@@ -193,17 +198,19 @@ def parse(filepath):
                 parsing.statement += line
                 if parsing.ending in line:
                     if isinstance(parsing, InsertInto):
-                        inserts.append(parsing.statement)
+                        insert = parsing.statement.replace('\r', '')
+                        insert = insert.replace('\n', '')
+                        inserts.append(insert)
                     parsing = None
 
     progress('Finished reading sql file')
     if not inserts:
-        print()
-        raise ValueError(
-            'No INSERT statements found! Last statement parsed: %s' % parsing)
+        error = 'No full INSERT statements found!'
+        line = parsing.statement if parsing else ''
+        raise_error((ValueError, ValueError(error), None), line)
 
     # Extract data from statements and write to csv file
-    with open(filepath + '.csv', 'w') as csvfile:
+    with codecs.open(filepath + '.csv', 'w', encoding) as csvfile:
         if create_table:
             result = parse_sql(create_table.statement, CREATE_FULL)
             if result and isinstance(result, ParseResults):
@@ -245,7 +252,7 @@ def parse(filepath):
                 values_list = result.asDict()['values']
                 for values in values_list:
                     csvfile.write(','.join(
-                        '"{}"'.format(value) for value in values))
+                        ['"%s"' % value for value in values]))
                     csvfile.write('\n')
                     total_data_lines += 1
                     progress(insert_status + ' wrote {} data line(s)...'.
@@ -304,7 +311,7 @@ def raise_error(exc_info, line):
     """Combine Exception error msg with last line processed."""
     if len(line) > 5000:
         line = line[0:5000] + '...OUTPUT CUT DUE TO LENGTH...'
-    error_msg = '{}\n\nLine:\n{}\n'.format(exc_info[1], line)
+    error_msg = '%s\n\nLine:\n%s\n' % (exc_info[1], line)
     print()
     raise exc_info[0], error_msg, exc_info[2]
 
