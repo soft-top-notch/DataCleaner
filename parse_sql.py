@@ -112,6 +112,7 @@ class InsertInto(object):
 
 
 def main(args):
+
     """Executes main code."""
     for filepath in args['SQLFILE']:
         try:
