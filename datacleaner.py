@@ -1,6 +1,10 @@
+#!/usr/bin/python
+
 import os, sys, shutil
 import csv, codecs, cStringIO
 import argparse
+import parse_sql
+import StringIO
 
 csv.field_size_limit(sys.maxsize)
 
@@ -173,7 +177,6 @@ def strip_delimeter(ls, csv_delimeter):
 
 def guess_delimeter(F):
 
-    
     csv_guess = guess_delimeter_by_csv(F)
     
     if csv_guess:
@@ -354,33 +357,44 @@ def parse_file(tfile):
 
             print "Cleaning ... \n"
 
-            orig_reader = UnicodeReader(F, dialect=dialect)
+            
             clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
             error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
-            for l in orig_reader:
-                
-                while True:
-                    if not l:
-                        break
-                    if not l[-1]:
-                        l.pop()
+            l_count = 0
+
+            for lk in F:
+                a = StringIO.StringIO()
+                a.write(lk)
+                a.seek(0)
+                orig_reader = UnicodeReader(a, dialect=dialect)
+
+                for l in orig_reader:
+                    l_count +=1
+                    print"\r Parsing line: {0}".format(l_count),
+                    sys.stdout.flush()
+                    
+                    while True:
+                        if not l:
+                            break
+                        if not l[-1]:
+                            l.pop()
+                        else:
+                            break
+                    
+                    if len(l) == csv_column_count:
+                        clean_writer.writerow(l)
+                    elif len(l) == csv_column_count-1:
+                        l.append("")
+                        clean_writer.writerow(l)
                     else:
-                        break
-                
-                if len(l) == csv_column_count:
-                    clean_writer.writerow(l)
-                elif len(l) == csv_column_count-1:
-                    l.append("")
-                    clean_writer.writerow(l)
-                else:
-                    error_writer.writerow(l)
+                        error_writer.writerow(l)
 
             F.close()
             out_file_csv_file.close()
             out_file_err_file.close()
 
-
+            print
             print "Output file", out_file_csv_name+'~', "were written"
             print "Error file", out_file_err_name+'~', "were written"
 
@@ -406,23 +420,65 @@ if __name__ == '__main__':
 
     mpath = args.path
 
-    print mpath
+    parse_path_list = []
+
+    sql_path_list = []
 
     if os.path.isdir(mpath):
         for ppath in os.listdir(mpath):
-            ppath = os.path.join(mpath, ppath)
-            if os.path.isdir(ppath):
-                print "PATH"
-                for tfile in os.listdir(ppath):
-                    tf = os.path.join(ppath,tfile)
-                    if not tf.endswith('~'):
-                        if os.path.isfile(tf):
-                            parse_file(tf)
+            if not ppath in ('completed','error'):
+                ppath = os.path.join(mpath, ppath)
+                if os.path.isdir(ppath):
+                    for tfile in os.listdir(ppath):
+                        tf = os.path.join(ppath,tfile)
+                        if not tf.endswith('~') and not tf.startswith('.'):
+                            if not '_cleaned.' in tf:
+                                if os.path.isfile(tf):
+                                    if tf.lower().endswith('.sql'):
+                                        sql_path_list.append(tf)
+                                    else:
+                                        parse_path_list.append(tf)
 
-            elif os.path.isfile(ppath):
-                parse_file(ppath)
+
+                elif os.path.isfile(ppath):
+                    if not ppath.endswith('~') and not ppath.startswith('.'):
+                        if not '_cleaned.' in ppath:
+                            if ppath.lower().endswith('.sql'):
+                                sql_path_list.append(ppath)
+                            else:
+                                parse_path_list.append(ppath)
+
     elif os.path.isfile(mpath):
         if not mpath.endswith('~'):
-            parse_file(mpath)
-        
+            
+            if not '_cleaned.' in mpath:
+                if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
+                    sql_path_list.append(mpath)
+
+                else:
+                    parse_path_list.append(mpath)
+    
+    print
+    print "PARSING TXT and CSV FILES"
+    print "-------------------------\n"
+    
+    
+    for f in parse_path_list:
+        parse_file(f)
+    
+    print
+    print "PARSING SQL FILES"
+    print "-------------------------\n"
+    
+    for sf in sql_path_list:
+        dir_name = os.path.dirname(sf)
+        sARGS={ 
+                'SQLFILE': [sf],
+                '--failed': os.path.join(dir_name,'failed'),
+                '--completed': os.path.join(dir_name,'completed'),
+                '--exit-on-error': False,
+                }
+        parse_sql.main(sARGS)
+
+    print "\nFINISHED\n"
 
