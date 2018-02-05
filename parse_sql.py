@@ -216,20 +216,21 @@ def parse(filepath):
         else:
             result = parse_sql(inserts[0], INSERT_FULL)
             if result and isinstance(result, ParseResults):
-                field_names = result.asDict()['field_names']
+                field_names = result.asDict().get('field_names')
             elif isinstance(result, tuple):
                 raise_error(result, inserts[0])
             else:
                 print()
                 raise Exception('Unknown error has occurred')
 
-        if not field_names:
-            print()
-            raise ValueError('Field Names not found!')
 
-        csvfile.write(','.join(field_names))
-        csvfile.write('\n')
-        progress('Wrote csv field names')
+        if field_names:
+            csvfile.write(','.join(field_names))
+            csvfile.write('\n')
+            progress('Wrote csv field names')
+        else:
+            csvfile.write('###### NO HEADERS FOUND ######\n')
+            progress('Warning! No field names found')
 
         total_data_lines = 0
         total_inserts = len(inserts)
