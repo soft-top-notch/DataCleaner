@@ -21,7 +21,7 @@ Examples:
     parse_sql.py --completed='~/success' --failed='~/error' test.sql
     parse_sql.py --exit-on-error ~/samples/*.sql
 """
-from __future__ import print_function
+from __future__ import division, print_function
 import attr
 import os
 import sys
@@ -42,6 +42,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+
+MAX_FAILURE_RATE = 0.20
 
 # pyparsing patterns for matching/parsing SQL
 BACKTICK = Suppress(Optional('`'))
@@ -117,15 +119,15 @@ def main(args):
         except KeyboardInterrupt:
             print('Control-c pressed...')
             sys.exit(138)
-        except Exception as e:
+        except Exception as error:
             move(filepath, args['--failed'])
             if args['--exit-on-error']:
                 raise
             else:
-                if e.message:
-                    print('Error with {}: {}'.format(filepath, e.message))
+                if isinstance(error, ParseException):
+                    print(error)
                 else:
-                    print('There was an unknown error with ' + filepath)
+                    print(error.message)
         else:
             move(filepath, args['--completed'])
 
@@ -139,13 +141,14 @@ def move(src, dest):
     if '~' in dest:
         dest_dir = os.path.expanduser(dest)
     else:
-        dest_dir == dest
+        dest_dir = dest
 
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
     new_path = '{}/{}'.format(dest_dir, filename)
-    os.rename(src, new_path)
+    if src != new_path:
+        os.rename(src, new_path)
 
 
 def parse(filepath):
@@ -225,10 +228,12 @@ def parse(filepath):
         progress('Wrote csv field names')
 
         total_data_lines = 0
-        insert_len = len(inserts)
+        total_inserts = len(inserts)
+        bad_inserts = []
+        error_rate = 0.00
         for num, insert in enumerate(inserts):
             insert_status = 'Processing insert {} of {}: '.format(
-                num + 1, insert_len)
+                num + 1, total_inserts)
             progress(insert_status)
             result = parse_sql(insert, INSERT_FULL)
             if result and isinstance(result, ParseResults):
@@ -241,13 +246,32 @@ def parse(filepath):
                     progress(insert_status + ' wrote {} data line(s)...'.
                              format(total_data_lines))
             elif isinstance(result, tuple):
-                raise_error(result, insert)
+                error_rate = len(bad_inserts) / total_inserts
+                # Consider the processing as failed if over max failure rate
+                if error_rate > MAX_FAILURE_RATE or total_inserts < 5:
+                    raise_error(result, insert)
+                else:
+                    # Append tuple: insert #, error msg, and insert
+                    bad_inserts.append((num, result[1], insert))
             else:
                 print()
                 raise Exception('Unknown error has occurred')
 
+        if bad_inserts:
+            with open(filepath + '.bad_inserts.txt', 'w') as bi:
+                error_percentage = error_rate * 100
+                bi.write('##### Insert Errors #####\n')
+                bi.write('Error rate: {0:.2f}%\n\n'.format(error_percentage))
+                for bad_insert in bad_inserts:
+                    num, error, insert = bad_insert
+                    bi.write('******\n')
+                    bi.write('Insert #{}\n'.format(num + 1))
+                    bi.write('Error:{}\n'.format(error))
+                    bi.write('\nLine:\n{}\n\n'.format(insert))
         progress(
-            'Wrote {} total lines(s)'.format(total_data_lines + 1), end=True)
+            'Wrote {} total lines(s) and skipped {} errors'.format(
+                total_data_lines + 1, len(bad_inserts)),
+            end=True)
 
 
 def parse_sql(line, pattern):
