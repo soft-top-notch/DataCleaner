@@ -23,6 +23,8 @@ Examples:
 """
 from __future__ import division, print_function
 import attr
+import codecs
+import magic
 import os
 import sys
 from docopt import docopt
@@ -31,7 +33,6 @@ from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     ParseException, ParseResults, quotedString, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
-__author__ = 'Paul Howell'
 __version__ = '0.5.0'
 __license__ = """
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -164,9 +165,11 @@ def parse(filepath):
     parsing = None
     line_count = 0
     progress = print_progress(filepath)
+    m = magic.Magic(mime_encoding=True)
+    encoding = m.from_file(filepath)
 
     # Extract the CREATE TABLE and INSERT INTO statements for the user table
-    with open(filepath) as sqlfile:
+    with codecs.open(filepath, encoding=encoding) as sqlfile:
         for line in sqlfile:
             line_count += 1
             progress('Analyzing line {}...'.format(line_count))

@@ -1,3 +1,4 @@
 attrs
 docopt
 pyparsing
+python-magic
