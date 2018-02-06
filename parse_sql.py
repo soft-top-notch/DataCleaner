@@ -30,7 +30,7 @@ import sys
 from docopt import docopt
 from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
-    ParseException, ParseResults, quotedString, QuotedString, removeQuotes, \
+    ParseException, ParseResults, quotedString, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
 __version__ = '0.5.0'
@@ -86,16 +86,19 @@ CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE.setResultsName(
     'table_name')
 CREATE_FULL = CREATE_BEGIN + CREATE_FIELDS
 
-VALUE = Combine(
-    Suppress(Optional(',')) + (realNum | intNum | alphanums
-                               | quotedString.addParseAction(removeQuotes)
-                               | 'NULL') + Suppress(Optional(',')))
+VALUE = Combine((realNum | intNum | Word(alphanums)
+                 | quotedString.addParseAction(removeQuotes)
+                 | 'NULL')) + Suppress(Optional(','))
 VALUES = Suppress('(') + Group(OneOrMore(VALUE)) + Suppress(')') + Suppress(
     Optional(','))
+
+VALUES_ONLY = CaselessKeyword('VALUES') + Group(
+    OneOrMore(VALUES)).setResultsName('values')
 
 # INSERT INTO
 INSERT = CaselessKeyword('INSERT INTO')
 INSERT_BEGIN = INSERT + USER_TABLE.setResultsName('table_name')
+INSERT_COLUMNS = INSERT_BEGIN + INSERT_FIELDS
 INSERT_FULL = INSERT_BEGIN + Optional(INSERT_FIELDS) + CaselessKeyword(
     'VALUES') + Group(OneOrMore(VALUES)).setResultsName('values')
 
@@ -112,8 +115,13 @@ class InsertInto(object):
     ending = attr.ib(default=');')
 
 
-def main(args):
+@attr.s()
+class ValueOnly(object):
+    statement = attr.ib()
+    ending = attr.ib(default=');')
 
+
+def main(args):
     """Executes main code."""
     for filepath in args['SQLFILE']:
         try:
@@ -157,79 +165,51 @@ def move(src, dest):
 def parse(filepath):
     """Opens sql file and parses statements, outputing data into CSV."""
     field_names = []
-    # Current CreateTable object
-    create_table = None
-    # Current InsertInto object
-    insert_into = None
-    # List of insert statments
-    inserts = []
-    parsing = None
-    line_count = 0
     progress = print_progress(filepath)
-    m = magic.Magic(mime_encoding=True)
-    encoding = m.from_file(filepath)
 
-    # Unrecognized encoding, guess iso-8859-1
-    if encoding == 'unknown-8bit':
-        encoding = 'iso-8859-1'
-
-    # Extract the CREATE TABLE and INSERT INTO statements for the user table
-    with codecs.open(filepath, encoding=encoding) as sqlfile:
-        for line in sqlfile:
-            line_count += 1
-            progress('Analyzing line {}...'.format(line_count))
-            # If not parsing a CREATE or INSERT statement, look for one
-            if not parsing:
-                insert = parse_sql(line, INSERT_BEGIN)
-                if insert and isinstance(insert, ParseResults):
-                    insert_into = InsertInto(line)
-                    if insert_into.ending not in line:
-                        parsing = insert_into
-                    else:
-                        inserts.append(insert_into.statement)
-                elif not create_table:
-                    create = parse_sql(line, CREATE_BEGIN)
-                    if create and isinstance(create, ParseResults):
-                        create_table = CreateTable(line)
-                        if create_table.ending not in line:
-                            parsing = create_table
-            # Continue parsing the current statement
-            else:
-                parsing.statement += line
-                if parsing.ending in line:
-                    if isinstance(parsing, InsertInto):
-                        insert = parsing.statement.replace('\r', '')
-                        insert = insert.replace('\n', '')
-                        inserts.append(insert)
-                    parsing = None
+    # Not sure what the encoding is, will try iso-8859-1
+    encoding = 'iso-8859-1'
+    retry = False
+    try:
+        create_table, inserts, values_only = read_file(filepath, encoding)
+    except UnicodeDecodeError:
+        retry = True
+    if retry:
+        # Try detecting encoding
+        m = magic.Magic(mime_encoding=True)
+        encoding = m.from_file(filepath)
+        try:
+            create_table, inserts, values_only = read_file(filepath, encoding)
+        except UnicodeDecodeError:
+            print('Unable to determine encoding of file')
+            raise
 
     progress('Finished reading sql file')
-    if not inserts:
-        error = 'No full INSERT statements found!'
-        line = parsing.statement if parsing else ''
-        raise_error((ValueError, ValueError(error), None), line)
+    if not inserts and not values_only:
+        error = 'No INSERT statements found!'
+        raise_error(ValueError(error))
 
     # Extract data from statements and write to csv file
     with codecs.open(filepath + '.csv', 'w', encoding) as csvfile:
         if create_table:
+            progress('Getting column names from create table')
             result = parse_sql(create_table.statement, CREATE_FULL)
             if result and isinstance(result, ParseResults):
                 field_names = result.asDict()['field_names']
-            elif isinstance(result, tuple):
-                raise_error(result, create_table.statement)
+            elif isinstance(result, ParseException):
+                raise_error(result, encoding)
             else:
-                print()
-                raise Exception('Unknown error has occurred')
+                raise_error(Exception('Unknown error has occurred'))
         else:
-            result = parse_sql(inserts[0], INSERT_FULL)
-            if result and isinstance(result, ParseResults):
-                field_names = result.asDict().get('field_names')
-            elif isinstance(result, tuple):
-                raise_error(result, inserts[0])
-            else:
-                print()
-                raise Exception('Unknown error has occurred')
-
+            if inserts:
+                progress('Getting column names from first insert')
+                result = parse_sql(inserts[0], INSERT_COLUMNS)
+                if result and isinstance(result, ParseResults):
+                    field_names = result.asDict().get('field_names')
+                elif isinstance(result, ParseException):
+                    pass
+                else:
+                    raise (Exception('Unknown error has occurred'))
 
         if field_names:
             csvfile.write(','.join(field_names))
@@ -244,8 +224,8 @@ def parse(filepath):
         bad_inserts = []
         error_rate = 0.00
         for num, insert in enumerate(inserts):
-            insert_status = 'Processing insert {} of {}: '.format(
-                num + 1, total_inserts)
+            insert_status = 'Processing insert {} of {}: wrote {} data line(s)...'.format(
+                num + 1, total_inserts, total_data_lines)
             progress(insert_status)
             result = parse_sql(insert, INSERT_FULL)
             if result and isinstance(result, ParseResults):
@@ -255,19 +235,42 @@ def parse(filepath):
                         ['"%s"' % value for value in values]))
                     csvfile.write('\n')
                     total_data_lines += 1
-                    progress(insert_status + ' wrote {} data line(s)...'.
-                             format(total_data_lines))
-            elif isinstance(result, tuple):
+            elif isinstance(result, ParseException):
                 error_rate = len(bad_inserts) / total_inserts
                 # Consider the processing as failed if over max failure rate
                 if error_rate > MAX_FAILURE_RATE or total_inserts < 5:
-                    raise_error(result, insert)
+                    progress('Error rate is too high', end=True)
+                    raise_error(result, encoding)
                 else:
                     # Append tuple: insert #, error msg, and insert
-                    bad_inserts.append((num, result[1], insert))
+                    bad_inserts.append((num, result, insert))
             else:
-                print()
-                raise Exception('Unknown error has occurred')
+                raise (Exception('Unknown error has occurred'))
+
+        total_values_only = len(values_only)
+        for num, value_only in enumerate(values_only):
+            value_status = 'Processing value line {} of {}: wrote {} data line(s)'.format(
+                num + 1, total_values_only, total_data_lines)
+            progress(value_status)
+            result = parse_sql(value_only, VALUES_ONLY)
+            if result and isinstance(result, ParseResults):
+                values_list = result.asDict()['values']
+                for values in values_list:
+                    csvfile.write(','.join(
+                        ['"%s"' % value for value in values]))
+                    csvfile.write('\n')
+                    total_data_lines += 1
+            elif isinstance(result, ParseException):
+                error_rate = len(bad_inserts) / total_values_only
+                # Consider the processing as failed if over max failure rate
+                if error_rate > MAX_FAILURE_RATE or total_values_only < 5:
+                    progress('Error rate is too high', end=True)
+                    raise_error(result, encoding)
+                else:
+                    # Append tuple: insert #, error msg, and insert
+                    bad_inserts.append((num, result, value_only))
+            else:
+                raise (Exception('Unknown error has occurred'))
 
         if bad_inserts:
             with open(filepath + '.bad_inserts.txt', 'w') as bi:
@@ -289,8 +292,8 @@ def parse(filepath):
 def parse_sql(line, pattern):
     try:
         return pattern.parseString(line)
-    except ParseException:
-        return sys.exc_info()
+    except ParseException as pe:
+        return pe
 
 
 def print_progress(filepath):
@@ -307,13 +310,89 @@ def print_progress(filepath):
     return progress
 
 
-def raise_error(exc_info, line):
+def raise_error(exception, encoding=None):
     """Combine Exception error msg with last line processed."""
-    if len(line) > 5000:
-        line = line[0:5000] + '...OUTPUT CUT DUE TO LENGTH...'
-    error_msg = '%s\n\nLine:\n%s\n' % (exc_info[1], line)
+    line = getattr(exception, 'line', None)
     print()
-    raise exc_info[0], error_msg, exc_info[2]
+    if line:
+        if len(line) > 5000:
+            line = line[0:5000] + '...OUTPUT CUT DUE TO LENGTH...'
+            print(line)
+    if encoding:
+        print('Encoding used: ' + encoding)
+    raise exception
+
+
+def read_file(filepath, encoding):
+    # Current CreateTable object
+    create_table = None
+    # List of insert statments
+    inserts = []
+    # Current InsertInto object
+    insert_into = None
+    line_count = 0
+    parsing = None
+    progress = print_progress(filepath)
+    # List of value only lines
+    values = []
+    # Extract the CREATE TABLE and INSERT INTO statements for the user table
+    with codecs.open(filepath, encoding=encoding) as sqlfile:
+        for line in sqlfile:
+            line_count += 1
+            progress('Analyzing line {}...'.format(line_count))
+            # If not parsing a CREATE or INSERT statement, look for one
+            if not parsing:
+                insert = parse_sql(line, INSERT_BEGIN)
+                if insert and isinstance(insert, ParseResults):
+                    insert_into = InsertInto([line])
+                    if insert_into.ending in line:
+                        no_newlines = rm_newlines([line])
+                        inserts.append(''.join(no_newlines))
+                    else:
+                        parsing = insert_into
+                    continue
+                value = parse_sql(line, VALUES_ONLY)
+                if value and isinstance(value, ParseResults):
+                    value_only = ValueOnly([line])
+                    if value_only.ending in line:
+                        no_newlines = rm_newlines([line])
+                        values.append(''.join(no_newlines))
+                    else:
+                        parsing = value_only
+                    continue
+                if not create_table:
+                    create = parse_sql(line, CREATE_BEGIN)
+                    if create and isinstance(create, ParseResults):
+                        create_table = CreateTable([line])
+                        if create_table.ending not in line:
+                            parsing = create_table
+            # Continue parsing the current statement
+            else:
+                parsing.statement.append(line)
+                if parsing.ending in line:
+                    no_newlines = rm_newlines(parsing.statement)
+                    if isinstance(parsing, CreateTable):
+                        create_table.statement = ''.join(no_newlines)
+                    elif isinstance(parsing, InsertInto):
+                        inserts.append(''.join(no_newlines))
+                    elif isinstance(parsing, ValueOnly):
+                        values.append(''.join(no_newlines))
+                    parsing = None
+    return create_table, inserts, values
+
+
+def rm_newlines(lines):
+    return [x.replace('\n', '').replace('\r', '') for x in lines]
+
+
+def test_encoding(encoding, filepath):
+    try:
+        with codecs.open(filepath, encoding=encoding) as testfile:
+            for line in testfile:
+                pass
+        return True
+    except Exception:
+        return False
 
 
 if __name__ == '__main__':
