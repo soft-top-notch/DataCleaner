@@ -391,7 +391,7 @@ def parse_file(tfile):
                     else:
                         if args.m and csv_column_count > 1:
                             lx=l[:csv_column_count-1]
-                            lt = ":".join(l[csv_column_count-1:])
+                            lt = dialect.delimiter.join(l[csv_column_count-1:])
                             lx.append(lt)
                             clean_writer.writerow(lx)
                         else:
