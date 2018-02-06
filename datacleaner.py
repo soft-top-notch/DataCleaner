@@ -11,6 +11,7 @@ csv.field_size_limit(sys.maxsize)
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
 parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
+parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
 parser.add_argument("path", help="Path to csv file or folder")
 
 args = parser.parse_args()
@@ -388,7 +389,13 @@ def parse_file(tfile):
                         l.append("")
                         clean_writer.writerow(l)
                     else:
-                        error_writer.writerow(l)
+                        if args.m and csv_column_count > 1:
+                            lx=l[:csv_column_count-1]
+                            lt = ":".join(l[csv_column_count-1:])
+                            lx.append(lt)
+                            clean_writer.writerow(lx)
+                        else:
+                            error_writer.writerow(l)
 
             F.close()
             out_file_csv_file.close()
