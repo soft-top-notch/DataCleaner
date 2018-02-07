@@ -66,6 +66,14 @@ def main(args):
             if not os.path.exists(dirname):
                 print('Creating {} directory'.format(dirname))
                 os.mkdir(dirname)
+            if os.path.exists(db_file):
+                number = 0
+                while True:
+                    number += 1
+                    test_fn = '{}.{}'.format(db_file, number)
+                    if not os.path.exists(test_fn):
+                        db_file = test_fn
+                        break
             with open(db_file, 'w') as dbf:
                 print('Writing to file ' + db_file)
                 for line in lines:
