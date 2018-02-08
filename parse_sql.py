@@ -28,7 +28,6 @@ Examples:
 """
 from __future__ import division, print_function
 import attr
-import codecs
 import io
 import magic
 import os
@@ -63,8 +62,8 @@ realNum = Combine(
     Optional(arithSign) + (Word(nums) + "." + Optional(Word(nums)) | (
         "." + Word(nums))) + Optional(E + Optional(arithSign) + Word(nums)))
 intNum = Combine(
-    Optional(arithSign) + Word(nums) +
-    Optional(E + Optional("+") + Word(nums)))
+    Optional(arithSign) + Word(nums) + Optional(E + Optional("+") + Word(nums))
+)
 
 # Field Names
 KEYS = (CaselessKeyword('PRIMARY') | CaselessKeyword('UNIQUE')
@@ -90,9 +89,10 @@ CREATE_EXISTS = CaselessKeyword('IF NOT EXISTS')
 CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE('table_name')
 CREATE_FULL = CREATE_BEGIN + CREATE_FIELDS
 
-VALUE = Combine((realNum | intNum | Word(alphanums)
-                 | quotedString.addParseAction(removeQuotes)
-                 | 'NULL')) + Suppress(Optional(','))
+# VALUES
+SQL_CONV = Regex(r'(CONV\(\'[0-9]\', [0-9]+, [0-9]+\) \+ [0-9]+)')
+VALUE = Combine((realNum | intNum | quotedString.addParseAction(removeQuotes)
+                 | SQL_CONV | Word(alphanums))) + Suppress(Optional(','))
 VALUES = Suppress('(') + Group(OneOrMore(VALUE)) + Suppress(')') + Suppress(
     Optional(','))
 
@@ -180,7 +180,7 @@ def parse(filepath):
         raise_error(ValueError(error))
 
     # Extract data from statements and write to csv file
-    with codecs.open(filepath + '.csv', 'w', encoding) as csvfile:
+    with io.open(filepath + '.csv', 'w', encoding=encoding) as csvfile:
         if create_table:
             progress('Getting column names from create table')
             result = parse_sql(create_table.statement, CREATE_FULL)
@@ -203,10 +203,10 @@ def parse(filepath):
 
         if field_names:
             csvfile.write(','.join(field_names))
-            csvfile.write('\n')
+            csvfile.write(u'\n')
             progress('Wrote csv field names')
         else:
-            csvfile.write('###### NO HEADERS FOUND ######\n')
+            csvfile.write(u'###### NO HEADERS FOUND ######\n')
             progress('Warning! No field names found')
 
         total_data_lines = 0
@@ -217,14 +217,18 @@ def parse(filepath):
             insert_status = 'Processing insert {} of {}: wrote {} data line(s)...'.format(
                 num + 1, total_inserts, total_data_lines)
             progress(insert_status)
-            value_only = re.search('^(?:.*)?(VALUES.*;)', insert).group(1)
+            match = re.search('^(?:.*)?(VALUES.*;)', insert)
+            if match:
+                value_only = match.group(1)
+            else:
+                continue
             result = parse_sql(value_only, VALUES_ONLY, True)
             if result and isinstance(result, ParseResults):
                 values_list = result.asDict()['values']
                 for values in values_list:
-                    csvfile.write(
-                        ','.join(['"%s"' % value for value in values]))
-                    csvfile.write('\n')
+                    csvfile.write(','.join(
+                        ['"%s"' % value for value in values]))
+                    csvfile.write(u'\n')
                     total_data_lines += 1
             elif isinstance(result, ParseException):
                 error_rate = len(bad_inserts) / total_inserts
@@ -350,16 +354,6 @@ def read_file(filepath, encoding):
 
 def rm_newlines(lines):
     return [x.replace('\n', '').replace('\r', '') for x in lines]
-
-
-def test_encoding(encoding, filepath):
-    try:
-        with codecs.open(filepath, encoding=encoding) as testfile:
-            for line in testfile:
-                pass
-        return True
-    except Exception:
-        return False
 
 
 if __name__ == '__main__':
