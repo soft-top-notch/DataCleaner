@@ -12,9 +12,21 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
 parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
+parser.add_argument("-c", type=int, help="Number of columns")
+parser.add_argument("-d", type=str, help="Delimiter")
 parser.add_argument("path", help="Path to csv file or folder")
 
 args = parser.parse_args()
+
+
+
+if (args.c and (not args.d)) or (not args.c and args.d):
+    print "Warning: Argument -c and -d should be used together"
+    sys.exit(0)
+
+guess = True
+if args.c and args.d:
+    guess = False
 
 
 
@@ -340,11 +352,20 @@ def parse_file(tfile):
 
         F = open(gc_file,'rb')
 
-        print "Guessing delimiter"
-        dialect, csv_column_count = guess_delimeter(F)
+        if guess:
+            print "Guessing delimiter"
+            dialect, csv_column_count = guess_delimeter(F)
+            print "Guessed column number [{}] and delimiter [{}]".format(
+                    dialect.delimiter, csv_column_count)
+        else:
+            print "Using provided column number [{}] and delimiter [{}]".format(
+                                        args.c, args.d)
+            dialect = csv.excel
+            dialect.delimiter = args.d
+            csv_column_count = args.c
 
         if dialect:
-
+            
             F.seek(0)
 
             out_file_csv_name = f_name+'_cleaned.csv'
@@ -372,8 +393,9 @@ def parse_file(tfile):
 
                 for l in orig_reader:
                     l_count +=1
-                    print"\r Parsing line: {0}".format(l_count),
-                    sys.stdout.flush()
+                    if l_count % 50:
+                        print"\r Parsing line: {0}".format(l_count),
+                        sys.stdout.flush()
                     
                     while True:
                         if not l:
@@ -382,7 +404,6 @@ def parse_file(tfile):
                             l.pop()
                         else:
                             break
-                    
                     if len(l) == csv_column_count:
                         clean_writer.writerow(l)
                     elif len(l) == csv_column_count-1:
