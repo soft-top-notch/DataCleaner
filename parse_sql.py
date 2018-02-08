@@ -80,8 +80,8 @@ INSERT_FIELDS = Suppress('(') + Group(
     OneOrMore(FIELD_NAME)).setResultsName('field_names') + Suppress(')')
 
 # CREATE TABLE
-USER_NAME = Regex(r'((?:[a-zA-Z0-9]+_?)?[uU]sers?)')
-MEMBER_NAME = Regex(r'((?:[a-zA-Z0-9]+_?)?[mM]embers?)')
+USER_NAME = Regex(r'((?:[a-z0-9]+_?)?users?)', flags=re.IGNORECASE)
+MEMBER_NAME = Regex(r'((?:[a-z0-9]+_?)?members?)', flags=re.IGNORECASE)
 TABLE_NAME = (USER_NAME | MEMBER_NAME)
 USER_TABLE = Combine(BACKTICK + TABLE_NAME + BACKTICK) + WordEnd()
 CREATE = CaselessKeyword('CREATE TABLE')
@@ -339,7 +339,7 @@ def read_file(filepath, encoding):
                         else:
                             parsing = insert_into
                             continue
-                    elif create_table:
+                    else:
                         value = parse_sql(line, VALUES_ONLY)
                         if value and isinstance(value, ParseResults):
                             value_only = InsertInto([line])
@@ -349,14 +349,15 @@ def read_file(filepath, encoding):
                             else:
                                 parsing = value_only
                                 continue
-                    else:
-                        create = parse_sql(line, CREATE_BEGIN)
-                        if create and isinstance(create, ParseResults):
-                            if not table_name:
-                                table_name = create.asDict().get('table_name')
-                            create_table = CreateTable([line])
-                            if create_table.ending not in line:
-                                parsing = create_table
+                        elif not create_table:
+                            create = parse_sql(line, CREATE_BEGIN)
+                            if create and isinstance(create, ParseResults):
+                                if not table_name:
+                                    table_name = create.asDict().get(
+                                        'table_name')
+                                    create_table = CreateTable([line])
+                                    if create_table.ending not in line:
+                                        parsing = create_table
     return {
         'table_name': table_name,
         'create_table': create_table,
