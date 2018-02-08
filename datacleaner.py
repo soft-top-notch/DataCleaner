@@ -492,8 +492,10 @@ if __name__ == '__main__':
     
     
     for f in parse_path_list:
-        parse_file(f)
-    
+        if os.stat(f).st_size > 0:
+            parse_file(f)
+        else:
+            print "File {} is empty, passing".format(f)
     print
     print "PARSING SQL FILES"
     print "-------------------------\n"
