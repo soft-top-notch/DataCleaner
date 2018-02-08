@@ -188,6 +188,9 @@ def parse(filepath):
     if not inserts and not values_only:
         error = 'No INSERT statements found!'
         raise_error(ValueError(error))
+    elif inserts:
+        # We found inserts, don't use separate value lines
+        values_only = []
 
     # Extract data from statements and write to csv file
     with codecs.open(filepath + '.csv', 'w', encoding) as csvfile:
@@ -351,7 +354,11 @@ def read_file(filepath, encoding):
                     else:
                         parsing = insert_into
                     continue
-                value = parse_sql(line, VALUES_ONLY)
+                # Skip value only entries if full inserts are present
+                if inserts:
+                    value = None
+                else:
+                    value = parse_sql(line, VALUES_ONLY)
                 if value and isinstance(value, ParseResults):
                     value_only = ValueOnly([line])
                     if value_only.ending in line:
