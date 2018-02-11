@@ -2,3 +2,4 @@ attrs
 docopt
 pyparsing
 python-magic
+validate_email

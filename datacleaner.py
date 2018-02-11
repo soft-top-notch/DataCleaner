@@ -3,8 +3,14 @@
 import os, sys, shutil
 import csv, codecs, cStringIO
 import argparse
-import parse_sql
 import StringIO
+import re
+
+import dateutil.parser
+
+from validate_email import validate_email
+
+import parse_sql
 
 csv.field_size_limit(sys.maxsize)
 
@@ -12,13 +18,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
 parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
+parser.add_argument("-gh", help="Guess headers", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 parser.add_argument("-d", type=str, help="Delimiter")
 parser.add_argument("path", help="Path to csv file or folder")
 
 args = parser.parse_args()
-
-
 
 if (args.c and (not args.d)) or (not args.c and args.d):
     print "Warning: Argument -c and -d should be used together"
@@ -31,6 +36,19 @@ if args.c and args.d:
 
 
 delims = ('\t', ' ', ';', ':', ',', '|')
+
+def valid_ip(address):
+    try:
+        host_bytes = address.split('.')
+        valid = [int(b) for b in host_bytes]
+        valid = [b for b in valid if b >= 0 and b<=255]
+        return len(host_bytes) == 4 and len(valid) == 4
+    except:
+        return False
+
+re_phone1 = re.compile('\d{3}-\d{3}-\d{3}')
+re_phone2 = re.compile('\d{9}')
+re_phone3 = re.compile('\+\d{4}-\d{3}-\d{4}')
 
 class UTF8Recoder:
     """
@@ -112,7 +130,8 @@ def find_mode(L):
 
     mList = [ (mDict[i],i) for i in mDict ]
 
-    return max(mList)
+    if mList:
+        return max(mList)
 
 
 def find_column_count(f, dialect, iter_n = 500):
@@ -311,6 +330,63 @@ def wrap_fields(l, wrapper='"'):
     return ['{0}{1}{0}'.format(wrapper, x) for x in l]
 
 
+
+def get_or_guess_headers(file_name):
+
+    print file_name
+
+    csv_reader = UnicodeReader(open(file_name), dialect=myDialect)
+    date_column=[]    
+    ip_column = []
+    email_colum = []
+    phone_number = []
+
+    n=0
+    
+    for row in csv_reader:
+        hc = 0
+        
+        if n==0:
+            ncolumns = len(row)
+            lowerrow = [cc.lower() for cc in row]
+            for x in ('email', 'mail', 'user', 'username', 'pass', 'passwd', 'password', 'phone', 'phone number', 'ip'):
+                if x in lowerrow:
+                    hc +=1
+            if hc > 1:
+                return 0, row
+                
+        for i,c in enumerate(row):
+            try:
+                dob = dateutil.parser.parse(c)
+                date_column.append(i)
+            except:
+                pass
+            if valid_ip(c):
+                ip_column.append(i)
+            if validate_email(c):
+                email_colum.append(i)
+            if re_phone1.match(c) or re_phone3.match(c) or re_phone1.match(c):
+                phone_number.append(i)
+        n += 1
+        if n > 100:
+            break
+
+    
+    headers = ['Undefined' for i in range(ncolumns)]
+
+    if find_mode(email_colum):
+        headers[find_mode(email_colum)[1]] = 'email'
+    if find_mode(date_column):
+        headers[find_mode(date_column)[1]] = 'date of birth'
+    if find_mode(ip_column):
+        headers[find_mode(ip_column)[1]] = 'ip address'
+    if find_mode(phone_number):
+        headers[find_mode(phone_number)[1]] = 'phone number'
+
+    print headers
+    return 1, headers
+
+
 def parse_file(tfile):
 
     org_tfile = tfile
@@ -427,7 +503,6 @@ def parse_file(tfile):
             print "Error file", out_file_err_name+'~', "were written"
 
 
-
             print "Moving {} to completed folder".format(tfile)
             os.rename(tfile, os.path.join(completed_dir, fbasename))
             
@@ -437,9 +512,20 @@ def parse_file(tfile):
             
             err_basename = os.path.basename(out_file_err_name+'~')
             
-            os.rename(out_file_err_name+'~', os.path.join(error_dir, err_basename[:-1]))
-
+            target_out_err_file = os.path.join(error_dir, err_basename[:-1])
+            
+            os.rename(out_file_err_name+'~', target_out_err_file)
+            
             os.rename(out_file_csv_name+'~', out_file_csv_name)
+            
+            if args.gh:
+                gh = get_or_guess_headers(out_file_csv_name)
+                if gh[0]:
+                    ghw = wrap_fields(gh[1])
+                    header_line = ":".join(ghw)
+                    print "Header Line:", header_line
+                    os.system("sed -i '1 i\\{}' {}".format( header_line, out_file_csv_name))
+
 
         print "Removing", gc_file
         os.remove(gc_file)
