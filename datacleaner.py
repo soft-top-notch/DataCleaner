@@ -452,10 +452,8 @@ def parse_file(tfile):
         
         out_file_err_file = open(out_file_err_name+'~','wb')
 
-
         print "Cleaning ... \n"
 
-        
         clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
         error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
@@ -525,11 +523,12 @@ def parse_file(tfile):
                 header_line = ":".join(ghw)
                 print "Header Line:", header_line
                 os.system("sed -i '1 i\\{}' {}".format( header_line, out_file_csv_name))
+    else:
+        os.rename(tfile, os.path.join(error_dir, fbasename))
 
-
-        print "Removing", gc_file
-        os.remove(gc_file)
-        
+    print "Removing", gc_file
+    os.remove(gc_file)
+    
 if __name__ == '__main__':
 
     mpath = args.path
