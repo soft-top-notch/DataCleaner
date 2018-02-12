@@ -383,7 +383,6 @@ def get_or_guess_headers(file_name):
     if find_mode(phone_number):
         headers[find_mode(phone_number)[1]] = 'phone number'
 
-    print headers
     return 1, headers
 
 
@@ -412,119 +411,120 @@ def parse_file(tfile):
     if not os.path.exists(error_dir):
         os.mkdir(error_dir)
 
-    if f_ext in ('.csv' '.txt'):
+    
 
-        print "\n---------------------------------------------\n"
-        
-        print "Escaping grabage characters"
-        
-        gc_file = "{0}_gc~".format(tfile)
-        
-        gc_cmd = "tr -cd '\11\12\15\40-\176' < {} > {}".format(tfile, gc_file)
+    print "\n---------------------------------------------\n"
+    
+    print "Escaping grabage characters"
+    
+    gc_file = "{0}_gc~".format(tfile)
+    
+    gc_cmd = "tr -cd '\11\12\15\40-\176' < {} > {}".format(tfile, gc_file)
 
-        os.system(gc_cmd)
+    os.system(gc_cmd)
 
-        print "Parsing file", gc_file
+    print "Parsing file", gc_file
 
-        F = open(gc_file,'rb')
+    F = open(gc_file,'rb')
 
-        if guess:
-            print "Guessing delimiter"
-            dialect, csv_column_count = guess_delimeter(F)
-            print "Guessed column number [{}] and delimiter [{}]".format(
-                    dialect.delimiter, csv_column_count)
-        else:
-            print "Using provided column number [{}] and delimiter [{}]".format(
-                                        args.c, args.d)
-            dialect = csv.excel
-            dialect.delimiter = args.d
-            csv_column_count = args.c
-
+    if guess:
+        print "Guessing delimiter"
+        dialect, csv_column_count = guess_delimeter(F)
         if dialect:
-            
-            F.seek(0)
+            print "Guessed column number [{}] and delimiter [{}]".format(
+                dialect.delimiter, csv_column_count)
+    else:
+        print "Using provided column number [{}] and delimiter [{}]".format(
+                                    args.c, args.d)
+        dialect = csv.excel
+        dialect.delimiter = args.d
+        csv_column_count = args.c
 
-            out_file_csv_name = f_name+'_cleaned.csv'
-            out_file_err_name = f_name+'_error.csv'
-            
-            
-            out_file_csv_file = open(out_file_csv_name+'~','wb')
-            
-            out_file_err_file = open(out_file_err_name+'~','wb')
+    if dialect:
+        
+        F.seek(0)
+
+        out_file_csv_name = f_name+'_cleaned.csv'
+        out_file_err_name = f_name+'_error.csv'
+        
+        
+        out_file_csv_file = open(out_file_csv_name+'~','wb')
+        
+        out_file_err_file = open(out_file_err_name+'~','wb')
 
 
-            print "Cleaning ... \n"
+        print "Cleaning ... \n"
 
-            
-            clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
-            error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
+        
+        clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
+        error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
-            l_count = 0
+        l_count = 0
 
-            for lk in F:
-                a = StringIO.StringIO()
-                a.write(lk)
-                a.seek(0)
-                orig_reader = UnicodeReader(a, dialect=dialect)
+        for lk in F:
+            a = StringIO.StringIO()
+            a.write(lk)
+            a.seek(0)
+            orig_reader = UnicodeReader(a, dialect=dialect)
 
-                for l in orig_reader:
-                    l_count +=1
-                    if l_count % 50:
-                        print"\r Parsing line: {0}".format(l_count),
-                        sys.stdout.flush()
-                    
-                    while True:
-                        if not l:
-                            break
-                        if not l[-1]:
-                            l.pop()
-                        else:
-                            break
-                    if len(l) == csv_column_count:
-                        clean_writer.writerow(l)
-                    elif len(l) == csv_column_count-1:
-                        l.append("")
-                        clean_writer.writerow(l)
+            for l in orig_reader:
+                l_count +=1
+                if l_count % 100:
+                    print"\r Parsing line: {0}".format(l_count),
+                    sys.stdout.flush()
+                
+                while True:
+                    if not l:
+                        break
+                    if not l[-1]:
+                        l.pop()
                     else:
-                        if args.m and csv_column_count > 1:
-                            lx=l[:csv_column_count-1]
-                            lt = dialect.delimiter.join(l[csv_column_count-1:])
-                            lx.append(lt)
-                            clean_writer.writerow(lx)
-                        else:
-                            error_writer.writerow(l)
+                        break
+                if len(l) == csv_column_count:
+                    clean_writer.writerow(l)
+                elif len(l) == csv_column_count-1:
+                    l.append("")
+                    clean_writer.writerow(l)
+                else:
+                    if args.m and csv_column_count > 1:
+                        lx=l[:csv_column_count-1]
+                        lt = dialect.delimiter.join(l[csv_column_count-1:])
+                        lx.append(lt)
+                        clean_writer.writerow(lx)
+                    else:
+                        error_writer.writerow(l)
 
-            F.close()
-            out_file_csv_file.close()
-            out_file_err_file.close()
+        F.close()
+        out_file_csv_file.close()
+        out_file_err_file.close()
 
-            print
-            print "Output file", out_file_csv_name+'~', "were written"
-            print "Error file", out_file_err_name+'~', "were written"
+        print
+        print "Output file", out_file_csv_name+'~', "were written"
+        print "Error file", out_file_err_name+'~', "were written"
 
 
-            print "Moving {} to completed folder".format(tfile)
-            os.rename(tfile, os.path.join(completed_dir, fbasename))
-            
-            err_basename = os.path.basename(out_file_err_name+'~')
-            
-            print "Moving {} to error folder".format(out_file_err_name+'~')
-            
-            err_basename = os.path.basename(out_file_err_name+'~')
-            
-            target_out_err_file = os.path.join(error_dir, err_basename[:-1])
-            
-            os.rename(out_file_err_name+'~', target_out_err_file)
-            
-            os.rename(out_file_csv_name+'~', out_file_csv_name)
-            
-            if args.gh:
-                gh = get_or_guess_headers(out_file_csv_name)
-                if gh[0]:
-                    ghw = wrap_fields(gh[1])
-                    header_line = ":".join(ghw)
-                    print "Header Line:", header_line
-                    os.system("sed -i '1 i\\{}' {}".format( header_line, out_file_csv_name))
+        print "Moving {} to completed folder".format(tfile)
+        os.rename(tfile, os.path.join(completed_dir, fbasename))
+        
+        err_basename = os.path.basename(out_file_err_name+'~')
+        
+        print "Moving {} to error folder".format(out_file_err_name+'~')
+        
+        err_basename = os.path.basename(out_file_err_name+'~')
+        
+        target_out_err_file = os.path.join(error_dir, err_basename[:-1])
+        
+        os.rename(out_file_err_name+'~', target_out_err_file)
+        
+        os.rename(out_file_csv_name+'~', out_file_csv_name)
+        
+        if args.gh:
+            gh = get_or_guess_headers(out_file_csv_name)
+            if gh[0]:
+                ghw = wrap_fields(gh[1])
+                header_line = ":".join(ghw)
+                print "Header Line:", header_line
+                os.system("sed -i '1 i\\{}' {}".format( header_line, out_file_csv_name))
 
 
         print "Removing", gc_file
@@ -576,8 +576,12 @@ if __name__ == '__main__':
     print "PARSING TXT and CSV FILES"
     print "-------------------------\n"
     
-    
+    fc = 0
+    nf = len(parse_path_list)
     for f in parse_path_list:
+        fc += 1
+        print 
+        print "File {}/{}".format(fc, nf)
         if os.stat(f).st_size > 0:
             parse_file(f)
         else:
