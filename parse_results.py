@@ -20,9 +20,8 @@ from __future__ import division, print_function
 import os
 import re
 from docopt import docopt
-from pprint import pprint as pp
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __license__ = """
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -67,14 +66,10 @@ def main(args):
                 print('Creating {} directory'.format(dirname))
                 os.mkdir(dirname)
             if os.path.exists(db_file):
-                number = 0
-                while True:
-                    number += 1
-                    test_fn = '{}.{}'.format(db_file, number)
-                    if not os.path.exists(test_fn):
-                        db_file = test_fn
-                        break
-            with open(db_file, 'w') as dbf:
+                mode = 'a'
+            else:
+                mode = 'w'
+            with open(db_file, mode) as dbf:
                 print('Writing to file ' + db_file)
                 for line in lines:
                     dbf.write(line)
