@@ -333,14 +333,18 @@ def wrap_fields(l, wrapper='"'):
 
 def get_or_guess_headers(file_name):
 
-    print file_name
+    print "Guessing headers ..."
 
     csv_reader = UnicodeReader(open(file_name), dialect=myDialect)
-    date_column=[]    
+    date_column=[]
     ip_column = []
     email_colum = []
     phone_number = []
-
+    name_field = []
+    username_field = []
+    usernames = []
+    passwords = []
+    password_field = []
     n=0
     
     for row in csv_reader:
@@ -356,32 +360,80 @@ def get_or_guess_headers(file_name):
                 return 0, row
                 
         for i,c in enumerate(row):
+            phonef = False
             try:
                 dob = dateutil.parser.parse(c)
                 date_column.append(i)
+                
             except:
-                pass
+                cr = c.replace(' ', '')
+                cr = cr.replace('+','')
+                cr = cr.replace('-','')
+                
+                if cr.isdigit():
+                    phone_number.append(i)
+                    phonef = True
+            
             if valid_ip(c):
                 ip_column.append(i)
+            
+                
+            #email, username and should be unique, so we muste use elif
             if validate_email(c):
                 email_colum.append(i)
-            if re_phone1.match(c) or re_phone3.match(c) or re_phone1.match(c):
-                phone_number.append(i)
+            elif not phonef:
+                if not c in usernames:
+                    username_field.append(i)
+                    usernames.append(c)
+                else:
+                    passwords.append(c)
+            
+            #if re_phone1.match(c) or re_phone3.match(c) or re_phone1.match(c):
+            #    phone_number.append(i)
+            
+            if c.count(' ') > 0:
+                name_field.append(i)
+
         n += 1
         if n > 100:
             break
 
-    
+
     headers = ['Undefined' for i in range(ncolumns)]
 
-    if find_mode(email_colum):
-        headers[find_mode(email_colum)[1]] = 'email'
-    if find_mode(date_column):
-        headers[find_mode(date_column)[1]] = 'date of birth'
-    if find_mode(ip_column):
-        headers[find_mode(ip_column)[1]] = 'ip address'
-    if find_mode(phone_number):
-        headers[find_mode(phone_number)[1]] = 'phone number'
+    #at least 50% of the rows should contain similar value
+    
+    mode_email_colum = find_mode(email_colum)
+    if mode_email_colum:
+        if mode_email_colum[0] > 50:
+            headers[mode_email_colum[1]] = 'email'
+    
+    mode_date_column = find_mode(date_column)
+    if mode_date_column:
+        if mode_date_column[0]> 50:
+            headers[mode_date_column[1]] = 'date of birth'
+            
+    mode_ip_column = find_mode(ip_column)
+    if mode_ip_column:
+        if mode_ip_column[0] > 50:
+            headers[mode_ip_column[1]] = 'ip address'
+            
+    mode_phone_number = find_mode(phone_number)
+    if mode_phone_number:
+        if mode_phone_number[0] > 50:
+            headers[mode_phone_number[1]] = 'phone number'
+    mode_name_field = find_mode(name_field)
+
+    #for name field 1/3 should be enough
+    if mode_name_field:
+        if mode_name_field[0] > 33:
+            headers[mode_name_field[1]] = 'name'
+
+
+    mode_username_field = find_mode(username_field)
+    if mode_username_field:
+        if mode_username_field[0] > 50:
+            headers[mode_username_field[1]] = 'username'
 
     return 1, headers
 
@@ -514,15 +566,19 @@ def parse_file(tfile):
         
         os.rename(out_file_err_name+'~', target_out_err_file)
         
-        os.rename(out_file_csv_name+'~', out_file_csv_name)
-        
         if args.gh:
-            gh = get_or_guess_headers(out_file_csv_name)
+            gh = get_or_guess_headers(out_file_csv_name+'~')
             if gh[0]:
                 ghw = wrap_fields(gh[1])
                 header_line = ":".join(ghw)
                 print "Header Line:", header_line
-                os.system("sed -i '1 i\\{}' {}".format( header_line, out_file_csv_name))
+                with open(out_file_csv_name, 'w') as W:
+                    W.write(header_line+'\n')
+                    for l in open(out_file_csv_name+'~'):
+                        W.write(l)
+        
+        os.remove(out_file_csv_name+'~')
+        
     else:
         os.rename(tfile, os.path.join(error_dir, fbasename))
 
@@ -578,6 +634,19 @@ if __name__ == '__main__':
     fc = 0
     nf = len(parse_path_list)
     for f in parse_path_list:
+        fdirname = os.path.dirname(f)
+        fbasename = os.path.basename(f)
+    
+        if ('&' in fbasename) or ('+' in fbasename) or ('@' in fbasename) or ("'" in fbasename):
+            
+            nfbasename = fbasename
+            for ch in "&+@'":
+                nfbasename = nfbasename.replace(ch,'_')
+                nf = os.path.join(fdirname, nfbasename)
+                os.rename(f, nf)
+                f = nf
+
+
         fc += 1
         print 
         print "File {}/{}".format(fc, nf)
