@@ -5,6 +5,7 @@ import csv, codecs, cStringIO
 import argparse
 import StringIO
 import re
+import json
 
 import dateutil.parser
 
@@ -18,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
 parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
+parser.add_argument("-j", help="Write JSON file", action="store_true")
 parser.add_argument("-gh", help="Guess headers", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 parser.add_argument("-d", type=str, help="Delimiter")
@@ -399,41 +401,41 @@ def get_or_guess_headers(file_name):
             break
 
 
-    headers = ['Undefined' for i in range(ncolumns)]
+    headers = ['U{}'.format(i) for i in range(ncolumns)]
 
     #at least 50% of the rows should contain similar value
     
     mode_email_colum = find_mode(email_colum)
     if mode_email_colum:
         if mode_email_colum[0] > 50:
-            headers[mode_email_colum[1]] = 'email'
+            headers[mode_email_colum[1]] = 'e'
     
     mode_date_column = find_mode(date_column)
     if mode_date_column:
         if mode_date_column[0]> 50:
-            headers[mode_date_column[1]] = 'date of birth'
+            headers[mode_date_column[1]] = 'd'
             
     mode_ip_column = find_mode(ip_column)
     if mode_ip_column:
         if mode_ip_column[0] > 50:
-            headers[mode_ip_column[1]] = 'ip address'
+            headers[mode_ip_column[1]] = 'I'
             
     mode_phone_number = find_mode(phone_number)
     if mode_phone_number:
         if mode_phone_number[0] > 50:
-            headers[mode_phone_number[1]] = 'phone number'
+            headers[mode_phone_number[1]] = 't'
     mode_name_field = find_mode(name_field)
 
     #for name field 1/3 should be enough
     if mode_name_field:
         if mode_name_field[0] > 33:
-            headers[mode_name_field[1]] = 'name'
+            headers[mode_name_field[1]] = 'n'
 
 
     mode_username_field = find_mode(username_field)
     if mode_username_field:
         if mode_username_field[0] > 50:
-            headers[mode_username_field[1]] = 'username'
+            headers[mode_username_field[1]] = 'u'
 
     return 1, headers
 
@@ -454,9 +456,16 @@ def parse_file(tfile):
     fdirname = os.path.dirname(tfile)
     fbasename = os.path.basename(tfile)
     
+    json_file = os.path.splitext(fbasename)[0]+'.json'
+    
     completed_dir = os.path.join(fdirname, 'completed')
     error_dir = os.path.join(fdirname, 'error')
+    json_dir = os.path.join(fdirname, 'json')
 
+    if not os.path.exists(json_dir):
+        os.mkdir(json_dir)
+
+    
     if not os.path.exists(completed_dir):
         os.mkdir(completed_dir)
 
@@ -509,6 +518,11 @@ def parse_file(tfile):
         clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
         error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
+        json_list = []
+        
+        
+            
+
         l_count = 0
 
         for lk in F:
@@ -532,6 +546,7 @@ def parse_file(tfile):
                         break
                 if len(l) == csv_column_count:
                     clean_writer.writerow(l)
+                    
                 elif len(l) == csv_column_count-1:
                     l.append("")
                     clean_writer.writerow(l)
@@ -570,12 +585,30 @@ def parse_file(tfile):
             gh = get_or_guess_headers(out_file_csv_name+'~')
             if gh[0]:
                 ghw = wrap_fields(gh[1])
-                header_line = ":".join(ghw)
+                header_line = ",".join(ghw)
                 print "Header Line:", header_line
                 with open(out_file_csv_name, 'w') as W:
                     W.write(header_line+'\n')
                     for l in open(out_file_csv_name+'~'):
                         W.write(l)
+ 
+        if args.j:
+            json_list = []
+            out_reader = UnicodeReader(open(out_file_csv_name))
+            fl = True
+            for l in out_reader:
+                if fl:
+                    headers = l
+                    n = len(headers)
+                    fl = False
+                else:
+                    jdict = dict()
+                    for i in range(n):
+                        jdict[ headers[i] ] = l[i]
+                    json_list.append(jdict)
+            
+            with open(os.path.join(json_dir, json_file), 'w') as outfile:
+                json.dump(json_list, outfile)
         
         os.remove(out_file_csv_name+'~')
         
