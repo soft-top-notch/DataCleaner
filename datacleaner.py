@@ -355,10 +355,12 @@ def get_or_guess_headers(file_name):
         if n==0:
             ncolumns = len(row)
             lowerrow = [cc.lower() for cc in row]
-            for x in ('email', 'mail', 'user', 'username', 'pass', 'passwd', 'password', 'phone', 'phone number', 'ip'):
+            print lowerrow
+            for x in ('email', 'name', 'date', 'id', 'mail', 'user', 'username', 'pass', 'passwd', 'password', 'phone', 'phone number', 'ip'):
                 if x in lowerrow:
                     hc +=1
             if hc > 1:
+                print "FOUND"
                 return 0, row
                 
         for i,c in enumerate(row):
@@ -519,9 +521,6 @@ def parse_file(tfile):
         error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
         json_list = []
-        
-        
-            
 
         l_count = 0
 
@@ -591,10 +590,11 @@ def parse_file(tfile):
                     W.write(header_line+'\n')
                     for l in open(out_file_csv_name+'~'):
                         W.write(l)
- 
+                os.rename(out_file_csv_name, out_file_csv_name+'~')
+
         if args.j:
             json_list = []
-            out_reader = UnicodeReader(open(out_file_csv_name))
+            out_reader = UnicodeReader(open(out_file_csv_name+'~'))
             fl = True
             for l in out_reader:
                 if fl:
