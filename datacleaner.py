@@ -625,12 +625,11 @@ def parse_file(tfile):
             for l in out_reader:
                 if fl:
                     headers = l
-                    n = len(headers)
                     fl = False
 
                 else:
                     jdict = dict()
-                    for i in range(n):
+                    for i in range(len(l)):
                         jdict[ headers[i] ] = l[i]
                     json_list.append(jdict)
             
