@@ -36,6 +36,22 @@ if args.c and args.d:
     guess = False
 
 
+header_conversions = {
+    'username': 'u',
+    'name': 'n',
+    'email': 'e',
+    'mail': 'e',
+    'ip': 'I',
+    'date': 'd',
+    'password': 'p',
+    'passwd': 'p',
+    'salt': 's',
+    'address':'a',
+    'telephone': 't',
+    'phone': 't',
+}
+
+
 
 delims = ('\t', ' ', ';', ':', ',', '|')
 
@@ -355,13 +371,15 @@ def get_or_guess_headers(file_name):
         if n==0:
             ncolumns = len(row)
             lowerrow = [cc.lower() for cc in row]
-            print lowerrow
             for x in ('email', 'name', 'date', 'id', 'mail', 'user', 'username', 'pass', 'passwd', 'password', 'phone', 'phone number', 'ip'):
                 if x in lowerrow:
                     hc +=1
             if hc > 1:
-                print "FOUND"
-                return 0, row
+                print "First row is headers, abbreviate"
+                headers = []
+                for i in lowerrow:
+                    headers.append( header_conversions.get(i, i))
+                return 1, headers, True
                 
         for i,c in enumerate(row):
             phonef = False
@@ -439,7 +457,7 @@ def get_or_guess_headers(file_name):
         if mode_username_field[0] > 50:
             headers[mode_username_field[1]] = 'u'
 
-    return 1, headers
+    return 1, headers, False
 
 
 def parse_file(tfile):
@@ -586,21 +604,30 @@ def parse_file(tfile):
                 ghw = wrap_fields(gh[1])
                 header_line = ",".join(ghw)
                 print "Header Line:", header_line
+                write_first_line = True
+                if gh[2]:
+                    write_first_line = False
+                c = 0
                 with open(out_file_csv_name, 'w') as W:
                     W.write(header_line+'\n')
                     for l in open(out_file_csv_name+'~'):
-                        W.write(l)
-                os.rename(out_file_csv_name, out_file_csv_name+'~')
+                        if write_first_line:
+                            W.write(l)
+                        else:
+                            if c > 0:
+                                W.write(l)
+                        c += 1
 
         if args.j:
             json_list = []
-            out_reader = UnicodeReader(open(out_file_csv_name+'~'))
+            out_reader = UnicodeReader(open(out_file_csv_name))
             fl = True
             for l in out_reader:
                 if fl:
                     headers = l
                     n = len(headers)
                     fl = False
+
                 else:
                     jdict = dict()
                     for i in range(n):
