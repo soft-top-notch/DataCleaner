@@ -661,7 +661,7 @@ if __name__ == '__main__':
                         tf = os.path.join(ppath,tfile)
                         if not tf.endswith('~') and not tf.startswith('.'):
                             
-                            if agrs.gh:
+                            if args.gh:
                                 if os.path.isfile(tf):
                                     if tf.lower().endswith('.sql'):
                                         sql_path_list.append(tf)
@@ -680,7 +680,7 @@ if __name__ == '__main__':
                 elif os.path.isfile(ppath):
                     if not ppath.endswith('~') and not ppath.startswith('.'):
                         
-                        if agrs.gh:
+                        if args.gh:
                             if ppath.lower().endswith('.sql'):
                                 sql_path_list.append(ppath)
                             else:
