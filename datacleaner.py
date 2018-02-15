@@ -21,6 +21,8 @@ parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_
 parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
 parser.add_argument("-j", help="Write JSON file", action="store_true")
 parser.add_argument("-gh", help="Guess headers", action="store_true")
+parser.add_argument("-gho", help="Guess headers only", action="store_true")
+parser.add_argument("-jo", help="Write json only", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 parser.add_argument("-d", type=str, help="Delimiter")
 parser.add_argument("path", help="Path to csv file or folder")
@@ -371,6 +373,13 @@ def get_or_guess_headers(file_name):
         if n==0:
             ncolumns = len(row)
             lowerrow = [cc.lower() for cc in row]
+            hcx = 0
+            for j in row:
+                if j in header_conversions.values():
+                    hcx +=1
+            if hcx > 1:
+                return False, row, True
+            
             for x in ('email', 'name', 'date', 'id', 'mail', 'user', 'username', 'pass', 'passwd', 'password', 'phone', 'phone number', 'ip'):
                 if x in lowerrow:
                     hc +=1
@@ -459,6 +468,65 @@ def get_or_guess_headers(file_name):
 
     return 1, headers, False
 
+
+def write_json(source):
+    print "Writing json file for ", source
+    fdirname = os.path.dirname(source)
+    fbasename = os.path.basename(source)
+    json_file = os.path.splitext(fbasename)[0]+'.json'
+    json_dir = os.path.join(fdirname, 'json')
+
+    if not os.path.exists(json_dir):
+        os.mkdir(json_dir)
+
+    json_list = []
+    out_reader = UnicodeReader(open(source))
+    fl = True
+    for l in out_reader:
+        if fl:
+            headers = l
+            fl = False
+
+        else:
+            jdict = dict()
+            for i in range(len(headers)):
+                jdict[ headers[i] ] = l[i]
+            json_list.append(jdict)
+    
+    with open(os.path.join(json_dir, json_file), 'w') as outfile:
+        json.dump(json_list, outfile)
+    
+def write_headers(source, cleaned=None):
+    
+    if cleaned:
+        os.rename(source, source+'~')
+
+    gh = get_or_guess_headers(source+'~')
+
+    if gh[0]:
+        ghw = wrap_fields(gh[1])
+        header_line = ",".join(ghw)
+        print "Header Line:", header_line
+        write_first_line = True
+        if gh[2]:
+            write_first_line = False
+        c = 0
+        with open(source, 'w') as W:
+            W.write(header_line+'\n')
+            for l in open(source+'~'):
+                if write_first_line:
+                    W.write(l)
+                else:
+                    if c > 0:
+                        W.write(l)
+                c += 1
+
+    else:
+        shutil.copy(source+'~', source)
+
+    if cleaned:
+        print "Removing", source+'~'
+        os.remove(source+'~')
 
 def parse_file(tfile):
 
@@ -561,6 +629,15 @@ def parse_file(tfile):
                         l.pop()
                     else:
                         break
+                ll = l[:]
+                l=[]
+                for li in ll:
+                    if li:
+                        if not li[-1] == "":
+                            l.append(li.strip())
+                        else:
+                            l.append(li)
+
                 if len(l) == csv_column_count:
                     clean_writer.writerow(l)
                     
@@ -598,45 +675,16 @@ def parse_file(tfile):
         
         os.rename(out_file_err_name+'~', target_out_err_file)
         
-        if args.gh:
-            gh = get_or_guess_headers(out_file_csv_name+'~')
-            if gh[0]:
-                ghw = wrap_fields(gh[1])
-                header_line = ",".join(ghw)
-                print "Header Line:", header_line
-                write_first_line = True
-                if gh[2]:
-                    write_first_line = False
-                c = 0
-                with open(out_file_csv_name, 'w') as W:
-                    W.write(header_line+'\n')
-                    for l in open(out_file_csv_name+'~'):
-                        if write_first_line:
-                            W.write(l)
-                        else:
-                            if c > 0:
-                                W.write(l)
-                        c += 1
-
-        if args.j:
-            json_list = []
-            out_reader = UnicodeReader(open(out_file_csv_name))
-            fl = True
-            for l in out_reader:
-                if fl:
-                    headers = l
-                    fl = False
-
-                else:
-                    jdict = dict()
-                    for i in range(len(l)):
-                        jdict[ headers[i] ] = l[i]
-                    json_list.append(jdict)
-            
-            with open(os.path.join(json_dir, json_file), 'w') as outfile:
-                json.dump(json_list, outfile)
         
-        os.remove(out_file_csv_name+'~')
+        if args.gh:
+            write_headers(out_file_csv_name)
+            os.remove(out_file_csv_name+'~')
+        else:
+            os.rename(out_file_csv_name+'~', out_file_csv_name)
+        if args.j:
+            write_json(out_file_csv_name)
+        
+        
         
     else:
         os.rename(tfile, os.path.join(error_dir, fbasename))
@@ -651,6 +699,8 @@ if __name__ == '__main__':
     parse_path_list = []
 
     sql_path_list = []
+
+    cleaned_file_list = []
 
     if os.path.isdir(mpath):
         for ppath in os.listdir(mpath):
@@ -675,7 +725,8 @@ if __name__ == '__main__':
                                             sql_path_list.append(tf)
                                         else:
                                             parse_path_list.append(tf)
-
+                                else:
+                                    cleaned_file_list.append(tf)
 
                 elif os.path.isfile(ppath):
                     if not ppath.endswith('~') and not ppath.startswith('.'):
@@ -691,6 +742,8 @@ if __name__ == '__main__':
                                     sql_path_list.append(ppath)
                                 else:
                                     parse_path_list.append(ppath)
+                            else:
+                                    cleaned_file_list.append(ppath)
 
     elif os.path.isfile(mpath):
         if not mpath.endswith('~'):
@@ -704,50 +757,66 @@ if __name__ == '__main__':
                 if not '_cleaned.' in mpath:
                     if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
                         sql_path_list.append(mpath)
-
                     else:
                         parse_path_list.append(mpath)
+                else:
+                    cleaned_file_list.append(mpath)
     
-    print
-    print "PARSING TXT and CSV FILES"
-    print "-------------------------\n"
+    if args.gho:
+        print "Guessing headers"
+        for f in cleaned_file_list:
+            if not f.endswith('.json'):
+                print "Processing", f
+                write_headers(f, cleaned=True)
     
-    fc = 0
-    nf = len(parse_path_list)
-    for f in parse_path_list:
-        fdirname = os.path.dirname(f)
-        fbasename = os.path.basename(f)
+    if args.jo:
+        for f in cleaned_file_list:
+            if not f.endswith('.json'):
+                write_json(f)
     
-        if ('&' in fbasename) or ('+' in fbasename) or ('@' in fbasename) or ("'" in fbasename):
-            
-            nfbasename = fbasename
-            for ch in "&+@'":
-                nfbasename = nfbasename.replace(ch,'_')
-                nf = os.path.join(fdirname, nfbasename)
-                os.rename(f, nf)
-                f = nf
+    if not (args.gho or args.jo):
+    
+        print
+        print "PARSING TXT and CSV FILES"
+        print "-------------------------\n"
+        
+        fc = 0
+        nf = len(parse_path_list)
+        for f in parse_path_list:
+            fdirname = os.path.dirname(f)
+            fbasename = os.path.basename(f)
+        
+            if ('&' in fbasename) or ('+' in fbasename) or ('@' in fbasename) or ("'" in fbasename):
+                
+                nfbasename = fbasename
+                for ch in "&+@'":
+                    nfbasename = nfbasename.replace(ch,'_')
+                    nf = os.path.join(fdirname, nfbasename)
+                    os.rename(f, nf)
+                    f = nf
 
 
-        fc += 1
-        print 
-        print "File {}/{}".format(fc, nf)
-        if os.stat(f).st_size > 0:
-            parse_file(f)
-        else:
-            print "File {} is empty, passing".format(f)
-    print
-    print "PARSING SQL FILES"
-    print "-------------------------\n"
-    
-    for sf in sql_path_list:
-        dir_name = os.path.dirname(sf)
-        sARGS={ 
-                'SQLFILE': [sf],
-                '--failed': os.path.join(dir_name,'failed'),
-                '--completed': os.path.join(dir_name,'completed'),
-                '--exit-on-error': False,
-                }
-        parse_sql.main(sARGS)
+            fc += 1
+            print 
+            print "File {}/{}".format(fc, nf)
+            if os.stat(f).st_size > 0:
+                parse_file(f)
+            else:
+                print "File {} is empty, passing".format(f)
+        print
+        print "PARSING SQL FILES"
+        print "-------------------------\n"
+        
+        for sf in sql_path_list:
+            dir_name = os.path.dirname(sf)
+            sARGS={ 
+                    'SQLFILE': [sf],
+                    '--failed': os.path.join(dir_name,'failed'),
+                    '--completed': os.path.join(dir_name,'completed'),
+                    '--exit-on-error': False,
+                    }
+            parse_sql.main(sARGS)
+
 
     print "\nFINISHED\n"
 
