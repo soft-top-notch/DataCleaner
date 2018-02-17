@@ -587,7 +587,10 @@ def ask_headers(source, cleaned=None):
             ff.close()
 
     else:
-        shutil.copy(source+'~', source)
+        try:
+            shutil.copy(source, source[:-1])
+        except:
+            pass
 
     if cleaned:
         print "Removing", source+'~'
@@ -764,75 +767,94 @@ def parse_file(tfile):
 if __name__ == '__main__':
 
     mpath = args.path
-
     parse_path_list = []
 
     sql_path_list = []
 
     cleaned_file_list = []
 
-    if os.path.isdir(mpath):
-        for ppath in os.listdir(mpath):
-            if not ppath in ('completed','error'):
-                ppath = os.path.join(mpath, ppath)
-                if os.path.isdir(ppath):
-                    for tfile in os.listdir(ppath):
-                        tf = os.path.join(ppath,tfile)
-                        if not tf.endswith('~') and not tf.startswith('.'):
-                            
-                            if args.gh:
-                                if os.path.isfile(tf):
-                                    if tf.lower().endswith('.sql'):
-                                        sql_path_list.append(tf)
-                                    else:
-                                        parse_path_list.append(tf)
-                            else:
-                                if not '_cleaned.' in tf:
+
+    if not '#' in mpath:
+
+
+        if os.path.isdir(mpath):
+            for ppath in os.listdir(mpath):
+                if not ppath in ('completed','error'):
+                    ppath = os.path.join(mpath, ppath)
+                    if os.path.isdir(ppath):
+                        for tfile in os.listdir(ppath):
+                            tf = os.path.join(ppath,tfile)
+                            if not tf.endswith('~') and not tf.startswith('.'):
                                 
+                                if args.gh:
                                     if os.path.isfile(tf):
                                         if tf.lower().endswith('.sql'):
                                             sql_path_list.append(tf)
                                         else:
                                             parse_path_list.append(tf)
                                 else:
-                                    cleaned_file_list.append(tf)
+                                    if not '_cleaned.' in tf:
+                                    
+                                        if os.path.isfile(tf):
+                                            if tf.lower().endswith('.sql'):
+                                                sql_path_list.append(tf)
+                                            else:
+                                                parse_path_list.append(tf)
+                                    else:
+                                        cleaned_file_list.append(tf)
 
-                elif os.path.isfile(ppath):
-                    if not ppath.endswith('~') and not ppath.startswith('.'):
-                        
-                        if args.gh:
-                            if ppath.lower().endswith('.sql'):
-                                sql_path_list.append(ppath)
-                            else:
-                                parse_path_list.append(ppath)
-                        else:
-                            if not '_cleaned.' in ppath:
+                    elif os.path.isfile(ppath):
+                        if not ppath.endswith('~') and not ppath.startswith('.'):
+                            
+                            if args.gh:
                                 if ppath.lower().endswith('.sql'):
                                     sql_path_list.append(ppath)
                                 else:
                                     parse_path_list.append(ppath)
                             else:
-                                    cleaned_file_list.append(ppath)
+                                if not '_cleaned.' in ppath:
+                                    if ppath.lower().endswith('.sql'):
+                                        sql_path_list.append(ppath)
+                                    else:
+                                        parse_path_list.append(ppath)
+                                else:
+                                        cleaned_file_list.append(ppath)
 
-    elif os.path.isfile(mpath):
-        if not mpath.endswith('~'):
-            if args:
-                if not '_cleaned.' in mpath:
-                    if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
-                        sql_path_list.append(mpath)
+        elif os.path.isfile(mpath):
+            if not mpath.endswith('~'):
+                if args:
+                    if not '_cleaned.' in mpath:
+                        if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
+                            sql_path_list.append(mpath)
 
+                        else:
+                            parse_path_list.append(mpath)
                     else:
-                        parse_path_list.append(mpath)
+                        cleaned_file_list.append(mpath)
                 else:
-                    cleaned_file_list.append(mpath)
-            else:
-                if not '_cleaned.' in mpath:
-                    if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
-                        sql_path_list.append(mpath)
+                    if not '_cleaned.' in mpath:
+                        if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
+                            sql_path_list.append(mpath)
+                        else:
+                            parse_path_list.append(mpath)
                     else:
-                        parse_path_list.append(mpath)
-                else:
-                    cleaned_file_list.append(mpath)
+                        cleaned_file_list.append(mpath)
+    
+    else:
+        path_dirname = os.path.dirname(mpath)
+        path_filename = os.path.basename(mpath)
+        file_name, file_ext = os.path.splitext(path_filename)
+
+        file_list = []
+
+        for f in os.listdir(path_dirname):
+            if f.endswith(file_ext):
+                file_list.append(os.path.join(path_dirname, f))
+    
+        cleaned_file_list = file_list[:]
+        parse_path_list = file_list[:]
+        
+        
     
     if args.gho:
         print "Guessing headers"
@@ -856,7 +878,8 @@ if __name__ == '__main__':
             if not f.endswith('.json'):
                 write_json(f)
     
-    if not (args.gho or args.jo):
+    
+    if not (args.gho or args.jo or args.aho):
     
         print
         print "PARSING TXT and CSV FILES"
