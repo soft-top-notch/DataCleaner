@@ -478,15 +478,15 @@ def write_json(source):
 
     if not os.path.exists(json_dir):
         os.mkdir(json_dir)
-
+    
     json_list = []
-    out_reader = UnicodeReader(open(source))
+    out_reader = UnicodeReader(open(source), dialect=myDialect)
     fl = True
+
     for l in out_reader:
         if fl:
             headers = l
             fl = False
-
         else:
             jdict = dict()
             for i in range(len(headers)):
