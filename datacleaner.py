@@ -20,6 +20,7 @@ parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="stor
 parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
 parser.add_argument("-ah", help="Ask headers", action="store_true")
+parser.add_argument("-aho", help="Ask headers only", action="store_true")
 parser.add_argument("-j", help="Write JSON file", action="store_true")
 parser.add_argument("-gh", help="Guess headers", action="store_true")
 parser.add_argument("-gho", help="Guess headers only", action="store_true")
@@ -530,6 +531,69 @@ def write_headers(source, cleaned=None):
         print "Removing", source+'~'
         os.remove(source+'~')
 
+
+def ask_headers(source, cleaned=None):
+
+    llc = 0
+    print "First 10 lines:"
+    print "-"*20
+    ff = open(source)
+    for l in ff:
+        print l.strip()
+        llc +=1
+        if llc > 10:
+            break
+    print "-"*20
+    
+    a = StringIO.StringIO()
+    a.write(l)
+    a.seek(0)
+    orig_reader = UnicodeReader(a, dialect=myDialect)
+
+    for l in orig_reader:
+        csv_column_count = len(l)
+        break
+    
+    for i,h in enumerate(header_list):
+        print i,':',h
+    user_headers = raw_input("Please enter  headers as 6 2 0 4 :")
+
+    if user_headers:
+        if user_headers.replace(' ', '').isdigit():
+            user_headers = user_headers.split()
+            headers = []
+            uc=0
+            for hi in range(csv_column_count):
+                if hi < len(user_headers):
+                    if user_headers[hi] == '0':
+                        headers.append('X'+str(uc))
+                        uc += 1
+                    else:
+                        headers.append(header_list[ int(user_headers[hi]) ])
+
+            diff  = csv_column_count - len(user_headers)
+            if diff > 0:
+                for ha in range(diff):
+                    headers.append('X'+str(uc))
+                    uc +=1
+
+            header_line = ",".join(wrap_fields(headers))
+            HF = open(source[:-1],'w')
+            HF.write(header_line+'\n')
+            ff.seek(0)
+            for l in ff:
+                HF.write(l)
+            HF.close()
+            ff.close()
+
+    else:
+        shutil.copy(source+'~', source)
+
+    if cleaned:
+        print "Removing", source+'~'
+        os.remove(source)
+
+
 def parse_file(tfile):
 
     org_tfile = tfile
@@ -682,53 +746,8 @@ def parse_file(tfile):
             write_headers(out_file_csv_name)
             os.remove(out_file_csv_name+'~')
         elif args.ah:
-            
-            llc = 0
-            print "First 10 lines:"
-            print "-"*20
-            ff = open(out_file_csv_name+'~')
-            for l in ff:
-                print l.strip()
-                llc +=1
-                if llc > 10:
-                    break
-            print "-"*20
-            
-            
-            for i,h in enumerate(header_list):
-                print i,':',h
-            user_headers = raw_input("Please enter  headers as 6 2 0 4 :")
-
-            if user_headers:
-                if user_headers.replace(' ', '').isdigit():
-                    user_headers = user_headers.split()
-                    headers = []
-                    uc=0
-                    for hi in range(csv_column_count):
-                        if hi < len(user_headers):
-                            if user_headers[hi] == '0':
-                                headers.append('X'+str(uc))
-                                uc += 1
-                            else:
-                                headers.append(header_list[ int(user_headers[hi]) ])
-
-                    diff  = csv_column_count - len(user_headers)
-                    if diff > 0:
-                        for ha in range(diff):
-                            headers.append('X'+str(uc))
-                            uc +=1
-
-                    header_line = ",".join(wrap_fields(headers))
-                    HF = open(out_file_csv_name,'w')
-                    HF.write(header_line+'\n')
-                    ff.seek(0)
-                    for l in ff:
-                        HF.write(l)
-                    HF.close()
-                    ff.close()
-                    os.remove(out_file_csv_name+'~')
-                    
-            
+            ask_headers(out_file_csv_name+'~')
+            os.remove(out_file_csv_name+'~')
         else:
             os.rename(out_file_csv_name+'~', out_file_csv_name)
         if args.j:
@@ -821,6 +840,16 @@ if __name__ == '__main__':
             if not f.endswith('.json'):
                 print "Processing", f
                 write_headers(f, cleaned=True)
+    if args.aho:
+        
+        print "Asking headers"
+        
+        for f in cleaned_file_list:
+            if not f.endswith('.json'):
+                os.rename(f, f+'~')
+                print "Processing", f
+                ask_headers(f+'~', cleaned=True)
+        
     
     if args.jo:
         for f in cleaned_file_list:
