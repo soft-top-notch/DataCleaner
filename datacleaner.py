@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
 parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
+parser.add_argument("-ah", help="Ask headers", action="store_true")
 parser.add_argument("-j", help="Write JSON file", action="store_true")
 parser.add_argument("-gh", help="Guess headers", action="store_true")
 parser.add_argument("-gho", help="Guess headers only", action="store_true")
@@ -53,6 +54,7 @@ header_conversions = {
     'phone': 't',
 }
 
+header_list = ['Username', 'Email', 'Password', 'Hash', 'Salt', 'Name', 'IP', 'DOB', 'Phone']
 
 
 delims = ('\t', ' ', ';', ':', ',', '|')
@@ -463,7 +465,7 @@ def get_or_guess_headers(file_name):
 
     mode_username_field = find_mode(username_field)
     if mode_username_field:
-        if mode_username_field[0] > 50:
+        if mode_username_field[0] > n/2:
             headers[mode_username_field[1]] = 'u'
 
     return 1, headers, False
@@ -679,6 +681,49 @@ def parse_file(tfile):
         if args.gh:
             write_headers(out_file_csv_name)
             os.remove(out_file_csv_name+'~')
+        elif args.ah:
+            
+            llc = 0
+            print "First 10 lines:"
+            print "-"*20
+            ff = open(out_file_csv_name+'~')
+            for l in ff:
+                print l
+                llc +=1
+                if llc > 10:
+                    break
+            print "-"*20
+            
+            
+            for i,h in enumerate(header_list):
+                print i,':',h
+            user_headers = raw_input("Please enter  headers as 6 2 0 4 :")
+
+            if user_headers:
+                if user_headers.replace(' ', '').isdigit():
+                    user_headers = user_headers.split()
+                    headers = []
+                    
+                    for hi in range(csv_column_count):
+                        if hi < len(user_headers):
+                            headers.append(header_list[ int(user_headers[hi]) ])
+
+                    diff  = csv_column_count - len(user_headers)
+                    if diff > 0:
+                        for ha in range(diff):
+                            headers.append('X'+str(ha))
+
+                    header_line = ",".join(wrap_fields(headers))
+                    HF = open(out_file_csv_name,'w')
+                    HF.write(header_line+'\n')
+                    ff.seek(0)
+                    for l in ff:
+                        HF.write(l)
+                    HF.close()
+                    ff.close()
+                    os.remove(out_file_csv_name+'~')
+                    
+            
         else:
             os.rename(out_file_csv_name+'~', out_file_csv_name)
         if args.j:
@@ -748,11 +793,14 @@ if __name__ == '__main__':
     elif os.path.isfile(mpath):
         if not mpath.endswith('~'):
             if args:
-                if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
-                    sql_path_list.append(mpath)
+                if not '_cleaned.' in mpath:
+                    if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
+                        sql_path_list.append(mpath)
 
+                    else:
+                        parse_path_list.append(mpath)
                 else:
-                    parse_path_list.append(mpath)
+                    cleaned_file_list.append(mpath)
             else:
                 if not '_cleaned.' in mpath:
                     if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
