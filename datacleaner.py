@@ -436,28 +436,28 @@ def get_or_guess_headers(file_name):
     
     mode_email_colum = find_mode(email_colum)
     if mode_email_colum:
-        if mode_email_colum[0] > 50:
+        if mode_email_colum[0] > n/2:
             headers[mode_email_colum[1]] = 'e'
     
     mode_date_column = find_mode(date_column)
     if mode_date_column:
-        if mode_date_column[0]> 50:
+        if mode_date_column[0]> n/2:
             headers[mode_date_column[1]] = 'd'
             
     mode_ip_column = find_mode(ip_column)
     if mode_ip_column:
-        if mode_ip_column[0] > 50:
+        if mode_ip_column[0] > n/2:
             headers[mode_ip_column[1]] = 'I'
             
     mode_phone_number = find_mode(phone_number)
     if mode_phone_number:
-        if mode_phone_number[0] > 50:
+        if mode_phone_number[0] > n/2:
             headers[mode_phone_number[1]] = 't'
     mode_name_field = find_mode(name_field)
 
     #for name field 1/3 should be enough
     if mode_name_field:
-        if mode_name_field[0] > 33:
+        if mode_name_field[0] > n/3:
             headers[mode_name_field[1]] = 'n'
 
 
