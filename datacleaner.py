@@ -688,7 +688,7 @@ def parse_file(tfile):
             print "-"*20
             ff = open(out_file_csv_name+'~')
             for l in ff:
-                print l
+                print l.strip()
                 llc +=1
                 if llc > 10:
                     break
@@ -703,15 +703,20 @@ def parse_file(tfile):
                 if user_headers.replace(' ', '').isdigit():
                     user_headers = user_headers.split()
                     headers = []
-                    
+                    uc=0
                     for hi in range(csv_column_count):
                         if hi < len(user_headers):
-                            headers.append(header_list[ int(user_headers[hi]) ])
+                            if user_headers[hi] == '0':
+                                headers.append('X'+str(uc))
+                                uc += 1
+                            else:
+                                headers.append(header_list[ int(user_headers[hi]) ])
 
                     diff  = csv_column_count - len(user_headers)
                     if diff > 0:
                         for ha in range(diff):
-                            headers.append('X'+str(ha))
+                            headers.append('X'+str(uc))
+                            uc +=1
 
                     header_line = ",".join(wrap_fields(headers))
                     HF = open(out_file_csv_name,'w')
