@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import os, sys, shutil
 import csv, codecs, cStringIO
 import argparse
@@ -19,11 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
 parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
-parser.add_argument("-ah", help="Ask headers", action="store_true")
-parser.add_argument("-aho", help="Ask headers only", action="store_true")
 parser.add_argument("-j", help="Write JSON file", action="store_true")
-parser.add_argument("-gh", help="Guess headers", action="store_true")
-parser.add_argument("-gho", help="Guess headers only", action="store_true")
 parser.add_argument("-jo", help="Write json only", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 parser.add_argument("-d", type=str, help="Delimiter")
@@ -190,11 +185,11 @@ def guess_delimeter_by_csv(F):
 
         if not dialect.escapechar:
             dialect.escapechar='\\'
-    
+
         F.seek(0)
 
         column_count = find_column_count(F, dialect)
-        
+
         return dialect, column_count
     except:
         return None
@@ -233,7 +228,7 @@ def strip_delimeter(ls, csv_delimeter):
 def guess_delimeter(F):
 
     csv_guess = guess_delimeter_by_csv(F)
-    
+
     if csv_guess:
         rdialect, csv_column_count = csv_guess
         csv_delimeter = rdialect.delimiter
@@ -268,10 +263,10 @@ def guess_delimeter(F):
                         delim_freq[d][c] +=1
                     else:
                         delim_freq[d][c] = 1
-                    
+
         for d in delim_freq:
             for c in delim_freq[d]:
-                
+
                 if delim_freq[d][c] > most_frequent[1]:
                     most_frequent = (d,  delim_freq[d][c], c)
 
@@ -284,11 +279,11 @@ def guess_delimeter(F):
         if csv_delimeter:
 
             print ">>> Guess method: Custom delimiter -> {}\n".format(csv_delimeter)
-        
+
         else:
-        
+
             if not args.p:
-        
+
                 print "Delimiter could not determined"
                 csv_delimeter, csv_column_count = ask_user_for_delimeter()
                 rdialect = csv.excel
@@ -305,9 +300,9 @@ def guess_delimeter(F):
     print "Here is the first 10 lines\n"
     print "-"*30
     F.seek(0)
-    
+
     c=0
-    
+
     for l in F:
         print l.strip()
         if c>=10:
@@ -325,7 +320,7 @@ def guess_delimeter(F):
         return rdialect, csv_column_count
     else:
         csv_delimeter, csv_column_count = ask_user_for_delimeter()
-        
+
         rdialect = csv.excel
         rdialect.delimiter = csv_delimeter
 
@@ -341,7 +336,7 @@ def clean(e):
                 break
         else:
             break
-        
+
     return e.strip()
 
 
@@ -353,123 +348,34 @@ def wrap_fields(l, wrapper='"'):
     return ['{0}{1}{0}'.format(wrapper, x) for x in l]
 
 
+def get_or_guess_headers(csv_file, column_count, delimiter):
+    """Reads file and tries to determine if headers are present.
 
-def get_or_guess_headers(file_name):
+    Returns a list of headers.
+    """
+    headers = []
 
-    print "Guessing headers ..."
+    for line in csv_file:
+        starting_location = csv_file.tell()
+        # Skip comment rows
+        if line.startswith('#'):
+            continue
 
-    csv_reader = UnicodeReader(open(file_name), dialect=myDialect)
-    date_column=[]
-    ip_column = []
-    email_colum = []
-    phone_number = []
-    name_field = []
-    username_field = []
-    usernames = []
-    passwords = []
-    password_field = []
-    n=0
-    
-    for row in csv_reader:
-        hc = 0
-        
-        if n==0:
-            ncolumns = len(row)
-            lowerrow = [cc.lower() for cc in row]
-            hcx = 0
-            for j in row:
-                if j in header_conversions.values():
-                    hcx +=1
-            if hcx > 1:
-                return False, row, True
-            
-            for x in ('email', 'name', 'date', 'id', 'mail', 'user', 'username', 'pass', 'passwd', 'password', 'phone', 'phone number', 'ip'):
-                if x in lowerrow:
-                    hc +=1
-            if hc > 1:
-                print "First row is headers, abbreviate"
-                headers = []
-                for i in lowerrow:
-                    headers.append( header_conversions.get(i, i))
-                return 1, headers, True
-                
-        for i,c in enumerate(row):
-            phonef = False
-            try:
-                dob = dateutil.parser.parse(c)
-                date_column.append(i)
-                
-            except:
-                cr = c.replace(' ', '')
-                cr = cr.replace('+','')
-                cr = cr.replace('-','')
-                
-                if cr.isdigit():
-                    phone_number.append(i)
-                    phonef = True
-            
-            if valid_ip(c):
-                ip_column.append(i)
-            
-                
-            #email, username and should be unique, so we muste use elif
-            if validate_email(c):
-                email_colum.append(i)
-            elif not phonef:
-                if not c in usernames:
-                    username_field.append(i)
-                    usernames.append(c)
-                else:
-                    passwords.append(c)
-            
-            #if re_phone1.match(c) or re_phone3.match(c) or re_phone1.match(c):
-            #    phone_number.append(i)
-            
-            if c.count(' ') > 0:
-                name_field.append(i)
+        lowerrow = [cc.lower().replace('\n', '') for cc in line.split(delimiter)]
+        for i in lowerrow:
+            # If row has non-word characters, it can't be the headers
+            if re.search('\W', i):
+                csv_file.seek(starting_location)
+                break
+            else:
+                headers.append(header_conversions.get(i, i))
+        # Only check the first non-comment row
+        break
 
-        n += 1
-        if n > 100:
-            break
-
-
-    headers = ['U{}'.format(i) for i in range(ncolumns)]
-
-    #at least 50% of the rows should contain similar value
-    
-    mode_email_colum = find_mode(email_colum)
-    if mode_email_colum:
-        if mode_email_colum[0] > n/2:
-            headers[mode_email_colum[1]] = 'e'
-    
-    mode_date_column = find_mode(date_column)
-    if mode_date_column:
-        if mode_date_column[0]> n/2:
-            headers[mode_date_column[1]] = 'd'
-            
-    mode_ip_column = find_mode(ip_column)
-    if mode_ip_column:
-        if mode_ip_column[0] > n/2:
-            headers[mode_ip_column[1]] = 'I'
-            
-    mode_phone_number = find_mode(phone_number)
-    if mode_phone_number:
-        if mode_phone_number[0] > n/2:
-            headers[mode_phone_number[1]] = 't'
-    mode_name_field = find_mode(name_field)
-
-    #for name field 1/3 should be enough
-    if mode_name_field:
-        if mode_name_field[0] > n/3:
-            headers[mode_name_field[1]] = 'n'
-
-
-    mode_username_field = find_mode(username_field)
-    if mode_username_field:
-        if mode_username_field[0] > n/2:
-            headers[mode_username_field[1]] = 'u'
-
-    return 1, headers, False
+    if len(headers) == column_count:
+        return headers
+    else:
+        return []
 
 
 def write_json(source):
@@ -481,7 +387,7 @@ def write_json(source):
 
     if not os.path.exists(json_dir):
         os.mkdir(json_dir)
-    
+
     json_list = []
     out_reader = UnicodeReader(open(source), dialect=myDialect)
     fl = True
@@ -495,56 +401,28 @@ def write_json(source):
             for i in range(len(headers)):
                 jdict[ headers[i] ] = l[i]
             json_list.append(jdict)
-    
+
     with open(os.path.join(json_dir, json_file), 'w') as outfile:
         json.dump(json_list, outfile)
-    
-def write_headers(source, cleaned=None):
-    
-    if cleaned:
-        os.rename(source, source+'~')
-
-    gh = get_or_guess_headers(source+'~')
-
-    if gh[0]:
-        ghw = wrap_fields(gh[1])
-        header_line = ",".join(ghw)
-        print "Header Line:", header_line
-        write_first_line = True
-        if gh[2]:
-            write_first_line = False
-        c = 0
-        with open(source, 'w') as W:
-            W.write(header_line+'\n')
-            for l in open(source+'~'):
-                if write_first_line:
-                    W.write(l)
-                else:
-                    if c > 0:
-                        W.write(l)
-                c += 1
-
-    else:
-        shutil.copy(source+'~', source)
-
-    if cleaned:
-        print "Removing", source+'~'
-        os.remove(source+'~')
 
 
-def ask_headers(source, cleaned=None):
+def ask_headers(csv_file, column_count):
+    """Print out 10 lines, then ask user for headers.
 
+    Returns a list of headers.
+    """
+    starting_location = csv_file.tell()
+    headers = []
     llc = 0
     print "First 10 lines:"
     print "-"*20
-    ff = open(source)
-    for l in ff:
+    for l in csv_file:
         print l.strip()
-        llc +=1
+        llc += 1
         if llc > 10:
             break
     print "-"*20
-    
+
     a = StringIO.StringIO()
     a.write(l)
     a.seek(0)
@@ -553,54 +431,40 @@ def ask_headers(source, cleaned=None):
     for l in orig_reader:
         csv_column_count = len(l)
         break
-    
-    for i,h in enumerate(header_list):
-        print i,':',h
-    user_headers = raw_input("Please enter  headers as 6 2 0 4 :")
+
+    for i, h in enumerate(header_list):
+        print i, ':', h
+    user_headers = raw_input("Please enter {} headers as 6 2 0 4 :".format(column_count))
 
     if user_headers:
         if user_headers.replace(' ', '').isdigit():
             user_headers = user_headers.split()
-            headers = []
-            uc=0
+            uc = 0
             for hi in range(csv_column_count):
                 if hi < len(user_headers):
                     if user_headers[hi] == '0':
                         headers.append('X'+str(uc))
                         uc += 1
                     else:
-                        headers.append(header_list[ int(user_headers[hi]) ])
+                        headers.append(header_list[int(user_headers[hi])])
 
-            diff  = csv_column_count - len(user_headers)
+            diff = csv_column_count - len(user_headers)
             if diff > 0:
                 for ha in range(diff):
                     headers.append('X'+str(uc))
-                    uc +=1
+                    uc += 1
 
-            header_line = ",".join(wrap_fields(headers))
-            HF = open(source[:-1],'w')
-            HF.write(header_line+'\n')
-            ff.seek(0)
-            for l in ff:
-                HF.write(l)
-            HF.close()
-            ff.close()
-
+    csv_file.seek(starting_location)
+    if len(headers) == column_count:
+        return headers
     else:
-        try:
-            shutil.copy(source, source[:-1])
-        except:
-            pass
-
-    if cleaned:
-        print "Removing", source+'~'
-        os.remove(source)
+        return []
 
 
 def parse_file(tfile):
 
     org_tfile = tfile
-    
+
     tfile = org_tfile.replace('(','')
     tfile = tfile.replace(')','')
     tfile = tfile.replace(' ','')
@@ -612,9 +476,9 @@ def parse_file(tfile):
 
     fdirname = os.path.dirname(tfile)
     fbasename = os.path.basename(tfile)
-    
+
     json_file = os.path.splitext(fbasename)[0]+'.json'
-    
+
     completed_dir = os.path.join(fdirname, 'completed')
     error_dir = os.path.join(fdirname, 'error')
     json_dir = os.path.join(fdirname, 'json')
@@ -622,21 +486,21 @@ def parse_file(tfile):
     if not os.path.exists(json_dir):
         os.mkdir(json_dir)
 
-    
+
     if not os.path.exists(completed_dir):
         os.mkdir(completed_dir)
 
     if not os.path.exists(error_dir):
         os.mkdir(error_dir)
 
-    
+
 
     print "\n---------------------------------------------\n"
-    
+
     print "Escaping grabage characters"
-    
+
     gc_file = "{0}_gc~".format(tfile)
-    
+
     gc_cmd = "tr -cd '\11\12\15\40-\176' < {} > {}".format(tfile, gc_file)
 
     os.system(gc_cmd)
@@ -648,122 +512,127 @@ def parse_file(tfile):
     if guess:
         print "Guessing delimiter"
         dialect, csv_column_count = guess_delimeter(F)
-        if dialect:
-            print "Guessed column number [{}] and delimiter [{}]".format(
-                dialect.delimiter, csv_column_count)
-    else:
-        print "Using provided column number [{}] and delimiter [{}]".format(
-                                    args.c, args.d)
+
+    if not dialect:
         dialect = csv.excel
         dialect.delimiter = args.d
         csv_column_count = args.c
 
-    if dialect:
-        
-        F.seek(0)
+    print "Using column number [{}] and delimiter [{}]".format(
+          csv_column_count, dialect.delimiter)
 
-        out_file_csv_name = f_name+'_cleaned.csv'
-        out_file_err_name = f_name+'_error.csv'
-        
-        
-        out_file_csv_file = open(out_file_csv_name+'~','wb')
-        
-        out_file_err_file = open(out_file_err_name+'~','wb')
+    F.seek(0)
 
-        print "Cleaning ... \n"
+    out_file_csv_name = f_name+'_cleaned.csv'
+    out_file_err_name = f_name+'_error.csv'
 
-        clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
-        error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
+    out_file_csv_file = open(out_file_csv_name+'~','wb')
 
-        json_list = []
+    out_file_err_file = open(out_file_err_name+'~','wb')
 
-        l_count = 0
+    print "Cleaning ... \n"
 
-        for lk in F:
-            a = StringIO.StringIO()
-            a.write(lk)
-            a.seek(0)
-            orig_reader = UnicodeReader(a, dialect=dialect)
+    clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
+    error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
-            for l in orig_reader:
-                l_count +=1
-                if l_count % 100:
-                    print"\r Parsing line: {0}".format(l_count),
-                    sys.stdout.flush()
-                
-                while True:
-                    if not l:
-                        break
-                    if not l[-1]:
-                        l.pop()
-                    else:
-                        break
-                ll = l[:]
-                l=[]
-                for li in ll:
-                    if li:
-                        if not li[-1] == "":
-                            l.append(li.strip())
-                        else:
-                            l.append(li)
+    json_list = []
 
-                if len(l) == csv_column_count:
-                    clean_writer.writerow(l)
-                    
-                elif len(l) == csv_column_count-1:
-                    l.append("")
-                    clean_writer.writerow(l)
+    header_line = parse_headers(F, dialect, csv_column_count)
+    out_file_csv_file.write(header_line + '\n')
+    l_count = 1
+
+    for lk in F:
+        a = StringIO.StringIO()
+        a.write(lk)
+        a.seek(0)
+        orig_reader = UnicodeReader(a, dialect=dialect)
+
+        for l in orig_reader:
+            l_count +=1
+            if l_count % 100:
+                print"\r Parsing line: {0}".format(l_count),
+                sys.stdout.flush()
+
+            while True:
+                if not l:
+                    break
+                if not l[-1]:
+                    l.pop()
                 else:
-                    if args.m and csv_column_count > 1:
-                        lx=l[:csv_column_count-1]
-                        lt = dialect.delimiter.join(l[csv_column_count-1:])
-                        lx.append(lt)
-                        clean_writer.writerow(lx)
+                    break
+            ll = l[:]
+            l=[]
+            for li in ll:
+                if li:
+                    if not li[-1] == "":
+                        l.append(li.strip())
                     else:
-                        error_writer.writerow(l)
+                        l.append(li)
 
-        F.close()
-        out_file_csv_file.close()
-        out_file_err_file.close()
+            if len(l) == csv_column_count:
+                clean_writer.writerow(l)
 
-        print
-        print "Output file", out_file_csv_name+'~', "were written"
-        print "Error file", out_file_err_name+'~', "were written"
+            elif len(l) == csv_column_count-1:
+                l.append("")
+                clean_writer.writerow(l)
+            else:
+                if args.m and csv_column_count > 1:
+                    lx=l[:csv_column_count-1]
+                    lt = dialect.delimiter.join(l[csv_column_count-1:])
+                    lx.append(lt)
+                    clean_writer.writerow(lx)
+                else:
+                    error_writer.writerow(l)
 
+    F.close()
+    out_file_csv_file.close()
+    out_file_err_file.close()
 
-        print "Moving {} to completed folder".format(tfile)
-        os.rename(tfile, os.path.join(completed_dir, fbasename))
-        
-        err_basename = os.path.basename(out_file_err_name+'~')
-        
-        print "Moving {} to error folder".format(out_file_err_name+'~')
-        
-        err_basename = os.path.basename(out_file_err_name+'~')
-        
-        target_out_err_file = os.path.join(error_dir, err_basename[:-1])
-        
-        os.rename(out_file_err_name+'~', target_out_err_file)
-        
-        
-        if args.gh:
-            write_headers(out_file_csv_name)
-            os.remove(out_file_csv_name+'~')
-        elif args.ah:
-            ask_headers(out_file_csv_name+'~')
-            os.remove(out_file_csv_name+'~')
+    print
+    print "Output file", out_file_csv_name+'~', "were written"
+    print "Error file", out_file_err_name+'~', "were written"
+
+    print "Moving {} to completed folder".format(tfile)
+    os.rename(tfile, os.path.join(completed_dir, fbasename))
+
+    err_basename = os.path.basename(out_file_err_name+'~')
+
+    print "Moving {} to error folder".format(out_file_err_name+'~')
+
+    err_basename = os.path.basename(out_file_err_name+'~')
+
+    target_out_err_file = os.path.join(error_dir, err_basename[:-1])
+
+    os.rename(out_file_err_name+'~', target_out_err_file)
+
+    temp_file = out_file_csv_name + '~'
+    if os.path.exists(temp_file):
+        if os.path.exists(out_file_csv_name):
+            os.remove(temp_file)
         else:
-            os.rename(out_file_csv_name+'~', out_file_csv_name)
-        if args.j:
-            write_json(out_file_csv_name)
-        
-        
-        
-    else:
-        os.rename(tfile, os.path.join(error_dir, fbasename))
+            os.rename(temp_file, out_file_csv_name)
+    if args.j:
+        write_json(out_file_csv_name)
 
     print "Removing", gc_file
     os.remove(gc_file)
-    
+
+
+def parse_headers(f, dialect, column_count):
+    print "Parsing headers from", f.name
+    headers = get_or_guess_headers(f, column_count, dialect.delimiter)
+    if not headers:
+        print "\nUnable to determine headers...\n"
+        headers = ask_headers(f, column_count)
+    if not headers:
+        error = ('No headers for %s were detected nor provided by user.' % f)
+        raise ValueError(error)
+
+    header_line = ','.join(headers)
+    print "Header Line:", header_line
+    return header_line
+
+
 if __name__ == '__main__':
 
     mpath = args.path
@@ -773,10 +642,7 @@ if __name__ == '__main__':
 
     cleaned_file_list = []
 
-
     if not '#' in mpath:
-
-
         if os.path.isdir(mpath):
             for ppath in os.listdir(mpath):
                 if not ppath in ('completed','error'):
@@ -785,7 +651,7 @@ if __name__ == '__main__':
                         for tfile in os.listdir(ppath):
                             tf = os.path.join(ppath,tfile)
                             if not tf.endswith('~') and not tf.startswith('.'):
-                                
+
                                 if args.gh:
                                     if os.path.isfile(tf):
                                         if tf.lower().endswith('.sql'):
@@ -794,7 +660,7 @@ if __name__ == '__main__':
                                             parse_path_list.append(tf)
                                 else:
                                     if not '_cleaned.' in tf:
-                                    
+
                                         if os.path.isfile(tf):
                                             if tf.lower().endswith('.sql'):
                                                 sql_path_list.append(tf)
@@ -805,7 +671,7 @@ if __name__ == '__main__':
 
                     elif os.path.isfile(ppath):
                         if not ppath.endswith('~') and not ppath.startswith('.'):
-                            
+
                             if args.gh:
                                 if ppath.lower().endswith('.sql'):
                                     sql_path_list.append(ppath)
@@ -839,7 +705,7 @@ if __name__ == '__main__':
                             parse_path_list.append(mpath)
                     else:
                         cleaned_file_list.append(mpath)
-    
+
     else:
         path_dirname = os.path.dirname(mpath)
         path_filename = os.path.basename(mpath)
@@ -850,49 +716,30 @@ if __name__ == '__main__':
         for f in os.listdir(path_dirname):
             if f.endswith(file_ext):
                 file_list.append(os.path.join(path_dirname, f))
-    
+
         cleaned_file_list = file_list[:]
         parse_path_list = file_list[:]
-        
-        
-    
-    if args.gho:
-        print "Guessing headers"
-        for f in cleaned_file_list:
-            if not f.endswith('.json'):
-                print "Processing", f
-                write_headers(f, cleaned=True)
-    if args.aho:
-        
-        print "Asking headers"
-        
-        for f in cleaned_file_list:
-            if not f.endswith('.json'):
-                os.rename(f, f+'~')
-                print "Processing", f
-                ask_headers(f+'~', cleaned=True)
-        
-    
+
     if args.jo:
         for f in cleaned_file_list:
             if not f.endswith('.json'):
                 write_json(f)
-    
-    
-    if not (args.gho or args.jo or args.aho):
-    
+    else:
         print
         print "PARSING TXT and CSV FILES"
         print "-------------------------\n"
-        
+
         fc = 0
         nf = len(parse_path_list)
         for f in parse_path_list:
+            if f.endswith('.json'):
+                continue
+            print "Processing", f
             fdirname = os.path.dirname(f)
             fbasename = os.path.basename(f)
-        
+
             if ('&' in fbasename) or ('+' in fbasename) or ('@' in fbasename) or ("'" in fbasename):
-                
+
                 nfbasename = fbasename
                 for ch in "&+@'":
                     nfbasename = nfbasename.replace(ch,'_')
@@ -908,10 +755,12 @@ if __name__ == '__main__':
                 parse_file(f)
             else:
                 print "File {} is empty, passing".format(f)
+
+    if sql_path_list:
         print
         print "PARSING SQL FILES"
         print "-------------------------\n"
-        
+
         for sf in sql_path_list:
             dir_name = os.path.dirname(sf)
             sARGS={ 
