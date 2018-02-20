@@ -296,20 +296,8 @@ def guess_delimeter(F):
     if args.a:
         return rdialect, csv_column_count
 
-    print "Here are the first 10 lines\n"
-    print "-"*30
-    F.seek(0)
-
-    c=0
-
-    for l in F:
-        print l.strip()
-        if c>=10:
-            break
-        c +=1
-
-    print "-"*30
-    print
+    # print first 10 lines
+    print_lines(F, 10)
 
     print "\033[38;5;147m Gusessed delimeter -> {}".format('{tab}' if  csv_delimeter =='\t' else csv_delimeter)
     print "\033[38;5;147m Guessed column number", csv_column_count
@@ -526,6 +514,9 @@ def parse_file(tfile):
         if headers:
             print 'Headers found for', tfile
         else:
+            print 'Could not detect headers.'
+            if args.a:
+                print_lines(F, 10)
             headers = ask_headers(csv_column_count)
         if headers:
             header_line = ','.join(headers)
@@ -634,6 +625,18 @@ def gather_files(path,
     return parse_path_list, sql_path_list, cleaned_file_list
 
 
+def print_lines(f, num_of_lines):
+    last_location = f.tell()
+    f.seek(0)
+    print 'The first {} lines:'.format(num_of_lines)
+    print '-' * 20
+    for x in range(num_of_lines):
+        print f.readline(),
+    print '-' * 20
+    print
+    f.seek(last_location)
+
+
 if __name__ == '__main__':
     parse_path_list, sql_path_list, cleaned_file_list = gather_files(args.path)
     if args.ah:
@@ -647,12 +650,7 @@ if __name__ == '__main__':
                     print 'Headers found for', clean_file
                     continue
                 print 'Setting the headers for file', clean_file
-                print 'The first 10 lines:'
-                print '-' * 20
-                for x in range(10):
-                    print cf.readline(),
-                print '-' * 20
-                print
+                print_lines(cf, 10)
             headers = ask_headers(csv_column_count)
             if headers:
                 with open(clean_file, 'rb') as cf:
