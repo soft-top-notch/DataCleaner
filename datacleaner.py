@@ -25,7 +25,8 @@ parser.add_argument("-m", help="Merge remaining columns into last", action="stor
 parser.add_argument("-j", help="Write JSON file", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 parser.add_argument("-d", type=str, help="Delimiter")
-parser.add_argument("path", help="Path to csv file or folder")
+parser.add_argument("path", type=str, nargs='+',
+                    help="Path to one or more csv file(s) or folder(s)")
 
 args = parser.parse_args()
 
@@ -608,76 +609,33 @@ def parse_file(tfile):
     os.remove(gc_file)
 
 
-if __name__ == '__main__':
-
-    mpath = args.path
-    parse_path_list = []
-
-    sql_path_list = []
-
-    cleaned_file_list = []
-
-    if not '#' in mpath:
-        if os.path.isdir(mpath):
-            for ppath in os.listdir(mpath):
-                if not ppath in ('completed','error'):
-                    ppath = os.path.join(mpath, ppath)
-                    if os.path.isdir(ppath):
-                        for tfile in os.listdir(ppath):
-                            tf = os.path.join(ppath,tfile)
-                            if not tf.endswith('~') and not tf.startswith('.'):
-                                if os.path.isfile(tf):
-                                    if tf.lower().endswith('_cleaned.csv'):
-                                        cleaned_file_list.append(tf)
-                                    elif tf.lower().endswith('.sql'):
-                                        sql_path_list.append(tf)
-                                    else:
-                                        parse_path_list.append(tf)
-
-                    elif os.path.isfile(ppath):
-                        if not ppath.endswith('~') and not ppath.startswith('.'):
-                            if ppath.lower().endswith('_cleaned.csv'):
-                                cleaned_file_list.append(ppath)
-                            elif ppath.lower().endswith('.sql'):
-                                sql_path_list.append(ppath)
-                            else:
-                                parse_path_list.append(ppath)
-
-
-        elif os.path.isfile(mpath):
-            if not mpath.endswith('~'):
-                if args:
-                    if not '_cleaned.' in mpath:
-                        if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
-                            sql_path_list.append(mpath)
-
-                        else:
-                            parse_path_list.append(mpath)
-                    else:
-                        cleaned_file_list.append(mpath)
-                else:
-                    if not '_cleaned.' in mpath:
-                        if mpath.lower().endswith('.sql') and not mpath.startswith('.'):
-                            sql_path_list.append(mpath)
-                        else:
-                            parse_path_list.append(mpath)
-                    else:
-                        cleaned_file_list.append(mpath)
-
+def gather_files(path,
+                 parse_path_list=[],
+                 sql_path_list=[],
+                 cleaned_file_list=[]):
+    """Gather lists of files recursively."""
+    if isinstance(path, list):
+        for p in path:
+            gather_files(p, parse_path_list, sql_path_list, cleaned_file_list)
     else:
-        path_dirname = os.path.dirname(mpath)
-        path_filename = os.path.basename(mpath)
-        file_name, file_ext = os.path.splitext(path_filename)
+        if os.path.isdir(path):
+            if os.path.basename(path) not in ('completed', 'error', 'failed'):
+                for subpath in os.listdir(path):
+                    gather_files(os.path.join(path, subpath), parse_path_list,
+                                 sql_path_list, cleaned_file_list)
+        else:
+            if not path.startswith('.'):
+                if path.lower().endswith('_cleaned.csv'):
+                    cleaned_file_list.append(path)
+                elif path.lower().endswith('.sql'):
+                    sql_path_list.append(path)
+                elif not path.endswith('~'):
+                    parse_path_list.append(path)
+    return parse_path_list, sql_path_list, cleaned_file_list
 
-        file_list = []
 
-        for f in os.listdir(path_dirname):
-            if f.endswith(file_ext):
-                file_list.append(os.path.join(path_dirname, f))
-
-        cleaned_file_list = file_list[:]
-        parse_path_list = file_list[:]
-
+if __name__ == '__main__':
+    parse_path_list, sql_path_list, cleaned_file_list = gather_files(args.path)
     if args.ah:
         dialect = myDialect()
         for clean_file in cleaned_file_list:
@@ -752,14 +710,15 @@ if __name__ == '__main__':
 
         for sf in sql_path_list:
             dir_name = os.path.dirname(sf)
-            sARGS={ 
-                    'SQLFILE': [sf],
-                    '--failed': os.path.join(dir_name,'failed'),
-                    '--completed': os.path.join(dir_name,'completed'),
-                    '--exit-on-error': False,
-                    }
-            parse_sql.main(sARGS)
-
+            try:
+                parse_sql.parse(sf)
+            except KeyboardInterrupt:
+                print('Control-c pressed...')
+                sys.exit(138)
+            except Exception as error:
+                parse_sql.move(sf, os.path.join(dir_name, 'failed'))
+                print 'ERROR:', str(error)
+            else:
+                parse_sql.move(sf, os.path.join(dir_name, 'completed'))
 
     print "\nFINISHED\n"
-
