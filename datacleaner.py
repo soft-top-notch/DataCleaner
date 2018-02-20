@@ -374,6 +374,36 @@ def write_json(source):
         json.dump(json_list, outfile)
 
 
+def get_headers(csv_file, delimiter, column_count):
+    """Reads file and tries to determine if headers are present.
+
+    Returns a list of headers.
+    """
+    headers = []
+    starting_location = csv_file.tell()
+
+    for line in csv_file:
+        # Skip comment rows
+        if line.startswith('#'):
+            continue
+
+        lowerrow = [cc.lower().replace('\n', '') for cc in line.split(delimiter)]
+        for i in lowerrow:
+            # If row has non-word characters, it can't be the headers
+            if re.search('\W', i):
+                csv_file.seek(starting_location)
+                break
+            else:
+                headers.append(HEADER_MAP.get(i, i))
+        # Only check the first non-comment row
+        break
+
+    if len(headers) == column_count:
+        return headers
+    else:
+        return []
+
+
 def ask_headers(column_count):
     """Ask user for headers.
 
@@ -492,7 +522,11 @@ def parse_file(tfile):
 
     l_count = 0
     if args.ah:
-        headers = ask_headers(csv_column_count)
+        headers = get_headers(F, dialect.delimiter, csv_column_count)
+        if headers:
+            print 'Headers found for', tfile
+        else:
+            headers = ask_headers(csv_column_count)
         if headers:
             header_line = ','.join(headers)
             print "Header Line:", header_line
@@ -647,16 +681,22 @@ if __name__ == '__main__':
         parse_path_list = file_list[:]
 
     if args.ah:
+        dialect = myDialect()
         for clean_file in cleaned_file_list:
-            print 'Setting the headers for file', clean_file
             with open(clean_file, 'rb') as cf:
+                csv_column_count = find_column_count(cf)
+                cf.seek(0)
+                headers = get_headers(cf, dialect.delimiter, csv_column_count)
+                if headers:
+                    print 'Headers found for', clean_file
+                    continue
+                print 'Setting the headers for file', clean_file
                 print 'The first 10 lines:'
                 print '-' * 20
                 for x in range(10):
                     print cf.readline(),
                 print '-' * 20
                 print
-                csv_column_count = find_column_count(cf)
             headers = ask_headers(csv_column_count)
             if headers:
                 with open(clean_file, 'rb') as cf:
