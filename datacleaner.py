@@ -230,7 +230,7 @@ def guess_delimeter(F):
     if csv_guess:
         rdialect, csv_column_count = csv_guess
         csv_delimeter = rdialect.delimiter
-        print "\033[38;5;38mGuess method: CSV Sniffer delimiter -> {}\n".format(csv_delimeter)
+        print "\033[38;5;244mGuessed CSV delimeter -> \033[38;5;255m{}".format(csv_delimeter)
     else:
         delim_counts_list={}
         delim_freq = {}
@@ -295,7 +295,7 @@ def guess_delimeter(F):
     if args.a:
         return rdialect, csv_column_count
 
-    print "Here is the first 10 lines\n"
+    print "Here are the first 10 lines\n"
     print "-"*30
     F.seek(0)
 
@@ -477,7 +477,7 @@ def parse_file(tfile):
         os.mkdir(error_dir)
 
 
-    print "\033[38;5;244mEscaping grabage characters"
+    print "\n------\n\033[38;5;244mEscaping grabage characters"
 
     gc_file = "{0}_gc~".format(tfile)
 
@@ -485,12 +485,12 @@ def parse_file(tfile):
 
     os.system(gc_cmd)
 
-    print "\033[0mParsing file", gc_file
+    print "\033[0mParsing file: ", gc_file
 
     F = open(gc_file,'rb')
 
     if guess:
-        print "\033[38;5;243mGuessing delimiter"
+        print "\n\033[38;5;244mGuessing delimiter"
         dialect, csv_column_count = guess_delimeter(F)
 
     if not dialect and args.p:
@@ -500,7 +500,7 @@ def parse_file(tfile):
         dialect.delimiter = args.d
         csv_column_count = args.c
 
-    print "\033[38;5;32mUsing column number [{}] and delimiter [{}]".format(
+    print "\033[38;5;156mUsing column number [{}] and delimiter [{}]".format(
           csv_column_count, dialect.delimiter)
 
     F.seek(0)
@@ -512,7 +512,7 @@ def parse_file(tfile):
 
     out_file_err_file = open(out_file_err_name+'~','wb')
 
-    print "\033[38;5;243mCleaning ... \n"
+    print "\033[38;5;244mCleaning ... \n"
 
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
     error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
