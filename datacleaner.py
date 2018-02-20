@@ -276,7 +276,7 @@ def guess_delimeter(F):
 
         if csv_delimeter:
 
-            print ">>> Guess method: Custom delimiter -> {}\n".format(csv_delimeter)
+            print "Guess method: Custom delimiter -> {}\n".format(csv_delimeter)
 
         else:
 
@@ -477,10 +477,7 @@ def parse_file(tfile):
         os.mkdir(error_dir)
 
 
-
-    print "\033[38;5;240m ---------------------------------------------\n"
-
-    print "\033[38;5;7m Escaping grabage characters"
+    print "\033[38;5;244mEscaping grabage characters"
 
     gc_file = "{0}_gc~".format(tfile)
 
@@ -488,7 +485,7 @@ def parse_file(tfile):
 
     os.system(gc_cmd)
 
-    print "Parsing file", gc_file
+    print "\033[0mParsing file", gc_file
 
     F = open(gc_file,'rb')
 
@@ -513,7 +510,7 @@ def parse_file(tfile):
 
     out_file_err_file = open(out_file_err_name+'~','wb')
 
-    print "\033[38;5;243m Cleaning ... \n"
+    print "\033[38;5;243mCleaning ... \n"
 
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
     error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
@@ -724,7 +721,7 @@ if __name__ == '__main__':
             if f.endswith('.json'):
                 continue
             print "\n\n \033[1;34mProcessing", f
-            print "\n\033[0m"
+            print "\033[0m"
             fdirname = os.path.dirname(f)
             fbasename = os.path.basename(f)
 
@@ -739,7 +736,8 @@ if __name__ == '__main__':
 
             fc += 1
             print
-            print "File {}/{}".format(fc, nf)
+            print "\n\033[38;5;240m ---------------------------------------------\n"
+            print "\033[0mFile {}/{}".format(fc, nf)
             if os.stat(f).st_size > 0:
                 parse_file(f)
             else:
