@@ -230,7 +230,7 @@ def guess_delimeter(F):
     if csv_guess:
         rdialect, csv_column_count = csv_guess
         csv_delimeter = rdialect.delimiter
-        print ">>> Guess method: CSV Sniffer delimiter -> {}\n".format(csv_delimeter)
+        print "\033[38;5;38m>>> Guess method: CSV Sniffer delimiter -> {}\n".format(csv_delimeter)
     else:
         delim_counts_list={}
         delim_freq = {}
@@ -282,14 +282,14 @@ def guess_delimeter(F):
 
             if not args.p:
 
-                print "Delimiter could not determined"
+                print "\033[38;5;9m Delimiter could not determined"
                 csv_delimeter, csv_column_count = ask_user_for_delimeter()
                 rdialect = csv.excel
                 rdialect.delimiter = csv_delimeter
 
                 return rdialect, csv_column_count
             else:
-                print "Delimiter could not determined, passing"
+                print "\033[38;5;9m Delimiter could not determined, passing"
                 return False, False
 
     if args.a:
@@ -310,8 +310,8 @@ def guess_delimeter(F):
     print "-"*30
     print
 
-    print "Gusessed delimeter -> {}".format('{tab}' if  csv_delimeter =='\t' else csv_delimeter)
-    print "Guessed column number", csv_column_count
+    print "\033[38;5;147m Gusessed delimeter -> {}".format('{tab}' if  csv_delimeter =='\t' else csv_delimeter)
+    print "\033[38;5;147m Guessed column number", csv_column_count
 
     r = raw_input("Do you want to proceed with these guessed values? [Y|n]: ")
     if (not r) or (r in ('Y', 'y')):
@@ -478,9 +478,9 @@ def parse_file(tfile):
 
 
 
-    print "\n---------------------------------------------\n"
+    print "\033[38;5;240m ---------------------------------------------\n"
 
-    print "Escaping grabage characters"
+    print "\033[38;5;7m Escaping grabage characters"
 
     gc_file = "{0}_gc~".format(tfile)
 
@@ -493,7 +493,7 @@ def parse_file(tfile):
     F = open(gc_file,'rb')
 
     if guess:
-        print "Guessing delimiter"
+        print "\n\n\033[38;5;243m Guessing delimiter"
         dialect, csv_column_count = guess_delimeter(F)
 
     if not dialect:
@@ -501,7 +501,7 @@ def parse_file(tfile):
         dialect.delimiter = args.d
         csv_column_count = args.c
 
-    print "Using column number [{}] and delimiter [{}]".format(
+    print "\033[38;5;117m Using column number [{}] and delimiter [{}]".format(
           csv_column_count, dialect.delimiter)
 
     F.seek(0)
@@ -513,7 +513,7 @@ def parse_file(tfile):
 
     out_file_err_file = open(out_file_err_name+'~','wb')
 
-    print "Cleaning ... \n"
+    print "\033[38;5;243m Cleaning ... \n"
 
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
     error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
@@ -581,15 +581,15 @@ def parse_file(tfile):
     out_file_err_file.close()
 
     print
-    print "Output file", out_file_csv_name+'~', "were written"
-    print "Error file", out_file_err_name+'~', "were written"
+    print "\033[38;5;248m Output file", out_file_csv_name+'~', "were written"
+    print "\033[38;5;248m Error file", out_file_err_name+'~', "were written"
 
-    print "Moving {} to completed folder".format(tfile)
+    print "\033[38;5;248m Moving {} to completed folder".format(tfile)
     os.rename(tfile, os.path.join(completed_dir, fbasename))
 
     err_basename = os.path.basename(out_file_err_name+'~')
 
-    print "Moving {} to error folder".format(out_file_err_name+'~')
+    print "\033[38;5;248m Moving {} to error folder".format(out_file_err_name+'~')
 
     err_basename = os.path.basename(out_file_err_name+'~')
 
@@ -715,15 +715,16 @@ if __name__ == '__main__':
 
     if parse_path_list:
         print
-        print "PARSING TXT and CSV FILES"
-        print "-------------------------\n"
+        print "\033[38;5;248m PARSING TXT and CSV FILES"
+        print "\033[38;5;240m  -------------------------\n"
 
         fc = 0
         nf = len(parse_path_list)
         for f in parse_path_list:
             if f.endswith('.json'):
                 continue
-            print "Processing", f
+            print "\n\n \033[1;34mProcessing", f
+            print "\n\033[0m"
             fdirname = os.path.dirname(f)
             fbasename = os.path.basename(f)
 
@@ -746,8 +747,8 @@ if __name__ == '__main__':
 
     if sql_path_list:
         print
-        print "PARSING SQL FILES"
-        print "-------------------------\n"
+        print "\033[1;31m PARSING SQL FILES"
+        print "\033[38;5;240m -------------------------\n"
 
         for sf in sql_path_list:
             dir_name = os.path.dirname(sf)
