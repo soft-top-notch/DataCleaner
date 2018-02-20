@@ -748,7 +748,7 @@ if __name__ == '__main__':
     if sql_path_list:
         print
         print "\033[1;31m PARSING SQL FILES"
-        print "\033[38;5;240m -------------------------\n"
+        print "\033[38;5;240m -------------------------\n\033[38;5;255m"
 
         for sf in sql_path_list:
             dir_name = os.path.dirname(sf)
