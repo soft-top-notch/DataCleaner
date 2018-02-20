@@ -493,7 +493,9 @@ def parse_file(tfile):
         print "\033[38;5;243mGuessing delimiter"
         dialect, csv_column_count = guess_delimeter(F)
 
-    if not dialect:
+    if not dialect and args.p:
+        return
+    elif not dialect:
         dialect = csv.excel
         dialect.delimiter = args.d
         csv_column_count = args.c
