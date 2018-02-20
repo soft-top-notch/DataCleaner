@@ -6,6 +6,8 @@ import StringIO
 import re
 import json
 
+from collections import OrderedDict
+
 import dateutil.parser
 
 from validate_email import validate_email
@@ -16,10 +18,11 @@ csv.field_size_limit(sys.maxsize)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
+parser.add_argument("-ah", help="Ask for field names (headers) to add to CSVs",
+                    action="store_true")
 parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
 parser.add_argument("-j", help="Write JSON file", action="store_true")
-parser.add_argument("-jo", help="Write json only", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 parser.add_argument("-d", type=str, help="Delimiter")
 parser.add_argument("path", help="Path to csv file or folder")
@@ -35,23 +38,18 @@ if args.c and args.d:
     guess = False
 
 
-header_conversions = {
-    'username': 'u',
-    'name': 'n',
-    'email': 'e',
-    'mail': 'e',
-    'ip': 'I',
-    'date': 'd',
-    'password': 'p',
-    'passwd': 'p',
-    'salt': 's',
-    'address':'a',
-    'telephone': 't',
-    'phone': 't',
-}
-
-header_list = ['Username', 'Email', 'Password', 'Hash', 'Salt', 'Name', 'IP', 'DOB', 'Phone']
-
+HEADER_MAP = OrderedDict([
+    ('misc', 'x'),
+    ('username', 'u'),
+    ('email', 'e'),
+    ('password', 'p'),
+    ('hash', 'h'),
+    ('salt', 's'),
+    ('name', 'n'),
+    ('ip', 'i'),
+    ('dob', 'd'),
+    ('phone', 't')
+])
 
 delims = ('\t', ' ', ';', ':', ',', '|')
 
@@ -152,7 +150,7 @@ def find_mode(L):
         return max(mList)
 
 
-def find_column_count(f, dialect, iter_n = 500):
+def find_column_count(f, dialect=csv.excel, iter_n=500):
     i=1
     L=[]
     reader = UnicodeReader(f, dialect=dialect)
@@ -348,38 +346,8 @@ def wrap_fields(l, wrapper='"'):
     return ['{0}{1}{0}'.format(wrapper, x) for x in l]
 
 
-def get_or_guess_headers(csv_file, column_count, delimiter):
-    """Reads file and tries to determine if headers are present.
-
-    Returns a list of headers.
-    """
-    headers = []
-
-    for line in csv_file:
-        starting_location = csv_file.tell()
-        # Skip comment rows
-        if line.startswith('#'):
-            continue
-
-        lowerrow = [cc.lower().replace('\n', '') for cc in line.split(delimiter)]
-        for i in lowerrow:
-            # If row has non-word characters, it can't be the headers
-            if re.search('\W', i):
-                csv_file.seek(starting_location)
-                break
-            else:
-                headers.append(header_conversions.get(i, i))
-        # Only check the first non-comment row
-        break
-
-    if len(headers) == column_count:
-        return headers
-    else:
-        return []
-
-
 def write_json(source):
-    print "Writing json file for ", source
+    print "Writing json file for", source
     fdirname = os.path.dirname(source)
     fbasename = os.path.basename(source)
     json_file = os.path.splitext(fbasename)[0]+'.json'
@@ -406,55 +374,40 @@ def write_json(source):
         json.dump(json_list, outfile)
 
 
-def ask_headers(csv_file, column_count):
-    """Print out 10 lines, then ask user for headers.
+def ask_headers(column_count):
+    """Ask user for headers.
 
     Returns a list of headers.
     """
-    starting_location = csv_file.tell()
     headers = []
-    llc = 0
-    print "First 10 lines:"
-    print "-"*20
-    for l in csv_file:
-        print l.strip()
-        llc += 1
-        if llc > 10:
-            break
-    print "-"*20
 
-    a = StringIO.StringIO()
-    a.write(l)
-    a.seek(0)
-    orig_reader = UnicodeReader(a, dialect=myDialect)
+    print "Please provide the headers below:"
 
-    for l in orig_reader:
-        csv_column_count = len(l)
-        break
-
-    for i, h in enumerate(header_list):
+    header_list = []
+    for i, h in enumerate(HEADER_MAP.keys()):
         print i, ':', h
     user_headers = raw_input("Please enter {} headers as 6 2 0 4 :".format(column_count))
 
     if user_headers:
         if user_headers.replace(' ', '').isdigit():
-            user_headers = user_headers.split()
+            user_headers = [int(x) for x in user_headers.split()]
             uc = 0
-            for hi in range(csv_column_count):
+            for hi in range(column_count):
                 if hi < len(user_headers):
-                    if user_headers[hi] == '0':
-                        headers.append('X'+str(uc))
+                    header_name = HEADER_MAP.keys()[user_headers[hi]]
+                    header = HEADER_MAP[header_name]
+                    if header == 'x':
+                        headers.append(header + str(uc))
                         uc += 1
                     else:
-                        headers.append(header_list[int(user_headers[hi])])
+                        headers.append(header)
 
-            diff = csv_column_count - len(user_headers)
+            diff = column_count - len(user_headers)
             if diff > 0:
                 for ha in range(diff):
-                    headers.append('X'+str(uc))
+                    headers.append('X' + str(uc))
                     uc += 1
 
-    csv_file.seek(starting_location)
     if len(headers) == column_count:
         return headers
     else:
@@ -537,9 +490,14 @@ def parse_file(tfile):
 
     json_list = []
 
-    header_line = parse_headers(F, dialect, csv_column_count)
-    out_file_csv_file.write(header_line + '\n')
-    l_count = 1
+    l_count = 0
+    if args.ah:
+        headers = ask_headers(csv_column_count)
+        if headers:
+            header_line = ','.join(headers)
+            print "Header Line:", header_line
+            out_file_csv_file.write(header_line + '\n')
+            l_count += 1
 
     for lk in F:
         a = StringIO.StringIO()
@@ -548,7 +506,7 @@ def parse_file(tfile):
         orig_reader = UnicodeReader(a, dialect=dialect)
 
         for l in orig_reader:
-            l_count +=1
+            l_count += 1
             if l_count % 100:
                 print"\r Parsing line: {0}".format(l_count),
                 sys.stdout.flush()
@@ -616,21 +574,6 @@ def parse_file(tfile):
 
     print "Removing", gc_file
     os.remove(gc_file)
-
-
-def parse_headers(f, dialect, column_count):
-    print "Parsing headers from", f.name
-    headers = get_or_guess_headers(f, column_count, dialect.delimiter)
-    if not headers:
-        print "\nUnable to determine headers...\n"
-        headers = ask_headers(f, column_count)
-    if not headers:
-        error = ('No headers for %s were detected nor provided by user.' % f)
-        raise ValueError(error)
-
-    header_line = ','.join(headers)
-    print "Header Line:", header_line
-    return header_line
 
 
 if __name__ == '__main__':
@@ -720,11 +663,27 @@ if __name__ == '__main__':
         cleaned_file_list = file_list[:]
         parse_path_list = file_list[:]
 
-    if args.jo:
+    if args.ah:
+        for clean_file in cleaned_file_list:
+            with open(clean_file, 'rb') as cf:
+                csv_column_count = find_column_count(cf)
+            headers = ask_headers(csv_column_count)
+            if headers:
+                with open(clean_file, 'rb') as cf:
+                    with open(clean_file + '~', 'wb') as new_csv:
+                        header_line = ','.join(headers)
+                        print "Header Line:", header_line
+                        new_csv.write(header_line + '\n')
+                        for line in cf:
+                            new_csv.write(line)
+                os.rename(clean_file + '~', clean_file)
+
+    if args.j:
         for f in cleaned_file_list:
             if not f.endswith('.json'):
                 write_json(f)
-    else:
+
+    if parse_path_list:
         print
         print "PARSING TXT and CSV FILES"
         print "-------------------------\n"
@@ -747,9 +706,8 @@ if __name__ == '__main__':
                     os.rename(f, nf)
                     f = nf
 
-
             fc += 1
-            print 
+            print
             print "File {}/{}".format(fc, nf)
             if os.stat(f).st_size > 0:
                 parse_file(f)
