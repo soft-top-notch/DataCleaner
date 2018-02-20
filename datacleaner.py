@@ -230,7 +230,7 @@ def guess_delimeter(F):
     if csv_guess:
         rdialect, csv_column_count = csv_guess
         csv_delimeter = rdialect.delimiter
-        print "\033[38;5;38m>>> Guess method: CSV Sniffer delimiter -> {}\n".format(csv_delimeter)
+        print "\033[38;5;38mGuess method: CSV Sniffer delimiter -> {}\n".format(csv_delimeter)
     else:
         delim_counts_list={}
         delim_freq = {}
@@ -493,7 +493,7 @@ def parse_file(tfile):
     F = open(gc_file,'rb')
 
     if guess:
-        print "\n\n\033[38;5;243m Guessing delimiter"
+        print "\033[38;5;243mGuessing delimiter"
         dialect, csv_column_count = guess_delimeter(F)
 
     if not dialect:
@@ -501,7 +501,7 @@ def parse_file(tfile):
         dialect.delimiter = args.d
         csv_column_count = args.c
 
-    print "\033[38;5;117m Using column number [{}] and delimiter [{}]".format(
+    print "\033[38;5;32mUsing column number [{}] and delimiter [{}]".format(
           csv_column_count, dialect.delimiter)
 
     F.seek(0)
@@ -542,7 +542,7 @@ def parse_file(tfile):
         for l in orig_reader:
             l_count += 1
             if l_count % 100:
-                print"\r Parsing line: {0}".format(l_count),
+                print"\r \033[38;5;245mParsing line: {0}".format(l_count),
                 sys.stdout.flush()
 
             while True:
