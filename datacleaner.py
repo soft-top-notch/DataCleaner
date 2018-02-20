@@ -230,7 +230,7 @@ def guess_delimeter(F):
     if csv_guess:
         rdialect, csv_column_count = csv_guess
         csv_delimeter = rdialect.delimiter
-        print "\033[38;5;244mGuessed CSV delimeter -> \033[38;5;255m{}".format(csv_delimeter)
+        print "\033[38;5;117mGuessed CSV delimeter -> {}".format(csv_delimeter)
     else:
         delim_counts_list={}
         delim_freq = {}
@@ -276,7 +276,7 @@ def guess_delimeter(F):
 
         if csv_delimeter:
 
-            print "Guess method: Custom delimiter -> {}\n".format(csv_delimeter)
+            print "\033[38;5;244mGuess method: Custom delimiter -> {}\n".format(csv_delimeter)
 
         else:
 
@@ -477,7 +477,7 @@ def parse_file(tfile):
         os.mkdir(error_dir)
 
 
-    print "\n------\n\033[38;5;244mEscaping grabage characters"
+    print "\n\033[38;5;244mEscaping grabage characters"
 
     gc_file = "{0}_gc~".format(tfile)
 
@@ -580,15 +580,14 @@ def parse_file(tfile):
     out_file_err_file.close()
 
     print
-    print "\033[38;5;248m Output file", out_file_csv_name+'~', "were written"
-    print "\033[38;5;248m Error file", out_file_err_name+'~', "were written"
-
-    print "\033[38;5;248m Moving {} to completed folder".format(tfile)
+    print "\033[38;5;241m Output file", out_file_csv_name+'~', "were written"
+    print "\033[38;5;241m Error file", out_file_err_name+'~', "were written"
+    print "\033[38;5;241m Moving {} to completed folder".format(tfile)
     os.rename(tfile, os.path.join(completed_dir, fbasename))
 
     err_basename = os.path.basename(out_file_err_name+'~')
 
-    print "\033[38;5;248m Moving {} to error folder".format(out_file_err_name+'~')
+    print "\033[38;5;241m Moving {} to error folder".format(out_file_err_name+'~')
 
     err_basename = os.path.basename(out_file_err_name+'~')
 
@@ -715,15 +714,15 @@ if __name__ == '__main__':
     if parse_path_list:
         print
         print "\033[38;5;248m PARSING TXT and CSV FILES"
-        print "\033[38;5;240m  -------------------------\n"
+        print "\033[38;5;240m  -------------------------"
 
         fc = 0
         nf = len(parse_path_list)
         for f in parse_path_list:
             if f.endswith('.json'):
                 continue
-            print "\n\n \033[1;34mProcessing", f
-            print "\033[0m"
+            # print "\n \033[1;34mProcessing", f
+            # print "\033[0m"
             fdirname = os.path.dirname(f)
             fbasename = os.path.basename(f)
 
@@ -738,7 +737,8 @@ if __name__ == '__main__':
 
             fc += 1
             print
-            print "\n\033[38;5;240m ---------------------------------------------\n"
+            print "\033[38;5;240m ---------------------------------------------\n"
+            print "\033[1;34mProcessing", f
             print "\033[0mFile {}/{}".format(fc, nf)
             if os.stat(f).st_size > 0:
                 parse_file(f)
