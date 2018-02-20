@@ -282,14 +282,14 @@ def guess_delimeter(F):
 
             if not args.p:
 
-                print "\033[38;5;9m Delimiter could not determined"
+                print "\033[38;5;203m Delimiter could not determined"
                 csv_delimeter, csv_column_count = ask_user_for_delimeter()
                 rdialect = csv.excel
                 rdialect.delimiter = csv_delimeter
 
                 return rdialect, csv_column_count
             else:
-                print "\033[38;5;9m Delimiter could not determined, passing"
+                print "\033[38;5;203m Delimiter could not determined, passing"
                 return False, False
 
     if args.a:
