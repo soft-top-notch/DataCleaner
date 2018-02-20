@@ -594,40 +594,23 @@ if __name__ == '__main__':
                         for tfile in os.listdir(ppath):
                             tf = os.path.join(ppath,tfile)
                             if not tf.endswith('~') and not tf.startswith('.'):
-
-                                if args.gh:
-                                    if os.path.isfile(tf):
-                                        if tf.lower().endswith('.sql'):
-                                            sql_path_list.append(tf)
-                                        else:
-                                            parse_path_list.append(tf)
-                                else:
-                                    if not '_cleaned.' in tf:
-
-                                        if os.path.isfile(tf):
-                                            if tf.lower().endswith('.sql'):
-                                                sql_path_list.append(tf)
-                                            else:
-                                                parse_path_list.append(tf)
-                                    else:
+                                if os.path.isfile(tf):
+                                    if tf.lower().endswith('_cleaned.csv'):
                                         cleaned_file_list.append(tf)
+                                    elif tf.lower().endswith('.sql'):
+                                        sql_path_list.append(tf)
+                                    else:
+                                        parse_path_list.append(tf)
 
                     elif os.path.isfile(ppath):
                         if not ppath.endswith('~') and not ppath.startswith('.'):
-
-                            if args.gh:
-                                if ppath.lower().endswith('.sql'):
-                                    sql_path_list.append(ppath)
-                                else:
-                                    parse_path_list.append(ppath)
+                            if ppath.lower().endswith('_cleaned.csv'):
+                                cleaned_file_list.append(ppath)
+                            elif ppath.lower().endswith('.sql'):
+                                sql_path_list.append(ppath)
                             else:
-                                if not '_cleaned.' in ppath:
-                                    if ppath.lower().endswith('.sql'):
-                                        sql_path_list.append(ppath)
-                                    else:
-                                        parse_path_list.append(ppath)
-                                else:
-                                        cleaned_file_list.append(ppath)
+                                parse_path_list.append(ppath)
+
 
         elif os.path.isfile(mpath):
             if not mpath.endswith('~'):
@@ -665,7 +648,14 @@ if __name__ == '__main__':
 
     if args.ah:
         for clean_file in cleaned_file_list:
+            print 'Setting the headers for file', clean_file
             with open(clean_file, 'rb') as cf:
+                print 'The first 10 lines:'
+                print '-' * 20
+                for x in range(10):
+                    print cf.readline(),
+                print '-' * 20
+                print
                 csv_column_count = find_column_count(cf)
             headers = ask_headers(csv_column_count)
             if headers:
