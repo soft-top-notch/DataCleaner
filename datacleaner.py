@@ -333,23 +333,26 @@ def write_json(source):
     if not os.path.exists(json_dir):
         os.mkdir(json_dir)
 
-    json_list = []
     out_reader = UnicodeReader(open(source), dialect=myDialect)
-    fl = True
-
-    for l in out_reader:
-        if fl:
-            headers = l
-            fl = False
-        else:
-            jdict = dict()
-            for i in range(len(headers)):
-                jdict[ headers[i] ] = l[i]
-            json_list.append(jdict)
+    # grab the first line as headers
+    headers = out_reader.next()
 
     with open(os.path.join(json_dir, json_file), 'w') as outfile:
-        json.dump(json_list, outfile)
-
+        # Add first line of json
+        outfile.write('{"rows":\n  [\n')
+        line_count = 0
+        for row in out_reader:
+            # If this is not the first row, add a comma and new line
+            if line_count > 0:
+                outfile.write(',\n')
+            data = '    {}'.format(json.dumps(dict(zip(headers, row))))
+            outfile.write(data)
+            line_count += 1
+            if line_count % 100:
+                print"\r \033[38;5;245mWriting json row: {0}".format(line_count),
+                sys.stdout.flush()
+        # Write final newline (no comma) and close json brackets
+        outfile.write('\n  ]\n}')
 
 def get_headers(csv_file, delimiter, column_count):
     """Reads file and tries to determine if headers are present.
@@ -368,15 +371,12 @@ def get_headers(csv_file, delimiter, column_count):
         for i in lowerrow:
             # If row has non-word characters, it can't be the headers
             if re.search('\W', i):
-                print 'found non-word character'
                 csv_file.seek(starting_location)
                 break
             else:
                 headers.append(HEADER_MAP.get(i, i))
         # Only check the first non-comment row
         break
-    print headers
-    print len(headers)
     if len(headers) == column_count:
         return headers
     else:
