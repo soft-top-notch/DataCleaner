@@ -17,14 +17,19 @@ import parse_sql
 csv.field_size_limit(sys.maxsize)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
+parser.add_argument("-a", help="Don't ask if delimiter is guessed",
+                    action="store_true")
 parser.add_argument("-ah", help="Ask for field names (headers) to add to CSVs",
                     action="store_true")
-parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
-parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
+parser.add_argument("-p", help="Pass if delimiter can't guessed",
+                    action="store_true")
+parser.add_argument("-m", help="Merge remaining columns into last",
+                    action="store_true")
 parser.add_argument("-j", help="Write JSON file", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 parser.add_argument("-d", type=str, help="Delimiter")
+parser.add_argument("-sh", type=str,
+                    help="Specify headers to use for multiple files")
 parser.add_argument("path", type=str, nargs='+',
                     help="Path to one or more csv file(s) or folder(s)")
 
@@ -499,7 +504,10 @@ def parse_file(tfile):
     json_list = []
 
     l_count = 0
-    if args.ah:
+    headers = []
+    if args.sh:
+        headers = args.sh.split(',')
+    elif args.ah:
         headers = get_headers(F, dialect.delimiter, csv_column_count)
         if headers:
             print 'Headers found for', tfile
@@ -508,11 +516,11 @@ def parse_file(tfile):
             if args.a:
                 print_lines(F, 10)
             headers = ask_headers(csv_column_count)
-        if headers:
-            header_line = ','.join(headers)
-            print "Header Line:", header_line
-            out_file_csv_file.write(header_line + '\n')
-            l_count += 1
+    if headers:
+        header_line = ','.join(headers)
+        print "Header Line:", header_line
+        out_file_csv_file.write(header_line + '\n')
+        l_count += 1
 
     for lk in F:
         a = StringIO.StringIO()
@@ -585,13 +593,13 @@ def gather_files(path,
         for p in path:
             gather_files(p, parse_path_list, sql_path_list, cleaned_file_list)
     else:
-        if os.path.isdir(path):
-            if os.path.basename(path) not in ('completed', 'error', 'failed'):
-                for subpath in os.listdir(path):
-                    gather_files(os.path.join(path, subpath), parse_path_list,
-                                 sql_path_list, cleaned_file_list)
-        else:
-            if not path.startswith('.'):
+        if not path.startswith('.'):
+            if os.path.isdir(path):
+                if os.path.basename(path) not in ('completed', 'error', 'failed'):
+                    for subpath in os.listdir(path):
+                        gather_files(os.path.join(path, subpath), parse_path_list,
+                                     sql_path_list, cleaned_file_list)
+            else:
                 if path.lower().endswith('_cleaned.csv'):
                     cleaned_file_list.append(path)
                 elif path.lower().endswith('.sql'):
@@ -615,33 +623,34 @@ def print_lines(f, num_of_lines):
 
 if __name__ == '__main__':
     parse_path_list, sql_path_list, cleaned_file_list = gather_files(args.path)
-    if args.ah:
-        dialect = myDialect()
-        for clean_file in cleaned_file_list:
+    for clean_file in cleaned_file_list:
+        headers = []
+        if args.sh:
+            headers = args.sh.split(',')
+        elif args.ah:
+            dialect = myDialect()
             with open(clean_file, 'rb') as cf:
                 csv_column_count = find_column_count(cf)
                 cf.seek(0)
                 headers = get_headers(cf, dialect.delimiter, csv_column_count)
                 if headers:
                     print 'Headers found for', clean_file
-                    continue
-                print 'Setting the headers for file', clean_file
-                print_lines(cf, 10)
-            headers = ask_headers(csv_column_count)
-            if headers:
-                with open(clean_file, 'rb') as cf:
-                    with open(clean_file + '~', 'wb') as new_csv:
-                        header_line = ','.join(headers)
-                        print "Header Line:", header_line
-                        new_csv.write(header_line + '\n')
-                        for line in cf:
-                            new_csv.write(line)
-                os.rename(clean_file + '~', clean_file)
+                else:
+                    print 'Setting the headers for file', clean_file
+                    print_lines(cf, 10)
+                    headers = ask_headers(csv_column_count)
+        if headers:
+            with open(clean_file, 'rb') as cf:
+                with open(clean_file + '~', 'wb') as new_csv:
+                    header_line = ','.join(headers)
+                    print "Header Line:", header_line
+                    new_csv.write(header_line + '\n')
+                    for line in cf:
+                        new_csv.write(line)
+            os.rename(clean_file + '~', clean_file)
 
-    if args.j:
-        for f in cleaned_file_list:
-            if not f.endswith('.json'):
-                write_json(f)
+        if args.j:
+            write_json(clean_file)
 
     if parse_path_list:
         print
