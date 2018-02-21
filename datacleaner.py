@@ -152,26 +152,13 @@ def find_mode(L):
 
 
 def find_column_count(f, dialect=csv.excel, iter_n=500):
-    i=1
-    L=[]
+    column_count = 0
     reader = UnicodeReader(f, dialect=dialect)
-    for l in reader:
-        if l:
-            while True:
-                if not l:
-                    break
-                if not l[-1]:
-                    l.pop()
-                else:
-                    break
-            if l:
-                L.append(len(l))
-        if i >= iter_n:
-            break
-        i +=1
-
-    mode = find_mode(L)
-    return mode[1]
+    for row in reader:
+        length = len(row)
+        if length > column_count:
+            column_count = length
+    return column_count
 
 
 def guess_delimeter_by_csv(F):
@@ -380,13 +367,15 @@ def get_headers(csv_file, delimiter, column_count):
         for i in lowerrow:
             # If row has non-word characters, it can't be the headers
             if re.search('\W', i):
+                print 'found non-word character'
                 csv_file.seek(starting_location)
                 break
             else:
                 headers.append(HEADER_MAP.get(i, i))
         # Only check the first non-comment row
         break
-
+    print headers
+    print len(headers)
     if len(headers) == column_count:
         return headers
     else:
@@ -530,42 +519,28 @@ def parse_file(tfile):
         a.seek(0)
         orig_reader = UnicodeReader(a, dialect=dialect)
 
-        for l in orig_reader:
+        for row in orig_reader:
             l_count += 1
             if l_count % 100:
                 print"\r \033[38;5;245mParsing line: {0}".format(l_count),
                 sys.stdout.flush()
 
-            while True:
-                if not l:
-                    break
-                if not l[-1]:
-                    l.pop()
-                else:
-                    break
-            ll = l[:]
-            l=[]
-            for li in ll:
-                if li:
-                    if not li[-1] == "":
-                        l.append(li.strip())
-                    else:
-                        l.append(li)
+            row = [x.replace('\n', '').replace('\r', '') for x in row]
 
-            if len(l) == csv_column_count:
-                clean_writer.writerow(l)
+            if len(row) == csv_column_count:
+                clean_writer.writerow(row)
 
-            elif len(l) == csv_column_count-1:
-                l.append("")
-                clean_writer.writerow(l)
+            elif len(row) == csv_column_count-1:
+                row.append("")
+                clean_writer.writerow(row)
             else:
                 if args.m and csv_column_count > 1:
-                    lx=l[:csv_column_count-1]
-                    lt = dialect.delimiter.join(l[csv_column_count-1:])
+                    lx = row[:csv_column_count-1]
+                    lt = dialect.delimiter.join(row[csv_column_count-1:])
                     lx.append(lt)
                     clean_writer.writerow(lx)
                 else:
-                    error_writer.writerow(l)
+                    error_writer.writerow(row)
 
     F.close()
     out_file_csv_file.close()
