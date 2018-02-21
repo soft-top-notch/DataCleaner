@@ -151,10 +151,11 @@ def find_mode(L):
         return max(mList)
 
 
-def find_column_count(f, dialect=csv.excel, iter_n=500):
+def find_column_count(f, dialect=csv.excel):
     column_count = 0
     reader = UnicodeReader(f, dialect=dialect)
-    for row in reader:
+    for x in range(10):
+        row = reader.next()
         length = len(row)
         if length > column_count:
             column_count = length
