@@ -344,20 +344,20 @@ def write_json(source):
 
     with open(os.path.join(json_dir, json_file), 'w') as outfile:
         # Add first line of json
-        outfile.write('{"rows":\n  [\n')
+        #outfile.write('{"rows":\n  [\n')
         line_count = 0
         for row in out_reader:
-            # If this is not the first row, add a comma and new line
+            # If this is not the first row, add a new line
             if line_count > 0:
-                outfile.write(',\n')
-            data = '    {}'.format(json.dumps(dict(zip(headers, row))))
+                outfile.write('\n')
+            data = '{}'.format(json.dumps(dict(zip(headers,row))))
             outfile.write(data)
             line_count += 1
             if line_count % 100:
                 print"\r \033[38;5;245mWriting json row: {0}".format(line_count),
                 sys.stdout.flush()
         # Write final newline (no comma) and close json brackets
-        outfile.write('\n  ]\n}')
+        outfile.write('\n')
 
 def get_headers(csv_file, delimiter, column_count):
     """Reads file and tries to determine if headers are present.
