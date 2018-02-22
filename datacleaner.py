@@ -28,6 +28,7 @@ parser.add_argument("-m", help="Merge remaining columns into last",
 parser.add_argument("-j", help="Write JSON file", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 parser.add_argument("-d", type=str, help="Delimiter")
+parser.add_argument("-r", type=str, help="Release Name")
 parser.add_argument("-sh", type=str,
                     help="Specify headers to use for multiple files")
 parser.add_argument("path", type=str, nargs='+',
@@ -339,19 +340,45 @@ def write_json(source):
         os.mkdir(json_dir)
 
     out_reader = UnicodeReader(open(source), dialect=myDialect)
+
     # grab the first line as headers
     headers = out_reader.next()
 
     with open(os.path.join(json_dir, json_file), 'w') as outfile:
         # Add first line of json
-        #outfile.write('{"rows":\n  [\n')
         line_count = 0
         for row in out_reader:
             # If this is not the first row, add a new line
             if line_count > 0:
                 outfile.write('\n')
-            data = '{}'.format(json.dumps(dict(zip(headers,row))))
-            outfile.write(data)
+
+            source = dict(zip(headers, row))
+
+            # Clean up source of unwanted values before writing json
+            for header, value in source.items():
+                # Remove misc headers (x[0-9])
+                if re.search('^x\d+$', header):
+                    del source[header]
+                # Remove entries that are empty
+                elif not value or value in ('NULL', 'null', 'xxx'):
+                    del source[header]
+                # Remove trailing whitespace
+                else:
+                    source[header] = value.rstrip()
+
+            # Set release name
+            if args.r:
+                source['r'] = args.r
+            # Use filename without extension as release name
+            else:
+                source['r'] = os.path.splitext(fbasename)[0]
+
+            data = {
+                '_type': 'breach',
+                '_source': source
+            }
+
+            outfile.write(json.dumps(data))
             line_count += 1
             if line_count % 100:
                 print"\r \033[38;5;245mWriting json row: {0}".format(line_count),
