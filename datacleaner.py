@@ -27,6 +27,8 @@ parser.add_argument("-m", help="Merge remaining columns into last",
                     action="store_true")
 parser.add_argument("-j", help="Write JSON file", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
+parser.add_argument("-cl", help="Cleanse filename(s) of unwanted text",
+                    action="store_true")
 parser.add_argument("-d", type=str, help="Delimiter")
 parser.add_argument("-r", type=str, help="Release Name")
 parser.add_argument("-sh", type=str,
@@ -57,6 +59,9 @@ HEADER_MAP = OrderedDict([
     ('dob', 'd'),
     ('phone', 't')
 ])
+
+SKIPPED_DIRS = ('completed', 'error', 'failed')
+UNWANTED = ('_error', '_cleaned', '_dump')
 
 delims = ('\t', ' ', ';', ':', ',', '|')
 
@@ -323,6 +328,19 @@ def clean(e):
 
 def clean_fields(l):
     return [clean(x) for x in l]
+
+
+def clean_filename(source):
+    """Remove unwanted parts of a filename."""
+    source_filename = os.path.basename(source)
+    print 'Checking filename "{}" for conformity...'.format(source_filename)
+    new_name = source
+    for unwanted in UNWANTED:
+        new_name = new_name.replace(unwanted, '')
+    if source != new_name:
+        print 'Renaming {} to {}'.format(source_filename,
+                                         os.path.basename(new_name))
+        os.rename(source, new_name)
 
 
 def wrap_fields(l, wrapper='"'):
@@ -622,7 +640,7 @@ def gather_files(path,
     else:
         if not path.startswith('.'):
             if os.path.isdir(path):
-                if os.path.basename(path) not in ('completed', 'error', 'failed'):
+                if os.path.basename(path) not in SKIPPED_DIRS:
                     for subpath in os.listdir(path):
                         gather_files(os.path.join(path, subpath), parse_path_list,
                                      sql_path_list, cleaned_file_list)
@@ -650,6 +668,13 @@ def print_lines(f, num_of_lines):
 
 if __name__ == '__main__':
     parse_path_list, sql_path_list, cleaned_file_list = gather_files(args.path)
+    if args.cl:
+        print 'Cleaning filenames...'
+        for file_list in (parse_path_list, sql_path_list, cleaned_file_list):
+            for file in file_list:
+                clean_filename(file)
+        sys.exit()
+
     for clean_file in cleaned_file_list:
         headers = []
         if args.sh:
