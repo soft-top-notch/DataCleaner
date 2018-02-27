@@ -166,7 +166,10 @@ def find_column_count(f, dialect=csv.excel):
     column_count = 0
     reader = UnicodeReader(f, dialect=dialect)
     for x in range(10):
-        row = reader.next()
+        try:
+            row = reader.next()
+        except StopIteration:
+            break
         length = len(row)
         if length > column_count:
             column_count = length
@@ -546,12 +549,13 @@ def parse_file(tfile):
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
     error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
-    json_list = []
-
     l_count = 0
     headers = []
     if args.sh:
         headers = args.sh.split(',')
+        if headers:
+            write_headers(out_file_csv_file, headers)
+            l_count += 1
     elif args.ah:
         headers = get_headers(F, dialect.delimiter, csv_column_count)
         if headers:
@@ -561,11 +565,9 @@ def parse_file(tfile):
             if args.a:
                 print_lines(F, 10)
             headers = ask_headers(csv_column_count)
-    if headers:
-        header_line = ','.join(headers)
-        print "Header Line:", header_line
-        out_file_csv_file.write(header_line + '\n')
-        l_count += 1
+            if headers:
+                write_headers(out_file_csv_file, headers)
+                l_count += 1
 
     for lk in F:
         a = StringIO.StringIO()
@@ -654,6 +656,13 @@ def gather_files(path,
     return parse_path_list, sql_path_list, cleaned_file_list
 
 
+def write_headers(f, headers):
+    """Write headers to file."""
+    header_line = ','.join(headers)
+    print "Header Line:", header_line
+    f.write(header_line + '\n')
+
+
 def print_lines(f, num_of_lines):
     last_location = f.tell()
     f.seek(0)
@@ -694,9 +703,7 @@ if __name__ == '__main__':
         if headers:
             with open(clean_file, 'rb') as cf:
                 with open(clean_file + '~', 'wb') as new_csv:
-                    header_line = ','.join(headers)
-                    print "Header Line:", header_line
-                    new_csv.write(header_line + '\n')
+                    write_headers(new_csv, headers)
                     for line in cf:
                         new_csv.write(line)
             os.rename(clean_file + '~', clean_file)
