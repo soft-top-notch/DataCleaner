@@ -507,20 +507,12 @@ def parse_file(tfile):
     fdirname = os.path.dirname(tfile)
     fbasename = os.path.basename(tfile)
 
-    json_file = os.path.splitext(fbasename)[0] + '.json'
-
     completed_dir = os.path.join(fdirname, 'completed')
     error_dir = os.path.join(fdirname, 'error')
-    json_dir = os.path.join(fdirname, 'json')
-
-    if not os.path.exists(json_dir):
-        os.mkdir(json_dir)
+    done_dir = os.path.join(completed_dir, 'done')
 
     if not os.path.exists(completed_dir):
         os.mkdir(completed_dir)
-
-    if not os.path.exists(error_dir):
-        os.mkdir(error_dir)
 
     print "\n\033[38;5;244mEscaping grabage characters"
 
@@ -551,11 +543,13 @@ def parse_file(tfile):
     F.seek(0)
 
     out_file_csv_name = f_name + '_cleaned.csv'
+    out_file_csv_temp = out_file_csv_name + '~'
     out_file_err_name = f_name + '_error.csv'
+    out_file_err_temp = out_file_err_name + '~'
 
-    out_file_csv_file = open(out_file_csv_name + '~', 'wb')
+    out_file_csv_file = open(out_file_csv_temp, 'wb')
 
-    out_file_err_file = open(out_file_err_name + '~', 'wb')
+    out_file_err_file = open(out_file_err_temp, 'wb')
 
     print "\033[38;5;244mCleaning ... \n"
 
@@ -566,21 +560,19 @@ def parse_file(tfile):
     headers = []
     if args.sh:
         headers = args.sh.split(',')
-        if headers:
-            write_headers(out_file_csv_file, headers)
-            l_count += 1
     elif args.ah:
         headers = get_headers(F, dialect.delimiter, csv_column_count)
         if headers:
             print 'Headers found for', tfile
+
         else:
             print 'Could not detect headers.'
             if args.a:
                 print_lines(F, 10)
             headers = ask_headers(csv_column_count)
-            if headers:
-                write_headers(out_file_csv_file, headers)
-                l_count += 1
+    if headers:
+        write_headers(out_file_csv_file, headers)
+        l_count += 1
 
     for lk in F:
         a = StringIO.StringIO()
@@ -615,29 +607,43 @@ def parse_file(tfile):
     out_file_csv_file.close()
     out_file_err_file.close()
 
+    output_stats = os.stat(out_file_csv_temp)
+    errors_stats = os.stat(out_file_err_temp)
+
     print
-    print "\033[38;5;241m Output file", out_file_csv_name + '~', "were written"
-    print "\033[38;5;241m Error file", out_file_err_name + '~', "were written"
+    print "\033[38;5;241m Output file {} had {} bytes written".format(
+        out_file_csv_temp, output_stats.st_size)
+    print "\033[38;5;241m Error file {} had {} bytes written".format(
+        out_file_err_temp, errors_stats.st_size)
     print "\033[38;5;241m Moving {} to completed folder".format(tfile)
-    os.rename(tfile, os.path.join(completed_dir, fbasename))
+    if not os.path.exists(completed_dir):
+        os.mkdir(completed_dir)
+    if headers:
+        if not os.path.exists(done_dir):
+            os.mkdir(done_dir)
+        os.rename(tfile, os.path.join(done_dir, fbasename))
+    else:
+        os.rename(tfile, os.path.join(completed_dir, fbasename))
 
-    err_basename = os.path.basename(out_file_err_name + '~')
+    err_basename = os.path.basename(out_file_err_temp)
 
-    print "\033[38;5;241m Moving {} to error folder".format(
-        out_file_err_name + '~')
+    if errors_stats.st_size > 0:
+        print "\033[38;5;241m Moving {} to error folder".format(
+            out_file_err_temp)
+        err_basename = os.path.basename(out_file_err_temp)
+        target_out_err_file = os.path.join(error_dir, err_basename[:-1])
+        if not os.path.exists(error_dir):
+            os.mkdir(error_dir)
+        os.rename(out_file_err_temp, target_out_err_file)
+    else:
+        print "Removing", out_file_err_temp
+        os.remove(out_file_err_temp)
 
-    err_basename = os.path.basename(out_file_err_name + '~')
-
-    target_out_err_file = os.path.join(error_dir, err_basename[:-1])
-
-    os.rename(out_file_err_name + '~', target_out_err_file)
-
-    temp_file = out_file_csv_name + '~'
-    if os.path.exists(temp_file):
+    if os.path.exists(out_file_csv_temp):
         if os.path.exists(out_file_csv_name):
-            os.remove(temp_file)
+            os.remove(out_file_csv_temp)
         else:
-            os.rename(temp_file, out_file_csv_name)
+            os.rename(out_file_csv_temp, out_file_csv_name)
     if args.j:
         write_json(out_file_csv_name)
 
@@ -715,13 +721,13 @@ if __name__ == '__main__':
                     print 'Setting the headers for file', clean_file
                     print_lines(cf, 10)
                     headers = ask_headers(csv_column_count)
-        if headers:
-            with open(clean_file, 'rb') as cf:
-                with open(clean_file + '~', 'wb') as new_csv:
-                    write_headers(new_csv, headers)
-                    for line in cf:
-                        new_csv.write(line)
-            os.rename(clean_file + '~', clean_file)
+                if headers:
+                    with open(clean_file + '~', 'wb') as new_csv:
+                        write_headers(new_csv, headers)
+                        for line in cf:
+                            new_csv.write(line)
+            if headers:
+                os.rename(clean_file + '~', clean_file)
 
         if args.j:
             write_json(clean_file)
