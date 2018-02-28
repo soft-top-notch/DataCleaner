@@ -17,25 +17,30 @@ import parse_sql
 csv.field_size_limit(sys.maxsize)
 
 parser = argparse.ArgumentParser()
-header_args = parser.add_mutually_exclusive_group()
+exclusive_args = parser.add_mutually_exclusive_group()
 parser.add_argument(
     "-a", help="Don't ask if delimiter is guessed", action="store_true")
-header_args.add_argument(
+exclusive_args.add_argument(
     "-ah",
-    help="Ask for field names (headers) to add to CSVs",
+    help="Ask for field names (headers) to add to CSVs. No file cleaning.",
     action="store_true")
 parser.add_argument(
     "-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument(
     "-m", help="Merge remaining columns into last", action="store_true")
-parser.add_argument("-j", help="Write JSON file", action="store_true")
+exclusive_args.add_argument(
+    "-j", help="Write JSON file. No file cleaning.", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
-parser.add_argument(
-    "-cl", help="Cleanse filename(s) of unwanted text", action="store_true")
+exclusive_args.add_argument(
+    "-cl",
+    help="Cleanse filename(s) of unwanted text. No file cleaning.",
+    action="store_true")
 parser.add_argument("-d", type=str, help="Delimiter")
 parser.add_argument("-r", type=str, help="Release Name")
-header_args.add_argument(
-    "-sh", type=str, help="Specify headers to use for multiple files")
+exclusive_args.add_argument(
+    "-sh",
+    type=str,
+    help="Specify headers to use for multiple files. No file cleaning.")
 parser.add_argument(
     "path",
     type=str,
@@ -638,30 +643,25 @@ def parse_file(tfile):
     os.remove(gc_file)
 
 
-def gather_files(path,
-                 parse_path_list=[],
-                 sql_path_list=[],
-                 cleaned_file_list=[]):
+def gather_files(path, file_list=[], sql_path_list=[]):
     """Gather lists of files recursively."""
     if isinstance(path, list):
         for p in path:
-            gather_files(p, parse_path_list, sql_path_list, cleaned_file_list)
+            gather_files(p, file_list, sql_path_list)
     else:
         if not path.startswith('.'):
             if os.path.isdir(path):
                 if os.path.basename(path) not in SKIPPED_DIRS:
                     for subpath in os.listdir(path):
                         gather_files(
-                            os.path.join(path, subpath), parse_path_list,
-                            sql_path_list, cleaned_file_list)
+                            os.path.join(path, subpath), file_list,
+                            sql_path_list)
             else:
-                if path.lower().endswith('_cleaned.csv'):
-                    cleaned_file_list.append(path)
-                elif path.lower().endswith('.sql'):
+                if path.lower().endswith('.sql'):
                     sql_path_list.append(path)
                 elif not path.endswith('~'):
-                    parse_path_list.append(path)
-    return parse_path_list, sql_path_list, cleaned_file_list
+                    file_list.append(path)
+    return file_list, sql_path_list
 
 
 def write_headers(f, headers):
@@ -703,22 +703,17 @@ def set_headers(f, dialect, csv_column_count=0):
 
 def main():
     dialect = myDialect()
-    parse_path_list, sql_path_list, cleaned_file_list = gather_files(args.path)
+    file_list, sql_path_list = gather_files(args.path)
     if args.cl:
         print 'Cleaning filenames...'
-        for file_list in (parse_path_list, sql_path_list, cleaned_file_list):
+        for file_list in (file_list, sql_path_list):
             for file in file_list:
                 clean_filename(file)
-        return
-
-    if args.sh or args.ah:
-        file_list = cleaned_file_list
+    elif args.sh or args.ah:
         other_args = vars(args).copy()
         del other_args['ah']
         del other_args['sh']
         del other_args['path']
-        if not any(other_args.values()):
-            file_list += parse_path_list
         for filename in file_list:
             headers = []
             with open(filename, 'rb') as cf:
@@ -730,21 +725,19 @@ def main():
                             new_csv.write(line)
             if headers:
                 os.rename(filename + '~', filename)
-        if not any(other_args.values()):
-            return
+    elif args.j:
+        for cf in file_list:
+            write_json(cf)
 
-    if args.j:
-        for clean_file in cleaned_file_list:
-            write_json(clean_file)
+    elif file_list or sql_path_list:
+        if file_list:
+            print
+            print "\033[38;5;248m PARSING TXT and CSV FILES"
+            print "\033[38;5;240m  -------------------------"
 
-    if parse_path_list:
-        print
-        print "\033[38;5;248m PARSING TXT and CSV FILES"
-        print "\033[38;5;240m  -------------------------"
-
-        fc = 0
-        nf = len(parse_path_list)
-        for f in parse_path_list:
+            fc = 0
+            nf = len(file_list)
+        for f in file_list:
             if f.endswith('.json'):
                 continue
             # print "\n \033[1;34mProcessing", f
@@ -772,10 +765,10 @@ def main():
             else:
                 print "File {} is empty, passing".format(f)
 
-    if sql_path_list:
-        print
-        print "\033[1;31m PARSING SQL FILES"
-        print "\033[38;5;240m -------------------------\n\033[38;5;255m"
+        if sql_path_list:
+            print
+            print "\033[1;31m PARSING SQL FILES"
+            print "\033[38;5;240m -------------------------\n\033[38;5;255m"
 
         for sf in sql_path_list:
             dir_name = os.path.dirname(sf)
