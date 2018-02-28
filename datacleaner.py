@@ -17,9 +17,10 @@ import parse_sql
 csv.field_size_limit(sys.maxsize)
 
 parser = argparse.ArgumentParser()
+header_args = parser.add_mutually_exclusive_group()
 parser.add_argument(
     "-a", help="Don't ask if delimiter is guessed", action="store_true")
-parser.add_argument(
+header_args.add_argument(
     "-ah",
     help="Ask for field names (headers) to add to CSVs",
     action="store_true")
@@ -33,7 +34,7 @@ parser.add_argument(
     "-cl", help="Cleanse filename(s) of unwanted text", action="store_true")
 parser.add_argument("-d", type=str, help="Delimiter")
 parser.add_argument("-r", type=str, help="Release Name")
-parser.add_argument(
+header_args.add_argument(
     "-sh", type=str, help="Specify headers to use for multiple files")
 parser.add_argument(
     "path",
@@ -557,19 +558,7 @@ def parse_file(tfile):
     error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
     l_count = 0
-    headers = []
-    if args.sh:
-        headers = args.sh.split(',')
-    elif args.ah:
-        headers = get_headers(F, dialect.delimiter, csv_column_count)
-        if headers:
-            print 'Headers found for', tfile
-
-        else:
-            print 'Could not detect headers.'
-            if args.a:
-                print_lines(F, 10)
-            headers = ask_headers(csv_column_count)
+    headers = set_headers(F, dialect, csv_column_count)
     if headers:
         write_headers(out_file_csv_file, headers)
         l_count += 1
@@ -696,40 +685,68 @@ def print_lines(f, num_of_lines):
     f.seek(last_location)
 
 
-if __name__ == '__main__':
+def set_headers(f, dialect, csv_column_count=0):
+    headers = []
+    if args.sh:
+        headers = args.sh.split(',')
+    elif args.ah:
+        if not csv_column_count:
+            csv_column_count = find_column_count(f)
+        f.seek(0)
+        headers = get_headers(f, dialect.delimiter, csv_column_count)
+        if headers:
+            print 'Headers found for', f.name
+        else:
+            print 'Setting the headers for file', f.name
+            print_lines(f, 10)
+            headers = ask_headers(csv_column_count)
+    return headers
+
+
+def main():
+    dialect = myDialect()
     parse_path_list, sql_path_list, cleaned_file_list = gather_files(args.path)
     if args.cl:
         print 'Cleaning filenames...'
         for file_list in (parse_path_list, sql_path_list, cleaned_file_list):
             for file in file_list:
                 clean_filename(file)
-        sys.exit()
+        return
 
-    for clean_file in cleaned_file_list:
-        headers = []
-        if args.sh:
-            headers = args.sh.split(',')
-        elif args.ah:
-            dialect = myDialect()
-            with open(clean_file, 'rb') as cf:
-                csv_column_count = find_column_count(cf)
-                cf.seek(0)
-                headers = get_headers(cf, dialect.delimiter, csv_column_count)
+    if args.sh or args.ah:
+        for filename in cleaned_file_list:
+            headers = []
+            with open(filename, 'rb') as cf:
+                headers = set_headers(cf, dialect)
                 if headers:
-                    print 'Headers found for', clean_file
-                else:
-                    print 'Setting the headers for file', clean_file
-                    print_lines(cf, 10)
-                    headers = ask_headers(csv_column_count)
-                if headers:
-                    with open(clean_file + '~', 'wb') as new_csv:
+                    with open(filename + '~', 'wb') as new_csv:
                         write_headers(new_csv, headers)
                         for line in cf:
                             new_csv.write(line)
             if headers:
-                os.rename(clean_file + '~', clean_file)
+                os.rename(filename + '~', filename)
 
-        if args.j:
+    # Exit if only ah switch is specified after going through parse list
+    if args.ah:
+        other_args = vars(args)
+        del other_args['ah']
+        del other_args['path']
+        if not any(other_args.values()):
+            for filename in parse_path_list:
+                headers = []
+                with open(filename, 'rb') as cf:
+                    headers = set_headers(cf, dialect)
+                    if headers:
+                        with open(filename + '~', 'wb') as new_csv:
+                            write_headers(new_csv, headers)
+                            for line in cf:
+                                new_csv.write(line)
+                if headers:
+                    os.rename(filename + '~', filename)
+            return
+
+    if args.j:
+        for clean_file in cleaned_file_list:
             write_json(clean_file)
 
     if parse_path_list:
@@ -785,4 +802,7 @@ if __name__ == '__main__':
             else:
                 parse_sql.move(sf, os.path.join(dir_name, 'completed'))
 
+
+if __name__ == "__main__":
+    main()
     print "\nFINISHED\n"
