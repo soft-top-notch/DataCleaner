@@ -460,31 +460,29 @@ def ask_headers(column_count):
 
     print "Please provide the headers below:"
 
-    header_list = []
-    for i, h in enumerate(HEADER_MAP.keys()):
-        print i, ':', h
+    for h, v in HEADER_MAP.items():
+        print v, ':', h
     user_headers = raw_input(
-        "Please enter {} headers as 6 2 0 4 :".format(column_count))
+        "Please enter {} headers as their abbreviation (i.e. u p x):".format(
+            column_count))
 
     if user_headers:
-        if user_headers.replace(' ', '').isdigit():
-            user_headers = [int(x) for x in user_headers.split()]
-            uc = 0
-            for hi in range(column_count):
-                if hi < len(user_headers):
-                    header_name = HEADER_MAP.keys()[user_headers[hi]]
-                    header = HEADER_MAP[header_name]
-                    if header == 'x':
-                        headers.append(header + str(uc))
-                        uc += 1
-                    else:
-                        headers.append(header)
-
-            diff = column_count - len(user_headers)
-            if diff > 0:
-                for ha in range(diff):
-                    headers.append('X' + str(uc))
+        user_headers = user_headers.split(' ')
+        uc = 0
+        for hi in range(column_count):
+            if hi < len(user_headers):
+                header = user_headers[hi]
+                if header == 'x':
+                    headers.append(header + str(uc))
                     uc += 1
+                else:
+                    headers.append(header)
+
+        diff = column_count - len(user_headers)
+        if diff > 0:
+            for ha in range(diff):
+                headers.append('X' + str(uc))
+                uc += 1
 
     if len(headers) == column_count:
         return headers
@@ -714,7 +712,14 @@ def main():
         return
 
     if args.sh or args.ah:
-        for filename in cleaned_file_list:
+        file_list = cleaned_file_list
+        other_args = vars(args).copy()
+        del other_args['ah']
+        del other_args['sh']
+        del other_args['path']
+        if not any(other_args.values()):
+            file_list += parse_path_list
+        for filename in file_list:
             headers = []
             with open(filename, 'rb') as cf:
                 headers = set_headers(cf, dialect)
@@ -725,24 +730,7 @@ def main():
                             new_csv.write(line)
             if headers:
                 os.rename(filename + '~', filename)
-
-    # Exit if only ah switch is specified after going through parse list
-    if args.ah:
-        other_args = vars(args)
-        del other_args['ah']
-        del other_args['path']
         if not any(other_args.values()):
-            for filename in parse_path_list:
-                headers = []
-                with open(filename, 'rb') as cf:
-                    headers = set_headers(cf, dialect)
-                    if headers:
-                        with open(filename + '~', 'wb') as new_csv:
-                            write_headers(new_csv, headers)
-                            for line in cf:
-                                new_csv.write(line)
-                if headers:
-                    os.rename(filename + '~', filename)
             return
 
     if args.j:
