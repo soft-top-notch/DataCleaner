@@ -697,6 +697,15 @@ def set_headers(f, dialect, csv_column_count=0):
     return headers
 
 
+def check_unwanted(filename):
+    for unwanted in UNWANTED:
+        if unwanted in filename:
+            print "Skipping {} because {} in filename".format(
+                filename, unwanted)
+            return True
+    return False
+
+
 def main():
     dialect = myDialect()
     files = gather_files(args.path)
@@ -731,9 +740,8 @@ def main():
             nf = len(nonsql_files)
         for filename in nonsql_files:
             # Skip files with unwanted filenames (cleaned, errored, etc)
-            for unwanted in UNWANTED:
-                if unwanted in filename:
-                    continue
+            if check_unwanted(filename):
+                continue
             # print "\n \033[1;34mProcessing", f
             # print "\033[0m"
             fdirname = os.path.dirname(filename)
