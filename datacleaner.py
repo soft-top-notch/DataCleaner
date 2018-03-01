@@ -527,6 +527,7 @@ def parse_file(tfile):
     print "\033[0mParsing file: ", gc_file
 
     F = open(gc_file, 'rb')
+    dialect = None
 
     if guess:
         print "\n\033[38;5;244mGuessing delimiter"
