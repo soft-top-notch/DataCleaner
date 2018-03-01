@@ -643,25 +643,21 @@ def parse_file(tfile):
     os.remove(gc_file)
 
 
-def gather_files(path, file_list=[], sql_path_list=[]):
-    """Gather lists of files recursively."""
+def gather_files(path, file_list=[]):
+    """Gather list of files recursively."""
     if isinstance(path, list):
         for p in path:
-            gather_files(p, file_list, sql_path_list)
+            gather_files(p, file_list)
     else:
         if not path.startswith('.'):
             if os.path.isdir(path):
                 if os.path.basename(path) not in SKIPPED_DIRS:
                     for subpath in os.listdir(path):
-                        gather_files(
-                            os.path.join(path, subpath), file_list,
-                            sql_path_list)
+                        gather_files(os.path.join(path, subpath), file_list)
             else:
-                if path.lower().endswith('.sql'):
-                    sql_path_list.append(path)
-                elif not path.endswith('~'):
+                if not path.endswith('~'):
                     file_list.append(path)
-    return file_list, sql_path_list
+    return file_list
 
 
 def write_headers(f, headers):
@@ -703,18 +699,14 @@ def set_headers(f, dialect, csv_column_count=0):
 
 def main():
     dialect = myDialect()
-    file_list, sql_path_list = gather_files(args.path)
+    files = gather_files(args.path)
+    nonsql_files = [x for x in files if not x.endswith('.sql')]
     if args.cl:
         print 'Cleaning filenames...'
-        for file_list in (file_list, sql_path_list):
-            for file in file_list:
-                clean_filename(file)
+        for file in files:
+            clean_filename(file)
     elif args.sh or args.ah:
-        other_args = vars(args).copy()
-        del other_args['ah']
-        del other_args['sh']
-        del other_args['path']
-        for filename in file_list:
+        for filename in nonsql_files:
             headers = []
             with open(filename, 'rb') as cf:
                 headers = set_headers(cf, dialect)
@@ -726,24 +718,26 @@ def main():
             if headers:
                 os.rename(filename + '~', filename)
     elif args.j:
-        for cf in file_list:
+        for cf in nonsql_files:
             write_json(cf)
 
-    elif file_list or sql_path_list:
-        if file_list:
+    elif files:
+        if nonsql_files:
             print
             print "\033[38;5;248m PARSING TXT and CSV FILES"
             print "\033[38;5;240m  -------------------------"
 
             fc = 0
-            nf = len(file_list)
-        for f in file_list:
-            if f.endswith('.json'):
-                continue
+            nf = len(nonsql_files)
+        for filename in nonsql_files:
+            # Skip files with unwanted filenames (cleaned, errored, etc)
+            for unwanted in UNWANTED:
+                if unwanted in filename:
+                    continue
             # print "\n \033[1;34mProcessing", f
             # print "\033[0m"
-            fdirname = os.path.dirname(f)
-            fbasename = os.path.basename(f)
+            fdirname = os.path.dirname(filename)
+            fbasename = os.path.basename(filename)
 
             if ('&' in fbasename) or ('+' in fbasename) or (
                     '@' in fbasename) or ("'" in fbasename):
@@ -752,25 +746,26 @@ def main():
                 for ch in "&+@'":
                     nfbasename = nfbasename.replace(ch, '_')
                     nf = os.path.join(fdirname, nfbasename)
-                    os.rename(f, nf)
-                    f = nf
+                    os.rename(filename, nf)
+                    filename = nf
 
             fc += 1
             print
             print "\033[38;5;240m ---------------------------------------------\n"
-            print "\033[1;34mProcessing", f
+            print "\033[1;34mProcessing", filename
             print "\033[0mFile {}/{}".format(fc, nf)
-            if os.stat(f).st_size > 0:
-                parse_file(f)
+            if os.stat(filename).st_size > 0:
+                parse_file(filename)
             else:
-                print "File {} is empty, passing".format(f)
+                print "File {} is empty, passing".format(filename)
 
-        if sql_path_list:
+        sql_files = [x for x in files if x.endswith('.sql')]
+        if sql_files:
             print
             print "\033[1;31m PARSING SQL FILES"
             print "\033[38;5;240m -------------------------\n\033[38;5;255m"
 
-        for sf in sql_path_list:
+        for sf in sql_files:
             dir_name = os.path.dirname(sf)
             try:
                 parse_sql.parse(sf)
