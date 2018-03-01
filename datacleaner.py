@@ -1,16 +1,14 @@
-#!/usr/bin/python
-import os, sys, shutil
-import csv, codecs, cStringIO
+#!/usr/bin/env python
 import argparse
-import StringIO
-import re
+import codecs
+import cStringIO
+import csv
 import json
-
+import os
+import re
+import StringIO
+import sys
 from collections import OrderedDict
-
-import dateutil.parser
-
-from validate_email import validate_email
 
 import parse_sql
 
