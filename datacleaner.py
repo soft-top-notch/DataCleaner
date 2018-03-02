@@ -537,7 +537,7 @@ def parse_file(tfile):
         return
     elif not dialect:
         dialect = csv.excel
-        dialect.delimiter = args.d
+        dialect.delimiter = args.d.decode('string_escape')
         csv_column_count = args.c
 
     print "\033[38;5;156mUsing column number [{}] and delimiter [{}]".format(
