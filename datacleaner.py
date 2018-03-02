@@ -57,15 +57,23 @@ if args.c and args.d:
 
 HEADER_MAP = OrderedDict([
     ('misc', 'x'),
-    ('username', 'u'),
-    ('email', 'e'),
-    ('password', 'p'),
-    ('hash', 'h'),
-    ('salt', 's'),
-    ('name', 'n'),
-    ('ip', 'i'),
+    ('address', 'a'),
     ('dob', 'd'),
-    ('phone', 't')
+    ('email', 'e'),
+    ('first_name', 'fn'),
+    ('first', 'fn'),
+    ('firstname', 'fn'),
+    ('hash', 'h'),
+    ('ip', 'i'),
+    ('ipaddress', 'i'),
+    ('last_name', 'ln'),
+    ('last', 'ln'),
+    ('lastname', 'ln'),
+    ('name', 'n'),
+    ('password', 'p'),
+    ('phone', 't'),
+    ('salt', 's'),
+    ('username', 'u')
 ])  # yapf: disable
 
 SKIPPED_DIRS = ('completed', 'error', 'failed')
@@ -439,13 +447,18 @@ def get_headers(csv_file, delimiter, column_count):
         lowerrow = [
             cc.lower().replace('\n', '') for cc in line.split(delimiter)
         ]
+        unknown = 0
         for i in lowerrow:
             # If row has non-word characters, it can't be the headers
             if re.search('\W', i):
                 csv_file.seek(starting_location)
                 break
             else:
-                headers.append(HEADER_MAP.get(i, i))
+                header = HEADER_MAP.get(i, 'x')
+                if header == 'x':
+                    header = 'x{}'.format(unknown)
+                    unknown += 1
+                headers.append(header)
         # Only check the first non-comment row
         break
     if len(headers) == column_count:
@@ -463,8 +476,12 @@ def ask_headers(column_count):
 
     print "Please provide the headers below:"
 
-    for h, v in HEADER_MAP.items():
-        print v, ':', h
+    seen = []
+    for full_header, shortened in HEADER_MAP.items():
+        if shortened not in seen:
+            print '{}:{}'.format(shortened, full_header)
+            seen.append(shortened)
+
     user_headers = raw_input(
         "Please enter {} headers as their abbreviation (i.e. u p x):".format(
             column_count))
@@ -484,7 +501,7 @@ def ask_headers(column_count):
         diff = column_count - len(user_headers)
         if diff > 0:
             for ha in range(diff):
-                headers.append('X' + str(uc))
+                headers.append('x' + str(uc))
                 uc += 1
 
     if len(headers) == column_count:
