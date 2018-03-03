@@ -51,6 +51,8 @@ THE SOFTWARE.
 """
 
 MAX_FAILURE_RATE = 0.20
+# How many bytes to read at a time
+READ_BUFFER = 10485760
 
 # pyparsing patterns for matching/parsing SQL
 BACKTICK = Suppress(Optional('`'))
@@ -157,11 +159,17 @@ def parse(filepath):
     field_names = []
     progress = print_progress(filepath)
 
+    # Delete old bad_inserts file if exists
+    if os.path.exists(filepath + '.bad_inserts.txt'):
+        os.unlink(filepath + '.bad_inserts.txt')
+
     # Not sure what the encoding is, will try iso-8859-1
     encoding = 'iso-8859-1'
     retry = False
+    # Determine encoding
     try:
-        results = read_file(filepath, encoding)
+        with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
+            sqlfile.readlines(READ_BUFFER)
     except UnicodeDecodeError:
         retry = True
     if retry:
@@ -169,57 +177,55 @@ def parse(filepath):
         m = magic.Magic(mime_encoding=True)
         encoding = m.from_file(filepath)
         try:
-            results = read_file(filepath, encoding)
+            with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
+                sqlfile.readlines(READ_BUFFER)
         except UnicodeDecodeError:
             print('Unable to determine encoding of file')
             raise
 
-    progress('Finished reading sql file')
-    if not results['inserts']:
-        if not results['table_name']:
-            error = 'Did not find a valid user table name'
-        else:
-            error = 'No INSERT statements found!'
-        raise_error(ValueError(error))
-
+    bad_inserts = 0
+    total_inserts = 0
+    error_rate = 0.00
+    table_name = None
+    sql_size = os.path.getsize(filepath)
     # Extract data from statements and write to csv file
-    with io.open(filepath + '.csv', 'w', encoding=encoding) as csvfile:
-        if results['create_table']:
-            progress('Getting column names from create table')
-            match = parse_sql(results['create_table'].statement, CREATE_FULL)
-            if match and isinstance(match, ParseResults):
-                field_names = match.asDict()['field_names']
-            elif isinstance(match, ParseException):
-                raise_error(match, encoding)
-            else:
-                raise_error(Exception('Unknown error has occurred'))
-        else:
-            if results['inserts']:
-                progress('Getting column names from first insert')
-                match = parse_sql(results['inserts'][0], INSERT_FIELDS, True)
-                if match and isinstance(match, ParseResults):
-                    field_names = match.asDict().get('field_names')
-                elif isinstance(match, ParseException):
-                    pass
-                else:
-                    raise (Exception('Unknown error has occurred'))
+    with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
+        user_table = read_file(sqlfile)
+        for create_table, table_name, insert in user_table:
+            total_inserts += 1
+            if not field_names:
+                if create_table:
+                    progress('Getting column names from create table')
+                    match = parse_sql(create_table.statement, CREATE_FULL)
+                    if match and isinstance(match, ParseResults):
+                        field_names = match.asDict()['field_names']
+                    elif isinstance(match, ParseException):
+                        raise_error(match, encoding)
+                    else:
+                        raise_error(Exception('Unknown error has occurred'))
+                elif insert:
+                    progress('Getting column names from first insert')
+                    match = parse_sql(insert, INSERT_FIELDS, True)
+                    if match and isinstance(match, ParseResults):
+                        field_names = match.asDict().get('field_names')
+                    elif isinstance(match, ParseException):
+                        pass
+                    else:
+                        raise (Exception('Unknown error has occurred'))
 
-        if field_names:
-            csvfile.write(','.join(field_names))
-            csvfile.write(u'\n')
-            progress('Wrote csv field names')
-        else:
-            csvfile.write(u'###### NO HEADERS FOUND ######\n')
-            progress('Warning! No field names found')
+                with io.open(filepath + '.csv', 'w', encoding=encoding) as cf:
+                    if field_names:
+                        cf.write(','.join(field_names))
+                        cf.write(u'\n')
+                        progress('Wrote csv field names')
+                    else:
+                        cf.write(u'###### NO HEADERS FOUND ######\n')
+                        progress('Warning! No field names found')
+                        field_names = 'NOT FOUND'
 
-        total_data_lines = 0
-        total_inserts = len(results['inserts'])
-        bad_inserts = []
-        error_rate = 0.00
-        for num, insert in enumerate(results['inserts']):
-            insert_status = 'Processing insert {} of {}: wrote {} data line(s)...'.format(
-                num + 1, total_inserts, total_data_lines)
-            progress(insert_status)
+            current_progress = sqlfile.tell() / sql_size * 100
+            progress('{0:.2f}% read. Processing insert {1:}...'.format(
+                current_progress, total_inserts))
             match = re.search('^(?:.*)?(VALUES.*;)', insert)
             if match:
                 value_only = match.group(1)
@@ -228,38 +234,34 @@ def parse(filepath):
             result = parse_sql(value_only, VALUES_ONLY, True)
             if result and isinstance(result, ParseResults):
                 values_list = result.asDict()['values']
-                for values in values_list:
-                    csvfile.write(','.join(
-                        ['"%s"' % value for value in values]))
-                    csvfile.write(u'\n')
-                    total_data_lines += 1
+                with io.open(filepath + '.csv', 'a', encoding=encoding) as cf:
+                    for values in values_list:
+                        cf.write(','.join(
+                            ['"%s"' % value for value in values]))
+                        cf.write(u'\n')
             elif isinstance(result, ParseException):
-                error_rate = len(bad_inserts) / total_inserts
-                # Consider the processing as failed if over max failure rate
-                if error_rate > MAX_FAILURE_RATE or total_inserts < 5:
+                error_rate = bad_inserts / total_inserts
+                # Consider the processing failed if over max failure rate
+                if error_rate > MAX_FAILURE_RATE and total_inserts > 5:
                     progress('Error rate is too high', end=True)
                     raise_error(result, encoding)
                 else:
-                    # Append tuple: insert #, error msg, and insert
-                    bad_inserts.append((num, result, insert))
+                    # write insert #, error msg, and insert
+                    write_bad(filepath, total_inserts, result, insert)
             else:
                 raise (Exception('Unknown error has occurred'))
 
-        if bad_inserts:
-            with open(filepath + '.bad_inserts.txt', 'w') as bi:
-                error_percentage = error_rate * 100
-                bi.write('##### Insert Errors #####\n')
-                bi.write('Error rate: {0:.2f}%\n\n'.format(error_percentage))
-                for bad_insert in bad_inserts:
-                    num, error, insert = bad_insert
-                    bi.write('******\n')
-                    bi.write('Insert #{}\n'.format(num + 1))
-                    bi.write('Error:{}\n'.format(error))
-                    bi.write('\nLine:\n{}\n\n'.format(insert))
-        progress(
-            'Wrote {} total lines(s) and skipped {} errors'.format(
-                total_data_lines + 1, len(bad_inserts)),
-            end=True)
+    if not total_inserts:
+        if not table_name:
+            error = 'No matching user table found'
+        else:
+            error = 'No matching INSERT statements found'
+        raise_error(ValueError(error))
+
+    progress(
+        'Processed {} insert(s) and skipped {} errors'.format(
+            total_inserts, bad_inserts),
+        end=True)
 
 
 def parse_sql(line, pattern, search=False):
@@ -272,9 +274,9 @@ def parse_sql(line, pattern, search=False):
 def print_progress(filepath):
     def progress(data, end=False):
         filename = os.path.basename(filepath)
-        msg = '{}: {}'.format(filename, data)
+        msg = '{}: {}{}'.format(filename, data, ' ' * 30)
         if end:
-            print(msg + ' ' * 50)
+            print(msg)
         else:
             msg += '\r\r'
             sys.stdout.write(msg)
@@ -296,77 +298,74 @@ def raise_error(exception, encoding=None):
     raise exception
 
 
-def read_file(filepath, encoding):
+def read_file(sqlfile):
     # Current CreateTable object
     create_table = None
     # List of insert statments
-    inserts = []
     table_name = None
-    # Current InsertInto object
-    line_count = 0
     parsing = None
-    progress = print_progress(filepath)
     # Extract the CREATE TABLE and INSERT INTO statements for the user table
-    with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
-        while True:
-            buffer = 10485760
-            lines = sqlfile.readlines(buffer)
-            if not lines:
-                break
-            for line in lines:
-                line_count += 1
-                progress('Analyzing line {}...'.format(line_count))
-                # If not parsing a CREATE or INSERT statement, look for one
-                if parsing:
-                    # Continue parsing the current statement
-                    parsing.statement.append(line)
-                    if parsing.ending in line:
-                        no_newlines = rm_newlines(parsing.statement)
-                        if isinstance(parsing, CreateTable):
-                            create_table.statement = ''.join(no_newlines)
-                        elif isinstance(parsing, InsertInto):
-                            inserts.append(''.join(no_newlines))
-                        parsing = None
-                else:
-                    insert = parse_sql(line, INSERT_BEGIN)
-                    if insert and isinstance(insert, ParseResults):
-                        if not table_name:
-                            table_name = insert.asDict().get('table_name')
-                        insert_into = InsertInto([line])
-                        if insert_into.ending in line:
-                            no_newlines = rm_newlines([line])
-                            inserts.append(''.join(no_newlines))
-                        else:
-                            parsing = insert_into
-                            continue
+    while True:
+        lines = sqlfile.readlines(READ_BUFFER)
+        if not lines:
+            break
+        for line in lines:
+            valid_insert = None
+            # If not parsing a CREATE or INSERT statement, look for one
+            if parsing:
+                # Continue parsing the current statement
+                parsing.statement.append(line)
+                if parsing.ending in line:
+                    no_newlines = rm_newlines(parsing.statement)
+                    if isinstance(parsing, CreateTable):
+                        create_table.statement = ''.join(no_newlines)
+                    elif isinstance(parsing, InsertInto):
+                        valid_insert = ''.join(no_newlines)
+                    parsing = None
+            else:
+                insert = parse_sql(line, INSERT_BEGIN)
+                if insert and isinstance(insert, ParseResults):
+                    if not table_name:
+                        table_name = insert.asDict().get('table_name')
+                    insert_into = InsertInto([line])
+                    if insert_into.ending in line:
+                        no_newlines = rm_newlines([line])
+                        valid_insert = ''.join(no_newlines)
                     else:
-                        value = parse_sql(line, VALUES_ONLY)
-                        if value and isinstance(value, ParseResults):
-                            value_only = InsertInto([line])
-                            if value_only.ending in line:
-                                no_newlines = rm_newlines([line])
-                                inserts.append(''.join(no_newlines))
-                            else:
-                                parsing = value_only
-                                continue
-                        elif not create_table:
-                            create = parse_sql(line, CREATE_BEGIN)
-                            if create and isinstance(create, ParseResults):
-                                if not table_name:
-                                    table_name = create.asDict().get(
-                                        'table_name')
-                                    create_table = CreateTable([line])
-                                    if create_table.ending not in line:
-                                        parsing = create_table
-    return {
-        'table_name': table_name,
-        'create_table': create_table,
-        'inserts': inserts
-    }
+                        parsing = insert_into
+                        continue
+                else:
+                    value = parse_sql(line, VALUES_ONLY)
+                    if value and isinstance(value, ParseResults):
+                        value_only = InsertInto([line])
+                        if value_only.ending in line:
+                            no_newlines = rm_newlines([line])
+                            valid_insert = ''.join(no_newlines)
+                        else:
+                            parsing = value_only
+                            continue
+                    elif not create_table:
+                        create = parse_sql(line, CREATE_BEGIN)
+                        if create and isinstance(create, ParseResults):
+                            if not table_name:
+                                table_name = create.asDict().get('table_name')
+                                create_table = CreateTable([line])
+                                if create_table.ending not in line:
+                                    parsing = create_table
+            if valid_insert:
+                yield create_table, table_name, valid_insert
 
 
 def rm_newlines(lines):
     return [x.replace('\n', '').replace('\r', '') for x in lines]
+
+
+def write_bad(filepath, insert_num, error, insert):
+    with open(filepath + '.bad_inserts.txt', 'a') as bad:
+        bad.write('Insert #{}\n'.format(insert_num))
+        bad.write('Error:{}\n'.format(error))
+        bad.write('\nLine:\n{}\n\n'.format(insert))
+        bad.write('******\n')
 
 
 if __name__ == '__main__':
