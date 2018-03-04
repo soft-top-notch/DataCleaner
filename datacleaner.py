@@ -77,7 +77,7 @@ HEADER_MAP = OrderedDict([
 ])  # yapf: disable
 
 SKIPPED_DIRS = ('completed', 'error', 'failed')
-UNWANTED = ('_error', '_cleaned', '_dump')
+UNWANTED = ('_cleaned', '_dump')
 
 delims = ('\t', ' ', ';', ':', ',', '|')
 
