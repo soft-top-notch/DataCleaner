@@ -187,11 +187,10 @@ def parse(filepath):
     total_inserts = 0
     error_rate = 0.00
     table_name = None
-    sql_size = os.path.getsize(filepath)
     # Extract data from statements and write to csv file
     with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
         user_table = read_file(sqlfile)
-        for create_table, table_name, insert in user_table:
+        for create_table, table_name, insert, line_num in user_table:
             total_inserts += 1
             if not field_names:
                 if create_table:
@@ -223,9 +222,8 @@ def parse(filepath):
                         progress('Warning! No field names found')
                         field_names = 'NOT FOUND'
 
-            current_progress = sqlfile.tell() / sql_size * 100
-            progress('{0:.2f}% read. Processing insert {1:}...'.format(
-                current_progress, total_inserts))
+            progress('{0:} lines read. Processing insert {1:}...'.format(
+                line_num, total_inserts))
             match = re.search('^(?:.*)?(VALUES.*;)', insert)
             if match:
                 value_only = match.group(1)
@@ -305,11 +303,13 @@ def read_file(sqlfile):
     table_name = None
     parsing = None
     # Extract the CREATE TABLE and INSERT INTO statements for the user table
+    line_num = 0
     while True:
         lines = sqlfile.readlines(READ_BUFFER)
         if not lines:
             break
         for line in lines:
+            line_num += 1
             valid_insert = None
             # If not parsing a CREATE or INSERT statement, look for one
             if parsing:
@@ -353,7 +353,7 @@ def read_file(sqlfile):
                                 if create_table.ending not in line:
                                     parsing = create_table
             if valid_insert:
-                yield create_table, table_name, valid_insert
+                yield create_table, table_name, valid_insert, line_num
 
 
 def rm_newlines(lines):
