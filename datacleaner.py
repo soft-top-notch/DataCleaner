@@ -76,8 +76,10 @@ HEADERS = [
     ('username', 'u')
 ]  # yapf: disable
 
-HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
 ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
+# Abbreviated headers that are enumerated
+ENUMERATED = ('x', 'a')
+HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
 
 SKIPPED_DIRS = ('completed', 'error', 'failed')
 UNWANTED = ('_cleaned', '_dump')
@@ -450,26 +452,27 @@ def get_headers(csv_file, delimiter, column_count):
         lowerrow = [
             cc.lower().replace('\n', '') for cc in line.split(delimiter)
         ]
-        unknown = 0
+        tracked = {'x': 0, 'a': 0}
         for i in lowerrow:
             # Match headers in double quotes on both sides or no double quotes
             matches = re.search('(?="\w+)"(\w+)"|^(\w+)$', i)
             if matches:
                 # Take whichever one matched
                 field_name = matches.group(1) or matches.group(2)
-                # match if this is a misc (x) field
-                misc = re.search('^x(\d+)', field_name)
-                if misc:
-                    header = 'x'
+                # match if this is an enumerated field
+                enumerated = re.search('^([a-z])\d+', field_name)
+                if enumerated:
+                    header = enumerated.group(1)
                 # match if it is a known abbreviation for a header
                 elif ABBR2HEADER.get(field_name):
                     header = field_name
                 else:
                     # Make it the header abbreviation or make it misc (x)
                     header = HEADER2ABBR.get(field_name, 'x')
-                if header == 'x':
-                    header = 'x{}'.format(unknown)
-                    unknown += 1
+                if header in ENUMERATED:
+                    header_format = '{}{}'.format(header, tracked[header])
+                    tracked[header] += 1
+                    header = header_format
                 headers.append(header)
             else:
                 csv_file.seek(starting_location)
