@@ -705,9 +705,9 @@ def set_headers(f, dialect, csv_column_count=0):
         f.seek(0)
         headers = get_headers(f, dialect.delimiter, csv_column_count)
         if headers:
-            print 'Headers found for', f.name
+            print '\033[38;5;118mHeaders found for', f.name,'\n\033[38;5;15m'
         else:
-            print 'Setting the headers for file', f.name
+            print '\033[38;5;45mSetting the headers for file', f.name,'\n\033[38;5;15m'
             print_lines(f, 10)
             headers = ask_headers(csv_column_count)
     return headers
