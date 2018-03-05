@@ -693,7 +693,7 @@ def print_lines(f, num_of_lines):
     print '-' * 20
     print
     f.seek(last_location)
-
+ 
 
 def set_headers(f, dialect, csv_column_count=0):
     headers = []
@@ -705,7 +705,7 @@ def set_headers(f, dialect, csv_column_count=0):
         f.seek(0)
         headers = get_headers(f, dialect.delimiter, csv_column_count)
         if headers:
-            print '\033[38;5;118mHeaders found for', f.name,'\n\033[38;5;15m'
+            print '\n\033[38;5;118mHeaders found for', f.name,'\033[38;5;15m'
         else:
             print '\033[38;5;45mSetting the headers for file', f.name,'\n\033[38;5;15m'
             print_lines(f, 10)
