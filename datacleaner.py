@@ -55,7 +55,7 @@ guess = True
 if args.c and args.d:
     guess = False
 
-HEADER_MAP = OrderedDict([
+HEADERS = [
     ('misc', 'x'),
     ('address', 'a'),
     ('dob', 'd'),
@@ -74,7 +74,10 @@ HEADER_MAP = OrderedDict([
     ('phone', 't'),
     ('salt', 's'),
     ('username', 'u')
-])  # yapf: disable
+]  # yapf: disable
+
+HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
+ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
 
 SKIPPED_DIRS = ('completed', 'error', 'failed')
 UNWANTED = ('_cleaned', '_dump')
@@ -449,16 +452,28 @@ def get_headers(csv_file, delimiter, column_count):
         ]
         unknown = 0
         for i in lowerrow:
-            # If row has non-word characters, it can't be the headers
-            if re.search('\W', i):
-                csv_file.seek(starting_location)
-                break
-            else:
-                header = HEADER_MAP.get(i, 'x')
+            # Match headers in double quotes on both sides or no double quotes
+            matches = re.search('(?="\w+)"(\w+)"|^(\w+)$', i)
+            if matches:
+                # Take whichever one matched
+                field_name = matches.group(1) or matches.group(2)
+                # match if this is a misc (x) field
+                misc = re.search('^x(\d+)', field_name)
+                if misc:
+                    header = 'x'
+                # match if it is a known abbreviation for a header
+                elif ABBR2HEADER.get(field_name):
+                    header = field_name
+                else:
+                    # Make it the header abbreviation or make it misc (x)
+                    header = HEADER2ABBR.get(field_name, 'x')
                 if header == 'x':
                     header = 'x{}'.format(unknown)
                     unknown += 1
                 headers.append(header)
+            else:
+                csv_file.seek(starting_location)
+                break
         # Only check the first non-comment row
         break
     if len(headers) == column_count:
@@ -477,7 +492,7 @@ def ask_headers(column_count):
     print "Please provide the headers below:"
 
     seen = []
-    for full_header, shortened in HEADER_MAP.items():
+    for full_header, shortened in HEADERS:
         if shortened not in seen:
             print '{}:{}'.format(shortened, full_header)
             seen.append(shortened)
@@ -693,7 +708,7 @@ def print_lines(f, num_of_lines):
     print '-' * 20
     print
     f.seek(last_location)
- 
+
 
 def set_headers(f, dialect, csv_column_count=0):
     headers = []
@@ -705,9 +720,9 @@ def set_headers(f, dialect, csv_column_count=0):
         f.seek(0)
         headers = get_headers(f, dialect.delimiter, csv_column_count)
         if headers:
-            print '\n\033[38;5;118mHeaders found for', f.name,'\033[38;5;15m'
+            print '\n\033[38;5;118mHeaders found for', f.name, '\033[38;5;15m'
         else:
-            print '\033[38;5;45mSetting the headers for file', f.name,'\n\033[38;5;15m'
+            print '\033[38;5;45mSetting the headers for file', f.name, '\n\033[38;5;15m'
             print_lines(f, 10)
             headers = ask_headers(csv_column_count)
     return headers
