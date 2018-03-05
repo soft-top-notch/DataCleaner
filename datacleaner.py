@@ -11,6 +11,48 @@ import sys
 
 import parse_sql
 
+# Full path to directories used
+CLEAN_FAIL_DIR = '~/clean_fail'
+CLEAN_SUCCESS_DIR = '~/clean_success'
+HEADERS_SUCCESS_DIR = '~/headers_success'
+JSON_SUCCESS_DIR = '~/json'
+SQL_FAIL_DIR = '~/sql_fail'
+SQL_SUCCESS_DIR = '~/sql_success'
+
+# Directories to skip when gathering lists of files
+SKIPPED_DIRS = ('completed', 'error', 'failed')
+# Parts of filename to be removed when cleaned
+UNWANTED = ('_cleaned', '_dump')
+
+# Headers matched
+HEADERS = [
+    ('misc', 'x'),
+    ('address', 'a'),
+    ('dob', 'd'),
+    ('email', 'e'),
+    ('first_name', 'fn'),
+    ('first', 'fn'),
+    ('firstname', 'fn'),
+    ('hash', 'h'),
+    ('ip', 'i'),
+    ('ipaddress', 'i'),
+    ('last_name', 'ln'),
+    ('last', 'ln'),
+    ('lastname', 'ln'),
+    ('name', 'n'),
+    ('password', 'p'),
+    ('phone', 't'),
+    ('salt', 's'),
+    ('username', 'u')
+]  # yapf: disable
+
+# Abbreviated headers that are enumerated
+ENUMERATED = ('x', 'a')
+# Abbreviations to headers
+ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
+# Headers to abbreviations
+HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
+
 csv.field_size_limit(sys.maxsize)
 
 parser = argparse.ArgumentParser()
@@ -53,35 +95,6 @@ if (args.c and (not args.d)) or (not args.c and args.d):
 guess = True
 if args.c and args.d:
     guess = False
-
-HEADERS = [
-    ('misc', 'x'),
-    ('address', 'a'),
-    ('dob', 'd'),
-    ('email', 'e'),
-    ('first_name', 'fn'),
-    ('first', 'fn'),
-    ('firstname', 'fn'),
-    ('hash', 'h'),
-    ('ip', 'i'),
-    ('ipaddress', 'i'),
-    ('last_name', 'ln'),
-    ('last', 'ln'),
-    ('lastname', 'ln'),
-    ('name', 'n'),
-    ('password', 'p'),
-    ('phone', 't'),
-    ('salt', 's'),
-    ('username', 'u')
-]  # yapf: disable
-
-ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
-# Abbreviated headers that are enumerated
-ENUMERATED = ('x', 'a')
-HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
-
-SKIPPED_DIRS = ('completed', 'error', 'failed')
-UNWANTED = ('_cleaned', '_dump')
 
 delims = ('\t', ' ', ';', ':', ',', '|')
 
@@ -381,20 +394,18 @@ def wrap_fields(l, wrapper='"'):
 
 def write_json(source):
     print "Writing json file for", source
-    fdirname = os.path.dirname(source)
     fbasename = os.path.basename(source)
     json_file = os.path.splitext(fbasename)[0] + '.json'
-    json_dir = os.path.join(fdirname, 'json')
 
-    if not os.path.exists(json_dir):
-        os.mkdir(json_dir)
+    if not os.path.exists(JSON_SUCCESS_DIR):
+        os.mkdir(JSON_SUCCESS_DIR)
 
     out_reader = UnicodeReader(open(source), dialect=myDialect)
 
     # grab the first line as headers
     headers = out_reader.next()
 
-    with open(os.path.join(json_dir, json_file), 'w') as outfile:
+    with open(os.path.join(JSON_SUCCESS_DIR, json_file), 'w') as outfile:
         # Add first line of json
         line_count = 0
         for row in out_reader:
@@ -540,15 +551,10 @@ def parse_file(tfile):
 
     f_name, f_ext = os.path.splitext(tfile)
 
-    fdirname = os.path.dirname(tfile)
     fbasename = os.path.basename(tfile)
 
-    completed_dir = os.path.join(fdirname, 'completed')
-    error_dir = os.path.join(fdirname, 'error')
-    done_dir = os.path.join(completed_dir, 'done')
-
-    if not os.path.exists(completed_dir):
-        os.mkdir(completed_dir)
+    if not os.path.exists(CLEAN_SUCCESS_DIR):
+        os.mkdir(CLEAN_SUCCESS_DIR)
 
     print "\n\033[38;5;244mEscaping grabage characters"
 
@@ -641,14 +647,14 @@ def parse_file(tfile):
     print "\033[38;5;241m Error file {} had {} bytes written".format(
         out_file_err_temp, errors_stats.st_size)
     print "\033[38;5;241m Moving {} to completed folder".format(tfile)
-    if not os.path.exists(completed_dir):
-        os.mkdir(completed_dir)
+    if not os.path.exists(CLEAN_SUCCESS_DIR):
+        os.mkdir(CLEAN_SUCCESS_DIR)
     if headers:
-        if not os.path.exists(done_dir):
-            os.mkdir(done_dir)
-        os.rename(tfile, os.path.join(done_dir, fbasename))
+        if not os.path.exists(HEADERS_SUCCESS_DIR):
+            os.mkdir(HEADERS_SUCCESS_DIR)
+        os.rename(tfile, os.path.join(HEADERS_SUCCESS_DIR, fbasename))
     else:
-        os.rename(tfile, os.path.join(completed_dir, fbasename))
+        os.rename(tfile, os.path.join(CLEAN_SUCCESS_DIR, fbasename))
 
     err_basename = os.path.basename(out_file_err_temp)
 
@@ -656,9 +662,9 @@ def parse_file(tfile):
         print "\033[38;5;241m Moving {} to error folder".format(
             out_file_err_temp)
         err_basename = os.path.basename(out_file_err_temp)
-        target_out_err_file = os.path.join(error_dir, err_basename[:-1])
-        if not os.path.exists(error_dir):
-            os.mkdir(error_dir)
+        target_out_err_file = os.path.join(CLEAN_FAIL_DIR, err_basename[:-1])
+        if not os.path.exists(CLEAN_FAIL_DIR):
+            os.mkdir(CLEAN_FAIL_DIR)
         os.rename(out_file_err_temp, target_out_err_file)
     else:
         print "Removing", out_file_err_temp
@@ -807,17 +813,16 @@ def main():
             print "\033[38;5;240m -------------------------\n\033[38;5;255m"
 
         for sf in sql_files:
-            dir_name = os.path.dirname(sf)
             try:
                 parse_sql.parse(sf)
             except KeyboardInterrupt:
                 print('Control-c pressed...')
                 sys.exit(138)
             except Exception as error:
-                parse_sql.move(sf, os.path.join(dir_name, 'failed'))
+                parse_sql.move(sf, SQL_FAIL_DIR)
                 print 'ERROR:', str(error)
             else:
-                parse_sql.move(sf, os.path.join(dir_name, 'completed'))
+                parse_sql.move(sf, SQL_SUCCESS_DIR)
 
 
 if __name__ == "__main__":
