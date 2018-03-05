@@ -8,7 +8,6 @@ import os
 import re
 import StringIO
 import sys
-from collections import OrderedDict
 
 import parse_sql
 
