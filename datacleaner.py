@@ -8,6 +8,7 @@ import os
 import re
 import StringIO
 import sys
+from crayons import red, blue, green
 
 import parse_sql
 from datacleaner import move
@@ -719,10 +720,12 @@ def set_headers(f, dialect, csv_column_count=0):
             csv_column_count = find_column_count(f)
         f.seek(0)
         headers = get_headers(f, dialect.delimiter, csv_column_count)
+        # Add a new line
+        print
         if headers:
-            print '\n\033[38;5;118mHeaders found for', f.name, '\033[38;5;15m'
+            print green('Headers found for {}\n'.format(f.name))
         else:
-            print '\033[38;5;45mSetting the headers for file', f.name, '\n\033[38;5;15m'
+            print blue('Setting the headers for file {}\n'.format(f.name))
             print_lines(f, 10)
             headers = ask_headers(csv_column_count)
     return headers
