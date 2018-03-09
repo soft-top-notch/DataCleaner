@@ -16,11 +16,11 @@ from datacleaner import move
 # Full path to directories used
 CLEAN_FAIL_DIR = '../0_errors/clean_fail'
 CLEAN_SUCCESS_DIR = '../2_needs_headers'
+HEADERS_SKIP_DIR = '../headers_skip'
 HEADERS_SUCCESS_DIR = '../headers_success'
 JSON_SUCCESS_DIR = '../4_complete'
 SQL_FAIL_DIR = '../0_errors/sql_fail'
 SQL_SUCCESS_DIR = '../2_needs_headers'
-
 
 # Directories to skip when gathering lists of files
 SKIPPED_DIRS = ('completed', 'error', 'failed')
@@ -523,6 +523,8 @@ def ask_headers(column_count):
             if header_len == column_count:
                 break
             else:
+                if 'zz' in user_headers:
+                    return headers
                 print '\nERROR: {} headers entered for {} columns\n'.format(
                     header_len, column_count)
         else:
@@ -762,6 +764,8 @@ def main():
             if headers:
                 os.rename(filepath + '~', filepath)
                 move(filepath, HEADERS_SUCCESS_DIR)
+            else:
+                move(filepath, HEADERS_SKIP_DIR)
     elif args.j:
         for cf in nonsql_files:
             write_json(cf)
