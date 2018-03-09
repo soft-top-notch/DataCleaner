@@ -723,15 +723,40 @@ def set_headers(f, dialect, csv_column_count=0):
             csv_column_count = find_column_count(f)
         f.seek(0)
         headers = get_headers(f, dialect.delimiter, csv_column_count)
-        # Add a new line
-        print
-        if headers:
-            print green('Headers found for {}\n'.format(f.name))
-        else:
-            print blue('Setting the headers for file {}\n'.format(f.name))
-            print_lines(f, 10)
-            headers = ask_headers(csv_column_count)
+        while True:
+            # Add a new line
+            print
+            if headers:
+                print green('Headers found for {}\n'.format(f.name))
+            else:
+                print blue('Setting the headers for file {}\n'.format(f.name))
+                print_lines(f, 10)
+                headers = ask_headers(csv_column_count)
+            if headers:
+                print blue('Headers to be used: {}'.format(','.join(headers)))
+                correct = confirm()
+                if correct:
+                    break
+                else:
+                    headers = []
+            else:
+                break
     return headers
+
+
+def confirm():
+    """Continually prompt until user answers y or n.
+
+    Default is y (just pressing enter).
+    """
+    while True:
+        resp = raw_input('Is this correct? [Y/n] ')
+        if not resp or resp.lower() == 'y':
+            return True
+        elif resp.lower() == 'n':
+            return False
+        else:
+            print red('Please answer y or n')
 
 
 def check_unwanted(filename):
@@ -765,6 +790,7 @@ def main():
                 os.rename(filepath + '~', filepath)
                 move(filepath, HEADERS_SUCCESS_DIR)
             else:
+                print red('Skipping setting headers for {}'.format(filepath))
                 move(filepath, HEADERS_SKIP_DIR)
     elif args.j:
         for cf in nonsql_files:
