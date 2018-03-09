@@ -14,12 +14,13 @@ import parse_sql
 from datacleaner import move
 
 # Full path to directories used
-CLEAN_FAIL_DIR = '~/clean_fail'
-CLEAN_SUCCESS_DIR = '~/clean_success'
-HEADERS_SUCCESS_DIR = '~/headers_success'
-JSON_SUCCESS_DIR = '~/json'
-SQL_FAIL_DIR = '~/sql_fail'
-SQL_SUCCESS_DIR = '~/sql_success'
+CLEAN_FAIL_DIR = '../0_errors/clean_fail'
+CLEAN_SUCCESS_DIR = '../2_needs_headers'
+HEADERS_SUCCESS_DIR = '../headers_success'
+JSON_SUCCESS_DIR = '../4_complete'
+SQL_FAIL_DIR = '../0_errors/sql_fail'
+SQL_SUCCESS_DIR = '../2_needs_headers'
+
 
 # Directories to skip when gathering lists of files
 SKIPPED_DIRS = ('completed', 'error', 'failed')
