@@ -10,6 +10,7 @@ import StringIO
 import sys
 
 import parse_sql
+from datacleaner import move
 
 # Full path to directories used
 CLEAN_FAIL_DIR = '~/clean_fail'
@@ -647,25 +648,15 @@ def parse_file(tfile):
     print "\033[38;5;241m Error file {} had {} bytes written".format(
         out_file_err_temp, errors_stats.st_size)
     print "\033[38;5;241m Moving {} to completed folder".format(tfile)
-    if not os.path.exists(CLEAN_SUCCESS_DIR):
-        os.mkdir(CLEAN_SUCCESS_DIR)
     if headers:
-        if not os.path.exists(HEADERS_SUCCESS_DIR):
-            os.mkdir(HEADERS_SUCCESS_DIR)
-        os.rename(tfile, os.path.join(HEADERS_SUCCESS_DIR, fbasename))
+        move(tfile, HEADERS_SUCCESS_DIR)
     else:
-        os.rename(tfile, os.path.join(CLEAN_SUCCESS_DIR, fbasename))
-
-    err_basename = os.path.basename(out_file_err_temp)
+        move(tfile, CLEAN_SUCCESS_DIR)
 
     if errors_stats.st_size > 0:
         print "\033[38;5;241m Moving {} to error folder".format(
             out_file_err_temp)
-        err_basename = os.path.basename(out_file_err_temp)
-        target_out_err_file = os.path.join(CLEAN_FAIL_DIR, err_basename[:-1])
-        if not os.path.exists(CLEAN_FAIL_DIR):
-            os.mkdir(CLEAN_FAIL_DIR)
-        os.rename(out_file_err_temp, target_out_err_file)
+        move(out_file_err_temp, CLEAN_FAIL_DIR)
     else:
         print "Removing", out_file_err_temp
         os.remove(out_file_err_temp)
@@ -754,17 +745,18 @@ def main():
         for file in files:
             clean_filename(file)
     elif args.sh or args.ah:
-        for filename in nonsql_files:
+        for filepath in nonsql_files:
             headers = []
-            with open(filename, 'rb') as cf:
+            with open(filepath, 'rb') as cf:
                 headers = set_headers(cf, dialect)
                 if headers:
-                    with open(filename + '~', 'wb') as new_csv:
+                    with open(filepath + '~', 'wb') as new_csv:
                         write_headers(new_csv, headers)
                         for line in cf:
                             new_csv.write(line)
             if headers:
-                os.rename(filename + '~', filename)
+                os.rename(filepath + '~', filepath)
+                move(filepath, HEADERS_SUCCESS_DIR)
     elif args.j:
         for cf in nonsql_files:
             write_json(cf)
@@ -785,20 +777,23 @@ def main():
             # print "\033[0m"
             fdirname = os.path.dirname(filename)
             fbasename = os.path.basename(filename)
+            clean_name = []
 
-            if ('&' in fbasename) or ('+' in fbasename) or (
-                    '@' in fbasename) or ("'" in fbasename):
+            for char in fbasename:
+                if char in "&+@'":
+                    clean_name.append('_')
+                else:
+                    clean_name.append(char)
+            new_basename = ''.join(clean_name)
 
-                nfbasename = fbasename
-                for ch in "&+@'":
-                    nfbasename = nfbasename.replace(ch, '_')
-                    nf = os.path.join(fdirname, nfbasename)
-                    os.rename(filename, nf)
-                    filename = nf
+            if new_basename != fbasename:
+                new_filename = os.path.join(fdirname, new_basename)
+                os.rename(filename, new_filename)
+                filename = new_filename
 
             fc += 1
             print
-            print "\033[38;5;240m ---------------------------------------------\n"
+            print "\033[38;5;240m ------------------------------------------\n"
             print "\033[1;34mProcessing", filename
             print "\033[0mFile {}/{}".format(fc, nf)
             if os.stat(filename).st_size > 0:
@@ -819,10 +814,10 @@ def main():
                 print('Control-c pressed...')
                 sys.exit(138)
             except Exception as error:
-                parse_sql.move(sf, SQL_FAIL_DIR)
+                move(sf, SQL_FAIL_DIR)
                 print 'ERROR:', str(error)
             else:
-                parse_sql.move(sf, SQL_SUCCESS_DIR)
+                move(sf, SQL_SUCCESS_DIR)
 
 
 if __name__ == "__main__":

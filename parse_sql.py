@@ -33,6 +33,7 @@ import magic
 import os
 import re
 import sys
+from datacleaner import move
 from docopt import docopt
 from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
@@ -133,25 +134,6 @@ def main(args):
                 print_progress(filepath)('ERROR: ' + str(error), end=True)
         else:
             move(filepath, args['--completed'])
-
-
-def move(src, dest):
-    """Moves source file into success or failed directories.
-
-    Creates directory if needed.
-    """
-    filename = os.path.basename(src)
-    if '~' in dest:
-        dest_dir = os.path.expanduser(dest)
-    else:
-        dest_dir = dest
-
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
-
-    new_path = '{}/{}'.format(dest_dir, filename)
-    if src != new_path:
-        os.rename(src, new_path)
 
 
 def parse(filepath):
