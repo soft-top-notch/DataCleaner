@@ -503,40 +503,41 @@ def ask_headers(column_count):
     """
     headers = []
 
-    print "Please provide the headers below:"
+    while True:
+        print "Please provide the headers below:"
+        seen = []
+        for full_header, shortened in HEADERS:
+            if shortened not in seen:
+                print '{}:{}'.format(shortened, full_header)
+                seen.append(shortened)
 
-    seen = []
-    for full_header, shortened in HEADERS:
-        if shortened not in seen:
-            print '{}:{}'.format(shortened, full_header)
-            seen.append(shortened)
+        user_headers = raw_input(
+            "Please enter {} headers as their abbreviation (i.e. u p x): ".
+            format(column_count))
 
-    user_headers = raw_input(
-        "Please enter {} headers as their abbreviation (i.e. u p x):".format(
-            column_count))
+        if user_headers:
+            user_headers = user_headers.split(' ')
+            header_len = len(user_headers)
+            if header_len == column_count:
+                break
+            else:
+                print '\nERROR: {} headers entered for {} columns\n'.format(
+                    header_len, column_count)
+        else:
+            print '\nERROR: No headers entered\n'
 
-    if user_headers:
-        user_headers = user_headers.split(' ')
-        uc = 0
-        for hi in range(column_count):
-            if hi < len(user_headers):
-                header = user_headers[hi]
-                if header == 'x':
-                    headers.append(header + str(uc))
-                    uc += 1
-                else:
-                    headers.append(header)
+    tracked = {'x': 0, 'a': 0}
 
-        diff = column_count - len(user_headers)
-        if diff > 0:
-            for ha in range(diff):
-                headers.append('x' + str(uc))
-                uc += 1
+    for hi in range(column_count):
+        if hi < header_len:
+            header = user_headers[hi]
+            if header in ENUMERATED:
+                header_format = '{}{}'.format(header, tracked[header])
+                tracked[header] += 1
+                header = header_format
+            headers.append(header)
 
-    if len(headers) == column_count:
-        return headers
-    else:
-        return []
+    return headers
 
 
 def parse_file(tfile):
