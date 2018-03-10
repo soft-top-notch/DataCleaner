@@ -33,6 +33,7 @@ HEADERS = [
     ('address', 'a'),
     ('dob', 'd'),
     ('birthday', 'd'),
+    ('birthdate', 'd'),
     ('email', 'e'),
     ('first_name', 'fn'),
     ('first', 'fn'),
@@ -48,6 +49,8 @@ HEADERS = [
     ('phone', 't'),
     ('salt', 's'),
     ('username', 'u'),
+    ('lname', 'ln'),
+    ('fname', 'dn'),
     ('street', 'a1'),
     ('street_address', 'a1'),
     ('streetaddress', 'a1'),
@@ -67,6 +70,7 @@ HEADERS = [
     ('deviceid', 'did'),
     ('lastname', 'ln'),
     ('uuid', 'did'),
+    ('reg_ip', 'did'),
 
 
 ]  # yapf: disable
