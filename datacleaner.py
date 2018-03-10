@@ -50,7 +50,7 @@ HEADERS = [
     ('salt', 's'),
     ('username', 'u'),
     ('lname', 'ln'),
-    ('fname', 'dn'),
+    ('fname', 'fn'),
     ('street', 'a1'),
     ('street_address', 'a1'),
     ('streetaddress', 'a1'),
