@@ -32,6 +32,7 @@ HEADERS = [
     ('misc', 'x'),
     ('address', 'a'),
     ('dob', 'd'),
+    ('birthday', 'd'),
     ('email', 'e'),
     ('first_name', 'fn'),
     ('first', 'fn'),
