@@ -56,6 +56,12 @@ HEADERS = [
     ('postal_code', 'a3')
     ('country', 'a4')
 
+    ('sourceip', 'i')
+    ('source_ip', 'i')
+('jabber', 'o')
+('xmpp', 'o')
+
+
 ]  # yapf: disable
 
 # Abbreviated headers that are enumerated
