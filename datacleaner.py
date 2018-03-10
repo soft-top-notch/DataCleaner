@@ -46,7 +46,27 @@ HEADERS = [
     ('password', 'p'),
     ('phone', 't'),
     ('salt', 's'),
-    ('username', 'u')
+    ('username', 'u'),
+    ('street', 'a1'),
+    ('street_address', 'a1'),
+    ('city', 'a2'),
+    ('state', 'a3'),
+    ('zip', 'a4'),
+    ('zip_code', 'a4'),
+    ('zipcode', 'a4'),
+    ('postalcode', 'a4'),
+    ('postal_code', 'a4'),
+    ('country', 'a5'),
+    ('sourceip', 'i'),
+    ('source_ip', 'i'),
+    ('jabber', 'o'),
+    ('xmpp', 'o'),
+    ('device', 'de'),
+    ('deviceid', 'did'),
+    ('lastname', 'ln'),
+    ('uuid', 'did'),
+
+
 ]  # yapf: disable
 
 # Abbreviated headers that are enumerated
@@ -463,7 +483,8 @@ def get_headers(csv_file, delimiter, column_count):
     headers = []
     starting_location = csv_file.tell()
 
-    for line in csv_file:
+    while True:
+        line = csv_file.readline()
         # Skip comment rows
         if line.startswith('#'):
             continue
