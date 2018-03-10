@@ -47,6 +47,11 @@ HEADERS = [
     ('phone', 't'),
     ('salt', 's'),
     ('username', 'u')
+    ('city', 'a1')
+    ('state', 'a2')
+    ('zip', 'a3')
+    ('country', 'a4')
+    
 ]  # yapf: disable
 
 # Abbreviated headers that are enumerated
