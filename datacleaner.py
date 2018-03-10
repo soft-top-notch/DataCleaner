@@ -46,20 +46,21 @@ HEADERS = [
     ('password', 'p'),
     ('phone', 't'),
     ('salt', 's'),
-    ('username', 'u')
-    ('city', 'a1')
-    ('state', 'a2')
-    ('zip', 'a3')
-    ('zip_code', 'a3')
-    ('zipcode', 'a3')
-    ('postalcode', 'a3')
-    ('postal_code', 'a3')
-    ('country', 'a4')
-
-    ('sourceip', 'i')
-    ('source_ip', 'i')
-('jabber', 'o')
-('xmpp', 'o')
+    ('username', 'u'),
+     ('street', 'a1'),
+         ('street_address', 'a1'),
+    ('city', 'a2'),
+    ('state', 'a3'),
+    ('zip', 'a4'),
+    ('zip_code', 'a4'),
+    ('zipcode', 'a4'),
+    ('postalcode', 'a4'),
+    ('postal_code', 'a4'),
+    ('country', 'a5'),
+    ('sourceip', 'i'),
+    ('source_ip', 'i'),
+    ('jabber', 'o'),
+    ('xmpp', 'o'),
 
 
 ]  # yapf: disable
