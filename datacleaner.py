@@ -739,7 +739,7 @@ def set_headers(f, dialect, csv_column_count=0):
                 print_lines(f, 10)
                 headers = ask_headers(csv_column_count)
             if headers:
-                print blue('Headers to be used: {}'.format(','.join(headers)))
+                print blue('Headers to be used: {}'.format(' '.join(headers)))
                 correct = confirm()
                 if correct:
                     break
