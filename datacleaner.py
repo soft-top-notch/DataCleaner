@@ -50,6 +50,7 @@ HEADERS = [
     ('username', 'u'),
     ('street', 'a1'),
     ('street_address', 'a1'),
+    ('streetaddress', 'a1'),
     ('city', 'a2'),
     ('state', 'a3'),
     ('zip', 'a4'),
