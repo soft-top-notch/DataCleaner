@@ -50,8 +50,12 @@ HEADERS = [
     ('city', 'a1')
     ('state', 'a2')
     ('zip', 'a3')
+    ('zip_code', 'a3')
+    ('zipcode', 'a3')
+    ('postalcode', 'a3')
+    ('postal_code', 'a3')
     ('country', 'a4')
-    
+
 ]  # yapf: disable
 
 # Abbreviated headers that are enumerated
