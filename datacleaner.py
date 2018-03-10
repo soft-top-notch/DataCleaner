@@ -704,7 +704,6 @@ def gather_files(path, file_list=[]):
 def write_headers(f, headers):
     """Write headers to file."""
     header_line = ','.join(headers)
-    print "Header Line:", header_line
     f.write(header_line + '\n')
 
 
@@ -715,6 +714,7 @@ def print_lines(f, num_of_lines):
     print '-' * 20
     for x in range(num_of_lines):
         print f.readline(),
+    print
     print '-' * 20
     print
     f.seek(last_location)
@@ -734,11 +734,7 @@ def set_headers(f, dialect, csv_column_count=0):
             print
             if headers:
                 print green('Headers found for {}\n'.format(f.name))
-            else:
-                print blue('Setting the headers for file {}\n'.format(f.name))
-                print_lines(f, 10)
-                headers = ask_headers(csv_column_count)
-            if headers:
+                print_lines(f, 5)
                 print blue('Headers to be used: {}'.format(','.join(headers)))
                 correct = confirm()
                 if correct:
@@ -746,7 +742,10 @@ def set_headers(f, dialect, csv_column_count=0):
                 else:
                     headers = []
             else:
-                break
+                print blue('Setting the headers for file {}\n'.format(f.name))
+                print_lines(f, 10)
+                headers = ask_headers(csv_column_count)
+                if not headers: break
     return headers
 
 
