@@ -755,14 +755,6 @@ def set_headers(f, dialect, csv_column_count=0):
                 print_lines(f, 10)
                 headers = ask_headers(csv_column_count)
             if headers:
-                f.seek(0)
-                print 'The first {} lines:'.format(num_of_lines)
-                print '-' * 20
-                for x in range(num_of_lines):
-                    print f.readline(),
-                print '-' * 20
-                print
-                f.seek(last_location)
                 print blue('Headers to be used: {}'.format(' '.join(headers)))
                 correct = confirm()
                 if correct:
