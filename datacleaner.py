@@ -432,8 +432,8 @@ def write_json(source):
                         existing_data = source.get('a', [])
                         existing_data.append(value.rstrip())
                         source['a'] = existing_data
+                        del source[header]
                     else:
-                        # Remove trailing whitespace
                         source[header] = value.rstrip()
 
             # Set release name
@@ -690,14 +690,14 @@ def gather_files(path, file_list=[]):
         for p in path:
             gather_files(p, file_list)
     else:
-        if not path.startswith('.'):
-            if os.path.isdir(path):
-                if os.path.basename(path) not in SKIPPED_DIRS:
-                    for subpath in os.listdir(path):
-                        gather_files(os.path.join(path, subpath), file_list)
-            else:
-                if not path.endswith('~'):
-                    file_list.append(path)
+        if os.path.isdir(path):
+            if os.path.basename(path) not in SKIPPED_DIRS:
+                for subpath in os.listdir(path):
+                    gather_files(os.path.join(path, subpath), file_list)
+        else:
+            basename = os.path.basename(path)
+            if not basename.startswith('.') and not basename.endswith('~'):
+                file_list.append(path)
     return file_list
 
 
@@ -799,6 +799,8 @@ def main():
                 print red('Skipping setting headers for {}'.format(filepath))
                 move(filepath, HEADERS_SKIP_DIR)
     elif args.j:
+        if not nonsql_files:
+            print red('No non-sql files found to write json')
         for cf in nonsql_files:
             write_json(cf)
 
