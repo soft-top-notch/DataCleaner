@@ -426,9 +426,15 @@ def write_json(source):
                 # Remove entries that are empty
                 elif not value or value in ('NULL', 'null', 'xxx'):
                     del source[header]
-                # Remove trailing whitespace
                 else:
-                    source[header] = value.rstrip()
+                    # Consolidate 'a' entries
+                    if re.search('^a\d', header):
+                        existing_data = source.get('a', [])
+                        existing_data.append(value.rstrip())
+                        source['a'] = existing_data
+                    else:
+                        # Remove trailing whitespace
+                        source[header] = value.rstrip()
 
             # Set release name
             if args.r:
