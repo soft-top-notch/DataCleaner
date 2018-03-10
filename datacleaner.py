@@ -47,8 +47,8 @@ HEADERS = [
     ('phone', 't'),
     ('salt', 's'),
     ('username', 'u'),
-     ('street', 'a1'),
-         ('street_address', 'a1'),
+    ('street', 'a1'),
+    ('street_address', 'a1'),
     ('city', 'a2'),
     ('state', 'a3'),
     ('zip', 'a4'),
@@ -61,6 +61,10 @@ HEADERS = [
     ('source_ip', 'i'),
     ('jabber', 'o'),
     ('xmpp', 'o'),
+    ('device', 'de'),
+    ('deviceid', 'did'),
+    ('lastname', 'ln'),
+    ('uuid', 'did'),
 
 
 ]  # yapf: disable
