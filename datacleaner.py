@@ -69,8 +69,8 @@ HEADERS = [
     ('device', 'de'),
     ('deviceid', 'did'),
     ('lastname', 'ln'),
-    ('uuid', 'did'),
-    ('reg_ip', 'did'),
+    ('reg_ip', 'i'),
+    ('uuid', 'did')
 
 
 ]  # yapf: disable
