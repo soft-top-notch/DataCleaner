@@ -41,7 +41,7 @@ from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     ParseException, ParseResults, quotedString, Regex, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
-from datacleaner import move
+from datacleaner import move, p_failure, p_success, p_warning
 
 __version__ = '0.5.0'
 __license__ = """
@@ -178,7 +178,7 @@ def parse(filepath):
             total_inserts += 1
             if not field_names:
                 if create_table:
-                    progress('Getting column names from create table')
+                    p_warning('Getting field names from create table')
                     match = parse_sql(create_table.statement, CREATE_FULL)
                     if match and isinstance(match, ParseResults):
                         field_names = match.asDict()['field_names']
@@ -187,8 +187,9 @@ def parse(filepath):
                     else:
                         raise_error(Exception('Unknown error has occurred'))
                 elif insert:
-                    progress('Getting column names from first insert')
-                    match = parse_sql(insert, INSERT_FIELDS, True)
+                    p_warning('Getting field names from first insert')
+                    fields_only = re.search('(\(`.*`\))', insert).group(1)
+                    match = parse_sql(fields_only, INSERT_FIELDS)
                     if match and isinstance(match, ParseResults):
                         field_names = match.asDict().get('field_names')
                     elif isinstance(match, ParseException):
@@ -198,11 +199,11 @@ def parse(filepath):
 
                 with io.open(filepath + '.csv', 'w', encoding=encoding) as cf:
                     if field_names:
+                        p_success('Found field names')
                         cf.write(','.join(field_names))
                         cf.write(u'\n')
-                        progress('Wrote csv field names')
                     else:
-                        progress('Warning! No field names found')
+                        p_failure('No field names found')
                         field_names = 'NOT FOUND'
 
             progress('{0:} lines read. Processing insert {1:}...'.format(
@@ -212,7 +213,7 @@ def parse(filepath):
                 value_only = match.group(1)
             else:
                 continue
-            result = parse_sql(value_only, VALUES_ONLY, True)
+            result = parse_sql(value_only, VALUES_ONLY)
             if result and isinstance(result, ParseResults):
                 values_list = result.asDict()['values']
                 with io.open(filepath + '.csv', 'a', encoding=encoding) as cf:

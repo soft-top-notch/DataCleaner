@@ -9,11 +9,8 @@ import os
 import re
 import sys
 
-import colored
-from colored import stylize
-
 import parse_sql
-from datacleaner import move
+from datacleaner import move, p_failure, p_success, p_warning
 
 # Full path to directories used
 CLEAN_FAIL_DIR = '../0_errors/clean_fail'
@@ -84,22 +81,6 @@ ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
 # Headers to abbreviations
 HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
 
-
-def print_color(fg_color, attr=None):
-    def color_me(txt):
-        if attr:
-            style = colored.fg(fg_color) + colored.attr(attr)
-        else:
-            style = colored.fg(fg_color)
-        print stylize(txt, style)
-
-    return color_me
-
-
-p_success = print_color('green', 'bold')
-p_failure = print_color('red', 'bold')
-p_warning = print_color('blue')
-p_info = print_color('grey')
 
 csv.field_size_limit(sys.maxsize)
 
@@ -743,7 +724,10 @@ def gather_files(path, file_list=[]):
         else:
             basename = os.path.basename(path)
             if not basename.startswith('.') and not basename.endswith('~'):
-                file_list.append(path)
+                if os.path.exists(path):
+                    file_list.append(path)
+                else:
+                    p_failure('File {} does not exist'.format(path))
     return file_list
 
 
