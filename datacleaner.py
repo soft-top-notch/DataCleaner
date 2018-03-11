@@ -790,7 +790,7 @@ def confirm():
         elif resp.lower() == 'n':
             return False
         else:
-            print red('Please answer y or n')
+            print p_failure('Please answer y or n')
 
 
 def check_unwanted(filename):
@@ -824,11 +824,11 @@ def main():
                 os.rename(filepath + '~', filepath)
                 move(filepath, HEADERS_SUCCESS_DIR)
             else:
-                print red('Skipping setting headers for {}'.format(filepath))
+                print p_failure('Skipping setting headers for {}'.format(filepath))
                 move(filepath, HEADERS_SKIP_DIR)
     elif args.j:
         if not nonsql_files:
-            print red('No non-sql files found to write json')
+            print p_failure('No non-sql files found to write json')
         for cf in nonsql_files:
             write_json(cf)
 
