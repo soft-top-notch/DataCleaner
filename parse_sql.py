@@ -27,18 +27,21 @@ Examples:
     parse_sql.py --user-table="myfriends" test.sql
 """
 from __future__ import division, print_function
-import attr
+
 import io
-import magic
 import os
 import re
 import sys
-from datacleaner import move
+
+import attr
+import magic
 from docopt import docopt
 from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
     ParseException, ParseResults, quotedString, Regex, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
+
+from datacleaner import move
 
 __version__ = '0.5.0'
 __license__ = """
@@ -167,7 +170,6 @@ def parse(filepath):
 
     bad_inserts = 0
     total_inserts = 0
-    error_rate = 0.00
     table_name = None
     # Extract data from statements and write to csv file
     with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
@@ -200,7 +202,6 @@ def parse(filepath):
                         cf.write(u'\n')
                         progress('Wrote csv field names')
                     else:
-                        cf.write(u'###### NO HEADERS FOUND ######\n')
                         progress('Warning! No field names found')
                         field_names = 'NOT FOUND'
 
@@ -244,7 +245,7 @@ def parse(filepath):
         end=True)
 
 
-def parse_sql(line, pattern, search=False):
+def parse_sql(line, pattern):
     try:
         return pattern.parseString(line)
     except ParseException as pe:
