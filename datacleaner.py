@@ -13,16 +13,17 @@ import parse_sql
 from datacleaner import move, p_failure, p_success, p_warning
 
 # Full path to directories used
-CLEAN_FAIL_DIR = '../0_errors/clean_fail'
-CLEAN_SUCCESS_DIR = '../2_needs_headers'
-HEADERS_SKIP_DIR = '../headers_skip'
-HEADERS_SUCCESS_DIR = '../headers_success'
-JSON_SUCCESS_DIR = '../4_complete'
-SQL_FAIL_DIR = '../0_errors/sql_fail'
-SQL_SUCCESS_DIR = '../2_needs_headers'
+DIRS = {
+    'clean_fail': '../0_errors/clean_fail',
+    'clean_success': '../2_needs_headers',
+    'headers_skip': '../headers_skip',
+    'headers_success': '../headers_success',
+    'json_success': '../4_complete',
+    'skipped': ('completed', 'error', 'failed'),
+    'sql_fail': '../0_errors/sql_fail',
+    'sql_success': '../2_needs_headers'
+}
 
-# Directories to skip when gathering lists of files
-SKIPPED_DIRS = ('completed', 'error', 'failed')
 # Parts of filename to be removed when cleaned
 UNWANTED = ('_cleaned', '_dump')
 
@@ -426,15 +427,15 @@ def write_json(source):
     fbasename = os.path.basename(source)
     json_file = os.path.splitext(fbasename)[0] + '.json'
 
-    if not os.path.exists(JSON_SUCCESS_DIR):
-        os.mkdir(JSON_SUCCESS_DIR)
+    if not os.path.exists(DIRS['json_success']):
+        os.mkdir(DIRS['json_success'])
 
     out_reader = UnicodeReader(open(source), dialect=myDialect)
 
     # grab the first line as headers
     headers = out_reader.next()
 
-    with open(os.path.join(JSON_SUCCESS_DIR, json_file), 'w') as outfile:
+    with open(os.path.join(DIRS['json_success'], json_file), 'w') as outfile:
         # Add first line of json
         line_count = 0
         for row in out_reader:
@@ -590,11 +591,6 @@ def parse_file(tfile):
 
     f_name, f_ext = os.path.splitext(tfile)
 
-    fbasename = os.path.basename(tfile)
-
-    if not os.path.exists(CLEAN_SUCCESS_DIR):
-        os.mkdir(CLEAN_SUCCESS_DIR)
-
     print "\n\033[38;5;244mEscaping grabage characters"
 
     gc_file = "{0}_gc~".format(tfile)
@@ -687,14 +683,14 @@ def parse_file(tfile):
         out_file_err_temp, errors_stats.st_size)
     print "\033[38;5;241m Moving {} to completed folder".format(tfile)
     if headers:
-        move(tfile, HEADERS_SUCCESS_DIR)
+        move(tfile, DIRS['headers_success'])
     else:
-        move(tfile, CLEAN_SUCCESS_DIR)
+        move(tfile, DIRS['clean_success'])
 
     if errors_stats.st_size > 0:
         print "\033[38;5;241m Moving {} to error folder".format(
             out_file_err_temp)
-        move(out_file_err_temp, CLEAN_FAIL_DIR)
+        move(out_file_err_temp, DIRS['clean_fail'])
     else:
         print "Removing", out_file_err_temp
         os.remove(out_file_err_temp)
@@ -718,7 +714,7 @@ def gather_files(path, file_list=[]):
             gather_files(p, file_list)
     else:
         if os.path.isdir(path):
-            if os.path.basename(path) not in SKIPPED_DIRS:
+            if os.path.basename(path) not in DIRS['skipped']:
                 for subpath in os.listdir(path):
                     gather_files(os.path.join(path, subpath), file_list)
         else:
@@ -822,10 +818,10 @@ def main():
                             new_csv.write(line)
             if headers:
                 os.rename(filepath + '~', filepath)
-                move(filepath, HEADERS_SUCCESS_DIR)
+                move(filepath, DIRS['headers_success'])
             else:
                 print p_failure('Skipping setting headers for {}'.format(filepath))
-                move(filepath, HEADERS_SKIP_DIR)
+                move(filepath, DIRS['headers_skip'])
     elif args.j:
         if not nonsql_files:
             print p_failure('No non-sql files found to write json')
@@ -885,10 +881,10 @@ def main():
                 print('Control-c pressed...')
                 sys.exit(138)
             except Exception as error:
-                move(sf, SQL_FAIL_DIR)
+                move(sf, DIRS['sql_fail'])
                 print 'ERROR:', str(error)
             else:
-                move(sf, SQL_SUCCESS_DIR)
+                move(sf, DIRS['sql_success'])
 
 
 if __name__ == "__main__":
