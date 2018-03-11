@@ -1,14 +1,16 @@
 #!/usr/bin/env python
+import StringIO
 import argparse
-import codecs
 import cStringIO
+import codecs
 import csv
 import json
 import os
 import re
-import StringIO
 import sys
-from crayons import red, blue, green
+
+import colored
+from colored import stylize
 
 import parse_sql
 from datacleaner import move
@@ -81,6 +83,23 @@ ENUMERATED = ('x', 'a')
 ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
 # Headers to abbreviations
 HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
+
+
+def print_color(fg_color, attr=None):
+    def color_me(txt):
+        if attr:
+            style = colored.fg(fg_color) + colored.attr(attr)
+        else:
+            style = colored.fg(fg_color)
+        print stylize(txt, style)
+
+    return color_me
+
+
+p_success = print_color('green', 'bold')
+p_failure = print_color('red', 'bold')
+p_warning = print_color('blue')
+p_info = print_color('grey')
 
 csv.field_size_limit(sys.maxsize)
 
@@ -761,15 +780,15 @@ def set_headers(f, dialect, csv_column_count=0):
             # Add a new line
             print
             if headers:
-                print green('Headers found for {}\n'.format(f.name))
-                print blue('Headers to be used: {}'.format(','.join(headers)))
+                p_success('Headers found for {}\n'.format(f.name))
+                p_warning('Headers to be used: {}'.format(','.join(headers)))
                 correct = confirm()
                 if correct:
                     break
                 else:
                     headers = []
             else:
-                print blue('Setting the headers for file {}\n'.format(f.name))
+                p_warning('Setting the headers for file {}\n'.format(f.name))
                 headers = ask_headers(csv_column_count)
                 break
     return headers
