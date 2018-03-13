@@ -16,6 +16,7 @@ from datacleaner import gather_files, move, p_failure, p_success, p_warning
 DIRS = {
     'clean_fail': '../0_errors/clean_fail',
     'clean_success': '../2_needs_headers',
+    'done': '../done',
     'headers_skip': '../headers_skip',
     'headers_success': '../headers_success',
     'json_success': '../4_complete',
@@ -804,9 +805,10 @@ def main():
                 move(filepath, DIRS['headers_skip'])
     elif args.j:
         if not nonsql_files:
-            print p_failure('No non-sql files found to write json')
+            print p_failure('No non-sql files found to write json for')
         for cf in nonsql_files:
             write_json(cf)
+            move(cf, DIRS['done'])
 
     elif files:
         if nonsql_files:
