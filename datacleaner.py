@@ -476,7 +476,7 @@ def write_json(source):
             outfile.write(json.dumps(data))
             line_count += 1
             if line_count % 100:
-                print "\r \033[38;5;245mWriting json row: {0}".format(
+                print "\r \033[38;5;245mWriting json row: {}".format(
                     line_count),
                 sys.stdout.flush()
         # Write final newline (no comma) and close json brackets
