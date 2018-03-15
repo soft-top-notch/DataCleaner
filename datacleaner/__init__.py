@@ -5,6 +5,26 @@ import colored
 from colored import stylize
 
 
+def gather_files(path, skip=[], file_list=[]):
+    """Gather list of files recursively."""
+    if isinstance(path, list):
+        for p in path:
+            gather_files(p, skip, file_list)
+    else:
+        if os.path.isdir(path):
+            if os.path.basename(path) not in skip:
+                for subpath in os.listdir(path):
+                    gather_files(os.path.join(path, subpath), skip, file_list)
+        else:
+            basename = os.path.basename(path)
+            if not basename.startswith('.') and not basename.endswith('~'):
+                if os.path.exists(path):
+                    file_list.append(path)
+                else:
+                    p_failure('File {} does not exist'.format(path))
+    return file_list
+
+
 def move(src_path, dest_dir):
     """Moves source file into new directory.
 

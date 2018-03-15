@@ -10,7 +10,7 @@ import re
 import sys
 
 import parse_sql
-from datacleaner import move, p_failure, p_success, p_warning
+from datacleaner import gather_files, move, p_failure, p_success, p_warning
 
 # Full path to directories used
 DIRS = {
@@ -475,7 +475,7 @@ def write_json(source):
             outfile.write(json.dumps(data))
             line_count += 1
             if line_count % 100:
-                print "\r \033[38;5;245mWriting json row: {0}".format(
+                print "\r \033[38;5;245mWriting json row: {}".format(
                     line_count),
                 sys.stdout.flush()
         # Write final newline (no comma) and close json brackets
@@ -707,26 +707,6 @@ def parse_file(tfile):
     os.remove(gc_file)
 
 
-def gather_files(path, file_list=[]):
-    """Gather list of files recursively."""
-    if isinstance(path, list):
-        for p in path:
-            gather_files(p, file_list)
-    else:
-        if os.path.isdir(path):
-            if os.path.basename(path) not in DIRS['skipped']:
-                for subpath in os.listdir(path):
-                    gather_files(os.path.join(path, subpath), file_list)
-        else:
-            basename = os.path.basename(path)
-            if not basename.startswith('.') and not basename.endswith('~'):
-                if os.path.exists(path):
-                    file_list.append(path)
-                else:
-                    p_failure('File {} does not exist'.format(path))
-    return file_list
-
-
 def write_headers(f, headers):
     """Write headers to file."""
     header_line = ','.join(headers)
@@ -800,7 +780,7 @@ def check_unwanted(filename):
 
 def main():
     dialect = myDialect()
-    files = gather_files(args.path)
+    files = gather_files(args.path, DIRS['skipped'])
     nonsql_files = [x for x in files if not x.endswith('.sql')]
     if args.cl:
         print 'Cleaning filenames...'
@@ -824,9 +804,10 @@ def main():
                 move(filepath, DIRS['headers_skip'])
     elif args.j:
         if not nonsql_files:
-            print p_failure('No non-sql files found to write json')
+            print p_failure('No non-sql files found to write json for')
         for cf in nonsql_files:
             write_json(cf)
+            move(cf, DIRS['done'])
 
     elif files:
         if nonsql_files:
