@@ -22,6 +22,7 @@ from __future__ import print_function
 
 import csv
 import os
+import sys
 
 from docopt import docopt
 from elasticsearch import Elasticsearch
@@ -34,7 +35,11 @@ def main(args):
     es_client = Elasticsearch('{}:{}'.format(args['--host'], args['--port']))
     file_list = gather_files(args['PATH'])
     for filename in file_list:
+        progress = print_progress(filename)
+        progress('processing...')
         base = filename.rstrip('.csv')
+        lines_read = 0
+        matches_found = 0
         success_csv = base + '-success.csv'
         if os.path.exists(success_csv):
             os.unlink(success_csv)
@@ -42,10 +47,16 @@ def main(args):
             reader = csv.DictReader(csvfile)
             if 'u' not in reader.fieldnames or 'p' not in reader.fieldnames:
                 # skip file if no username and password fields
+                progress('ERROR: missing "u" or "p" headers, or both', end=True)
                 continue
+            progress()
             for row in reader:
+                lines_read += 1
                 if is_in_es(es_client, row['u'], row['p']):
+                    matches_found += 1
                     write_row(reader.fieldnames, row, success_csv)
+                msg = 'lines read: {}  matches found: {}'.format(lines_read, matches_found)
+                progress(msg)
 
 
 def write_row(keys, row, success_csv):
@@ -66,6 +77,20 @@ def is_in_es(es_client, u, p):
         .query("match", u=u) \
         .query("match", p=p) \
         .count()
+
+
+def print_progress(path):
+    def progress(data, end=False):
+        filename = os.path.basename(path)
+        msg = '{}: {}{}'.format(filename, data, ' ' * 30)
+        if end:
+            print(msg)
+        else:
+            msg += '\r\r'
+            sys.stdout.write(msg)
+            sys.stdout.flush()
+
+    return progress
 
 
 if __name__ == '__main__':
