@@ -49,7 +49,6 @@ def main(args):
                 # skip file if no username and password fields
                 progress('ERROR: missing "u" or "p" headers, or both', end=True)
                 continue
-            progress()
             for row in reader:
                 lines_read += 1
                 if is_in_es(es_client, row['u'], row['p']):
