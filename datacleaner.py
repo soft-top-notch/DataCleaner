@@ -14,15 +14,14 @@ from datacleaner import gather_files, move, p_failure, p_success, p_warning
 
 # Full path to directories used
 DIRS = {
-    'clean_fail': '../0_errors/clean_fail',
-    'clean_success': '../2_needs_headers',
-    'done': '../done',
-    'headers_skip': '../headers_skip',
-    'headers_success': '../headers_success',
-    'json_success': '../4_complete',
-    'skipped': ('completed', 'error', 'failed'),
-    'sql_fail': '../0_errors/sql_fail',
-    'sql_success': '../2_needs_headers'
+    'clean_fail': 'fail',
+    'clean_success': 'done',
+    'headers_skip': 'headers_skip',
+    'headers_success': 'success',
+    'json_success': 'success',
+    'skipped': ('completed', 'error', 'failed', 'fail', 'done','success','headers_skip'),
+    'sql_fail': 'sql_fail',
+    'sql_success': 'success'
 }
 
 # Parts of filename to be removed when cleaned
