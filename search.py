@@ -66,9 +66,17 @@ def main(args):
             os.unlink(verified_csv)
         with open(filename) as csvfile:
             reader = csv.DictReader(csvfile)
-            if 'u' not in reader.fieldnames or 'p' not in reader.fieldnames:
-                # skip file if no username and password fields
-                progress('ERROR: missing "u" or "p" headers, or both', newline=True)
+            if 'e' in reader.fieldnames:
+                account_key = 'e'
+            elif 'u' in reader.fieldnames:
+                account_key = 'u'
+            else:
+                # skip file if no email and username fields
+                progress('ERROR: missing "e" and "u" headers, skipping', newline=True)
+                continue
+            if 'p' not in reader.fieldnames:
+                # skip file if no password fields
+                progress('ERROR: missing "p" header, skipping', newline=True)
                 continue
             for row in reader:
                 lines_read += 1
@@ -79,7 +87,7 @@ def main(args):
                     'query': {
                         'bool': {
                             'must': [
-                                {'match': {'u': row['u']}},
+                                {'match': {account_key: row[account_key]}},
                                 {'match': {'p': row['p']}}
                             ]
                         }
@@ -87,7 +95,6 @@ def main(args):
                     'terminate_after': 1
                 })
                 if len(to_search) == MAX_SEARCH:
-
                     progress(msg + ' searching with {} items...'.format(MAX_SEARCH))
                     non_matching_rows = search(es_client, to_search)
                     for row in non_matching_rows:
