@@ -72,6 +72,8 @@ def main(args):
                 continue
             for row in reader:
                 lines_read += 1
+                msg = 'lines read: {}  not found: {}'.format(lines_read,
+                                                             not_found)
                 to_search.append({})
                 to_search.append({
                     'query': {
@@ -85,14 +87,17 @@ def main(args):
                     'terminate_after': 1
                 })
                 if len(to_search) == MAX_SEARCH:
-                    progress('Searching for {} items...'.format(MAX_SEARCH))
+
+                    progress(msg + ' searching with {} items...'.format(MAX_SEARCH))
                     non_matching_rows = search(es_client, to_search)
                     for row in non_matching_rows:
                         not_found += 1
+                        msg = 'lines read: {}  not found: {}'.format(lines_read,
+                                                                     not_found)
+
+                        progress(msg + ' writing rows to csv')
                         write_row(row, verified_csv)
                     to_search = []
-                msg = 'lines read: {}  not found: {}'.format(lines_read,
-                                                             not_found)
                 progress(msg)
 
             # After reading full csv, search for remaining items
