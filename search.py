@@ -57,6 +57,7 @@ def main(args):
                     write_row(reader.fieldnames, row, success_csv)
                 msg = 'lines read: {}  matches found: {}'.format(lines_read, matches_found)
                 progress(msg)
+        progress('{} matches were found'.format(matches_found), end=True)
 
 
 def write_row(keys, row, success_csv):
