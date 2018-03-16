@@ -31,8 +31,15 @@ from elasticsearch_dsl import Search
 from datacleaner import gather_files
 
 
+ES_TIMEOUT = 30
+ES_MAX_RETRIES = 10
+ES_RETRY_ON_TIMEOUT = True
+
 def main(args):
-    es_client = Elasticsearch('{}:{}'.format(args['--host'], args['--port']))
+    es_client = Elasticsearch('{}:{}'.format(args['--host'], args['--port']),
+                              timeout=ES_TIMEOUT,
+                              max_retries=ES_MAX_RETRIES,
+                              retry_on_timeout=ES_RETRY_ON_TIMEOUT)
     file_list = gather_files(args['PATH'])
     for filename in file_list:
         progress = print_progress(filename)
