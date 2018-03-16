@@ -43,6 +43,8 @@ DIRS = {
     'done': '../done'
 }
 
+MAX_SEARCH = 100
+
 def main(args):
     es_client = Elasticsearch('{}:{}'.format(args['--host'], args['--port']),
                               timeout=ES_CONFIG['timeout'],
@@ -55,6 +57,7 @@ def main(args):
         base = filename.rstrip('.csv')
         lines_read = 0
         not_found = 0
+        to_search = []
         verified_csv = os.path.join(DIRS['verified'], base + '-verified.csv')
         # Create verified dir if does not exist, and remove any old verified.csv
         if not os.path.exists(DIRS['verified']):
@@ -65,46 +68,76 @@ def main(args):
             reader = csv.DictReader(csvfile)
             if 'u' not in reader.fieldnames or 'p' not in reader.fieldnames:
                 # skip file if no username and password fields
-                progress('ERROR: missing "u" or "p" headers, or both', end=True)
+                progress('ERROR: missing "u" or "p" headers, or both', newline=True)
                 continue
             for row in reader:
                 lines_read += 1
-                if not is_in_es(es_client, row['u'], row['p']):
-                    not_found += 1
-                    write_row(reader.fieldnames, row, verified_csv)
+                to_search.append({})
+                to_search.append({
+                    'query': {
+                        'bool': {
+                            'must': [
+                                {'match': {'u': row['u']}},
+                                {'match': {'p': row['p']}}
+                            ]
+                        }
+                    },
+                    'terminate_after': 1
+                })
+                if len(to_search) == MAX_SEARCH:
+                    progress('Searching for {} items...'.format(MAX_SEARCH))
+                    non_matching_rows = search(es_client, to_search)
+                    for row in non_matching_rows:
+                        not_found += 1
+                        write_row(row, verified_csv)
+                    to_search = []
                 msg = 'lines read: {}  not found: {}'.format(lines_read,
                                                              not_found)
                 progress(msg)
-        progress('{} were not found'.format(not_found), end=True)
+
+            # After reading full csv, search for remaining items
+            if to_search:
+                progress('Searching for {} items...'.format(len(to_search)))
+                non_matching_rows = search(es_client, to_search)
+                for row in non_matching_rows:
+                    not_found += 1
+                    write_row(row, verified_csv)
+
+        progress('{} entries were not found'.format(not_found), newline=True)
         print('Moving {} to {}'.format(filename, DIRS['done']))
         move(filename, DIRS['done'])
 
 
-def write_row(keys, row, verified_csv):
+def search(es_client, to_search):
+    non_matching_rows = []
+    results = es_client.msearch(to_search)
+    for index, result in enumerate(results['responses']):
+        if not result['hits']['total']:
+            row = []
+            for match in to_search[1::2][index]['query']['bool']['must']:
+                row.append(match['match'])
+            non_matching_rows.append(row)
+    return non_matching_rows
+
+
+def write_row(row, verified_csv):
     if os.path.exists(verified_csv):
         mode = 'a'
     else:
         mode = 'w'
-    line = ','.join([row[key] for key in keys])
+    line = ','.join([field[key] for field in row for key in field.keys()])
     with open(verified_csv, mode) as verified:
         if mode == 'w':
             # Write headers
-            verified.write(','.join(keys) + '\n')
+            verified.write(','.join([key for field in row for key in field.keys()]) + '\n')
         verified.write(line + '\n')
 
 
-def is_in_es(es_client, u, p):
-    return Search(using=es_client) \
-        .query("match", u=u) \
-        .query("match", p=p) \
-        .count()
-
-
 def print_progress(path):
-    def progress(data, end=False):
+    def progress(data, newline=False):
         filename = os.path.basename(path)
         msg = '{}: {}{}'.format(filename, data, ' ' * 30)
-        if end:
+        if newline:
             print(msg)
         else:
             msg += '\r\r'
