@@ -15,8 +15,9 @@ Options:
     --port PORT                   Elasticsearch port [default: 9200]
 
 Examples:
-    databackup.py test.csv
-    databackup.py ~/samples/*.csv
+    search.py test.csv
+    search.py ~/samples/*.csv
+    search.py --host localhost --port 9200 *.csv
 """
 from __future__ import print_function
 
@@ -28,28 +29,38 @@ from docopt import docopt
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search
 
-from datacleaner import gather_files
+from datacleaner import gather_files, move
 
 
-ES_TIMEOUT = 30
-ES_MAX_RETRIES = 10
-ES_RETRY_ON_TIMEOUT = True
+ES_CONFIG = {
+    'timeout': 30,
+    'max_retries': 10,
+    'retry_on_timeout': True
+}
+
+DIRS = {
+    'verified': '../verified',
+    'done': '../done'
+}
 
 def main(args):
     es_client = Elasticsearch('{}:{}'.format(args['--host'], args['--port']),
-                              timeout=ES_TIMEOUT,
-                              max_retries=ES_MAX_RETRIES,
-                              retry_on_timeout=ES_RETRY_ON_TIMEOUT)
+                              timeout=ES_CONFIG['timeout'],
+                              max_retries=ES_CONFIG['max_retries'],
+                              retry_on_timeout=ES_CONFIG['retry_on_timeout'])
     file_list = gather_files(args['PATH'])
     for filename in file_list:
         progress = print_progress(filename)
         progress('processing...')
         base = filename.rstrip('.csv')
         lines_read = 0
-        matches_found = 0
-        success_csv = base + '-success.csv'
-        if os.path.exists(success_csv):
-            os.unlink(success_csv)
+        not_found = 0
+        verified_csv = os.path.join(DIRS['verified'], base + '-verified.csv')
+        # Create verified dir if does not exist, and remove any old verified.csv
+        if not os.path.exists(DIRS['verified']):
+            os.mkdir(DIRS['verified'])
+        elif os.path.exists(verified_csv):
+            os.unlink(verified_csv)
         with open(filename) as csvfile:
             reader = csv.DictReader(csvfile)
             if 'u' not in reader.fieldnames or 'p' not in reader.fieldnames:
@@ -58,25 +69,28 @@ def main(args):
                 continue
             for row in reader:
                 lines_read += 1
-                if is_in_es(es_client, row['u'], row['p']):
-                    matches_found += 1
-                    write_row(reader.fieldnames, row, success_csv)
-                msg = 'lines read: {}  matches found: {}'.format(lines_read, matches_found)
+                if not is_in_es(es_client, row['u'], row['p']):
+                    not_found += 1
+                    write_row(reader.fieldnames, row, verified_csv)
+                msg = 'lines read: {}  not found: {}'.format(lines_read,
+                                                             not_found)
                 progress(msg)
-        progress('{} matches were found'.format(matches_found), end=True)
+        progress('{} were not found'.format(not_found), end=True)
+        print('Moving {} to {}'.format(filename, DIRS['done']))
+        move(filename, DIRS['done'])
 
 
-def write_row(keys, row, success_csv):
-    if os.path.exists(success_csv):
+def write_row(keys, row, verified_csv):
+    if os.path.exists(verified_csv):
         mode = 'a'
     else:
         mode = 'w'
     line = ','.join([row[key] for key in keys])
-    with open(success_csv, mode) as success:
+    with open(verified_csv, mode) as verified:
         if mode == 'w':
             # Write headers
-            success.write(','.join(keys) + '\n')
-        success.write(line + '\n')
+            verified.write(','.join(keys) + '\n')
+        verified.write(line + '\n')
 
 
 def is_in_es(es_client, u, p):
