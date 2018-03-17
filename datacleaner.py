@@ -93,28 +93,28 @@ exclusive_args.add_argument(
     "-ah",
     help="Ask for field names (headers) to add to CSVs. No file cleaning.",
     action="store_true")
-parser.add_argument(
-    "-p", help="Pass if delimiter can't guessed", action="store_true")
-parser.add_argument(
-    "-m", help="Merge remaining columns into last", action="store_true")
-exclusive_args.add_argument(
-    "-j", help="Write JSON file. No file cleaning.", action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 exclusive_args.add_argument(
     "-cl",
     help="Cleanse filename(s) of unwanted text. No file cleaning.",
     action="store_true")
 parser.add_argument("-d", type=str, help="Delimiter")
-parser.add_argument("-r", type=str, help="Release Name")
 exclusive_args.add_argument(
-    "-sh",
-    type=str,
-    help="Specify headers to use for multiple files. No file cleaning.")
+    "-j", help="Write JSON file. No file cleaning.", action="store_true")
+parser.add_argument(
+    "-m", help="Merge remaining columns into last", action="store_true")
+parser.add_argument(
+    "-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument(
     "path",
     type=str,
     nargs='+',
     help="Path to one or more csv file(s) or folder(s)")
+parser.add_argument("-r", type=str, help="Release Name")
+exclusive_args.add_argument(
+    "-sh",
+    type=str,
+    help="Specify headers to use for multiple files. No file cleaning.")
 
 args = parser.parse_args()
 
