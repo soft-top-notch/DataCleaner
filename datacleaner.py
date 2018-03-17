@@ -104,6 +104,9 @@ exclusive_args.add_argument(
 parser.add_argument(
     "-m", help="Merge remaining columns into last", action="store_true")
 parser.add_argument(
+    "-o", help="Organize CSVs by column number", action="store_true"
+)
+parser.add_argument(
     "-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument(
     "path",
@@ -808,7 +811,18 @@ def main():
         for cf in nonsql_files:
             write_json(cf)
             move(cf, DIRS['done'])
-
+    elif args.o:
+        for path in nonsql_files:
+            with open(path, 'rb') as f:
+                column_count = find_column_count(f)
+            if column_count <= 10:
+                existing_dir = os.path.dirname(path)
+                new_dir = '{}col'.format(column_count)
+                new_path = os.path.join(existing_dir, new_dir)
+                print('Moving {} to {}'.format(path, new_path))
+                move(path, new_path)
+            else:
+                print('{} has {} columns, skipping'.format(path, column_count))
     elif files:
         if nonsql_files:
             print
