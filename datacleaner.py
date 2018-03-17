@@ -75,6 +75,9 @@ HEADERS = [
     ('deviceid', 'did'),
     ('lastname', 'ln'),
     ('reg_ip', 'i'),
+    ('regip', 'i'),
+    ('lastip', 'i'),
+    ('last_ip', 'i'),
     ('uuid', 'did')
 
 
