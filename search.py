@@ -128,7 +128,7 @@ def search(es_client, to_search):
         if not result['hits']['total']:
             row = []
             for match in to_search[1::2][index]['query']['bool']['must']:
-                row.append(match['match'])
+                row.append(match['term'])
             non_matching_rows.append(row)
     return non_matching_rows
 
