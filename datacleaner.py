@@ -510,7 +510,11 @@ def get_headers(csv_file, delimiter, column_count):
         lowerrow = [
             cc.lower().replace('\n', '') for cc in line.split(delimiter)
         ]
-        tracked = {'x': 0, 'a': 0}
+        # Set them enumerated headers to zero
+        tracked = {}
+        for track in ENUMERATED:
+            tracked[track] = 0
+
         for i in lowerrow:
             # Match headers in double quotes on both sides or no double quotes
             matches = re.search('(?="\w+)"(\w+)"|^(\w+)$', i)
@@ -528,9 +532,10 @@ def get_headers(csv_file, delimiter, column_count):
                     # Make it the header abbreviation or make it misc (x)
                     header = HEADER2ABBR.get(field_name, 'x')
                 if header in ENUMERATED:
-                    header_format = '{}{}'.format(header, tracked[header])
+                    if tracked[header]:
+                        header_format = '{}{}'.format(header, tracked[header])
+                        header = header_format
                     tracked[header] += 1
-                    header = header_format
                 headers.append(header)
             else:
                 csv_file.seek(starting_location)
@@ -575,15 +580,19 @@ def ask_headers(column_count):
         else:
             print '\nERROR: No headers entered\n'
 
-    tracked = {'x': 0, 'a': 0}
+    # Set them enumerated headers to zero
+    tracked = {}
+    for track in ENUMERATED:
+        tracked[track] = 0
 
     for hi in range(column_count):
         if hi < header_len:
             header = user_headers[hi]
             if header in ENUMERATED:
-                header_format = '{}{}'.format(header, tracked[header])
+                if tracked[header]:
+                    header_format = '{}{}'.format(header, tracked[header])
+                    header = header_format
                 tracked[header] += 1
-                header = header_format
             headers.append(header)
 
     return headers
@@ -752,7 +761,7 @@ def set_headers(f, dialect, csv_column_count=0):
             print
             if headers:
                 p_success('Headers found for {}\n'.format(f.name))
-                p_warning('Headers to be used: {}'.format(','.join(headers)))
+                p_warning('Headers to be used: {}'.format(' '.join(headers)))
                 correct = confirm()
                 if correct:
                     break
