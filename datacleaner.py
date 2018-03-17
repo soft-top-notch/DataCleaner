@@ -41,6 +41,11 @@ HEADERS = [
     ('hash', 'h'),
     ('ip', 'i'),
     ('ipaddress', 'i'),
+    ('mobile', 't'),
+    ('phone', 't'),
+    ('mail', 'e'),
+    ('pass', 'p'),
+    ('real_name', 'n'),
     ('last_name', 'ln'),
     ('last', 'ln'),
     ('lastname', 'ln'),
@@ -70,6 +75,9 @@ HEADERS = [
     ('deviceid', 'did'),
     ('lastname', 'ln'),
     ('reg_ip', 'i'),
+    ('regip', 'i'),
+    ('lastip', 'i'),
+    ('last_ip', 'i'),
     ('uuid', 'did')
 
 
