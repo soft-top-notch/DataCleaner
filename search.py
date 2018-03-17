@@ -87,12 +87,13 @@ def main(args):
                     'query': {
                         'bool': {
                             'must': [
-                                {'match': {account_key: row[account_key]}},
-                                {'match': {'p': row['p']}}
+                                {'term': {account_key: row[account_key]}},
+                                {'term': {'p': row['p']}}
                             ]
                         }
                     },
-                    'terminate_after': 1
+                    'terminate_after': 1,
+                    'size': 0
                 })
                 if len(to_search) == MAX_SEARCH:
                     progress(msg + ' searching with {} items...'.format(MAX_SEARCH))
