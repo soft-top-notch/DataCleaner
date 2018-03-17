@@ -43,6 +43,7 @@ HEADERS = [
     ('ipaddress', 'i'),
     ('mobile', 't'),
     ('phone', 't'),
+    ('mail', 'e'),
     ('pass', 'p'),
     ('real_name', 'n'),
     ('last_name', 'ln'),
