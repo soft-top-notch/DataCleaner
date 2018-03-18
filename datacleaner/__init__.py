@@ -58,15 +58,16 @@ def print_color(fg_color, attr=None):
 
 
 def print_progress(path):
-    def progress(data, newline=False):
+    def progress(data, newline=False, last_len=0):
         filename = os.path.basename(path)
-        msg = '{}: {}{}'.format(filename, data, ' ' * 40)
+        msg = '{}: {}{}'.format(filename, data, ' ' * last_len)
         if newline:
             print(msg)
         else:
             msg += '\r\r'
             sys.stdout.write(msg)
             sys.stdout.flush()
+        return len(data)
 
     return progress
 
