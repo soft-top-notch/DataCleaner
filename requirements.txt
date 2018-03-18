@@ -1,7 +1,6 @@
 attrs
 docopt
 elasticsearch
-elasticsearch-dsl
 pyparsing
 python-magic
 validate_email
