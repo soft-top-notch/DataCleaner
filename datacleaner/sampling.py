@@ -23,6 +23,7 @@ import os
 import random
 
 from docopt import docopt
+from tqdm import tqdm
 
 from datacleaner import gather_files, move, print_progress
 
@@ -61,6 +62,7 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
             # Write headers
             sc.write(oc.readline())
             progress('Wrote headers to {}'.format(sample_path), newline=True)
+            pbar = tqdm(total=sample_size)
             line_number = 1
             lines_written = 0
             for line in oc:
@@ -68,10 +70,8 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
                 if line_number in sample_lines:
                     sc.write(line)
                     lines_written += 1
-
-                last = progress('Read {} lines, wrote {} lines to {}'
-                         .format(line_number, lines_written, sample_path),
-                                last_len=last)
+                    pbar.update(1)
+    pbar.close()
     progress('{} of {} lines written to sample'.format(lines_written + 1,
                                                        num_of_lines),
              newline=True, last_len=last)
