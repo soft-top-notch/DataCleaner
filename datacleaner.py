@@ -20,7 +20,7 @@ DIRS = {
     'headers_skip': 'headers_skip',
     'headers_success': 'success',
     'json_success': 'success',
-    'sample': None,
+    'sample': 'samples',
     'skipped': ('completed', 'error', 'failed', 'fail', 'done','success','headers_skip'),
     'sql_fail': 'sql_fail',
     'sql_success': 'success'
