@@ -46,9 +46,8 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
     progress = print_progress(path)
     last = 0
     name = path.rstrip('.csv')
-    if not dest_dir:
-        dest_dir = os.path.dirname(path)
-    sample_path = os.path.join(dest_dir, name + '-sample.csv')
+    base_dir = os.path.dirname(path)
+    sample_path = os.path.join(base_dir, name + '-sample.csv')
     num_of_lines = sum(1 for _ in open(path)) - 1
     sample_size = calc_sample_size(num_of_lines, con_level, con_interval)
     progress('Will use sample size of {} from {} total lines for {}% '
@@ -76,6 +75,9 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
     progress('{} of {} lines written to sample'.format(lines_written + 1,
                                                        num_of_lines),
              newline=True, last_len=last)
+    if dest_dir:
+        progress('Moving {} to {}'.format(sample_path, dest_dir))
+        move(sample_path, dest_dir)
     return sample_path
 
 
