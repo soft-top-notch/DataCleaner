@@ -86,7 +86,7 @@ HEADERS = [
 ]  # yapf: disable
 
 # Abbreviated headers that are enumerated
-ENUMERATED = ('x', 'a')
+ENUMERATED = ('x', 'a', 'i')
 # Abbreviations to headers
 ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
 # Headers to abbreviations
