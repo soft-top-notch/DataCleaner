@@ -8,8 +8,8 @@ Usage:
     sampling.py [-h] [--ci <interval>] [--cl <percent>] PATH...
 
 Options:
-    --ci <interval>                 Confidence interval [default: 2.0]
-    --cl <percent>                  Confidence level (percent) [default: 95]
+    --sci <interval>                 Confidence interval [default: 2.0]
+    --scl <percent>                  Confidence level (percent) [default: 95]
     -h, --help                      This help output
 
 Examples:
@@ -106,7 +106,7 @@ def calc_sample_size(num_of_lines, confidence_level, confidence_interval):
 def main(args):
     file_list = gather_files(args['PATH'])
     for path in file_list:
-        create_sample(path, args['--cl'], args['--ci'])
+        create_sample(path, args['--scl'], args['--sci'])
 
 
 if __name__ == '__main__':
