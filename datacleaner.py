@@ -858,7 +858,7 @@ def main():
                 move(path, new_path)
             else:
                 print('{} has {} columns, skipping'.format(path, column_count))
-    elif args.sampling:
+    elif args.s:
         p_warning('Creating samples of CSV(s)\n')
         for path in nonsql_files:
             p_warning('Sampling {}'.format(path))
