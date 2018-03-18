@@ -862,7 +862,7 @@ def main():
         p_warning('Creating samples of CSV(s)\n')
         for path in nonsql_files:
             p_warning('Sampling {}'.format(path))
-            create_sample(path, args.confidence_level, args.confidence_interval,
+            create_sample(path, args.scl, args.sci,
                           DIRS['sample'])
     elif files:
         if nonsql_files:
