@@ -27,7 +27,6 @@ import sys
 
 from docopt import docopt
 from elasticsearch import Elasticsearch
-from elasticsearch_dsl import Search
 
 from datacleaner import gather_files, move
 
