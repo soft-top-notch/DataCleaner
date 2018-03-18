@@ -23,13 +23,11 @@ from __future__ import print_function
 
 import csv
 import os
-import sys
 
 from docopt import docopt
 from elasticsearch import Elasticsearch
 
-from datacleaner import gather_files, move
-
+from datacleaner import gather_files, move, print_progress
 
 ES_CONFIG = {
     'timeout': 30,
@@ -143,20 +141,6 @@ def write_row(row, verified_csv):
             # Write headers
             verified.write(','.join([key for field in row for key in field.keys()]) + '\n')
         verified.write(line + '\n')
-
-
-def print_progress(path):
-    def progress(data, newline=False):
-        filename = os.path.basename(path)
-        msg = '{}: {}{}'.format(filename, data, ' ' * 30)
-        if newline:
-            print(msg)
-        else:
-            msg += '\r\r'
-            sys.stdout.write(msg)
-            sys.stdout.flush()
-
-    return progress
 
 
 if __name__ == '__main__':

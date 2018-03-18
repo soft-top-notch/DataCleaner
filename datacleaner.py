@@ -11,6 +11,7 @@ import sys
 
 import parse_sql
 from datacleaner import gather_files, move, p_failure, p_success, p_warning
+from datacleaner.sampling import create_sample
 
 # Full path to directories used
 DIRS = {
@@ -19,6 +20,7 @@ DIRS = {
     'headers_skip': 'headers_skip',
     'headers_success': 'success',
     'json_success': 'success',
+    'sample': None,
     'skipped': ('completed', 'error', 'failed', 'fail', 'done','success','headers_skip'),
     'sql_fail': 'sql_fail',
     'sql_success': 'success'
@@ -102,6 +104,14 @@ exclusive_args.add_argument(
     help="Ask for field names (headers) to add to CSVs. No file cleaning.",
     action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
+parser.add_argument("--confidence_interval",
+                    type=float,
+                    default=2.0,
+                    help="Confidence interval (float) [default: 2.0]")
+parser.add_argument("--confidence_level",
+                    type=int,
+                    default=95,
+                    help="Confidence level required (percent) [default: 95]")
 exclusive_args.add_argument(
     "-cl",
     help="Cleanse filename(s) of unwanted text. No file cleaning.",
@@ -122,6 +132,9 @@ parser.add_argument(
     nargs='+',
     help="Path to one or more csv file(s) or folder(s)")
 parser.add_argument("-r", type=str, help="Release Name")
+exclusive_args.add_argument("--sampling",
+                            help="Create sample of csv(s). No file cleaning.",
+                            action="store_true")
 exclusive_args.add_argument(
     "-sh",
     type=str,
@@ -789,7 +802,7 @@ def confirm():
         elif resp.lower() == 'n':
             return False
         else:
-            print p_failure('Please answer y or n')
+            p_failure('Please answer y or n')
 
 
 def check_unwanted(filename):
@@ -823,11 +836,11 @@ def main():
                 os.rename(filepath + '~', filepath)
                 move(filepath, DIRS['headers_success'])
             else:
-                print p_failure('Skipping setting headers for {}'.format(filepath))
+                p_failure('Skipping setting headers for {}'.format(filepath))
                 move(filepath, DIRS['headers_skip'])
     elif args.j:
         if not nonsql_files:
-            print p_failure('No non-sql files found to write json for')
+            p_failure('No non-sql files found to write json for')
         for cf in nonsql_files:
             write_json(cf)
             move(cf, DIRS['done'])
@@ -843,6 +856,12 @@ def main():
                 move(path, new_path)
             else:
                 print('{} has {} columns, skipping'.format(path, column_count))
+    elif args.sampling:
+        p_warning('Creating samples of CSV(s)\n')
+        for path in nonsql_files:
+            p_warning('Sampling {}'.format(path))
+            create_sample(path, args.confidence_level, args.confidence_interval,
+                          DIRS['sample'])
     elif files:
         if nonsql_files:
             print

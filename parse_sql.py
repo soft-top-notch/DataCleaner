@@ -41,7 +41,7 @@ from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     ParseException, ParseResults, quotedString, Regex, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
-from datacleaner import move, p_failure, p_success, p_warning
+from datacleaner import move, p_failure, p_success, p_warning, print_progress
 
 __version__ = '0.5.0'
 __license__ = """
@@ -251,20 +251,6 @@ def parse_sql(line, pattern):
         return pattern.parseString(line)
     except ParseException as pe:
         return pe
-
-
-def print_progress(filepath):
-    def progress(data, end=False):
-        filename = os.path.basename(filepath)
-        msg = '{}: {}{}'.format(filename, data, ' ' * 30)
-        if end:
-            print(msg)
-        else:
-            msg += '\r\r'
-            sys.stdout.write(msg)
-            sys.stdout.flush()
-
-    return progress
 
 
 def raise_error(exception, encoding=None):

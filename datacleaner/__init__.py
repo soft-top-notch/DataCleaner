@@ -1,5 +1,6 @@
 """Common functions."""
 import os
+import sys
 
 import colored
 from colored import stylize
@@ -54,6 +55,20 @@ def print_color(fg_color, attr=None):
         print stylize(txt, style)
 
     return color_me
+
+
+def print_progress(path):
+    def progress(data, newline=False):
+        filename = os.path.basename(path)
+        msg = '{}: {}{}'.format(filename, data, ' ' * 40)
+        if newline:
+            print(msg)
+        else:
+            msg += '\r\r'
+            sys.stdout.write(msg)
+            sys.stdout.flush()
+
+    return progress
 
 
 p_success = print_color('green', 'bold')
