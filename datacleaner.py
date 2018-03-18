@@ -101,17 +101,10 @@ parser.add_argument(
     "-a", help="Don't ask if delimiter is guessed", action="store_true")
 exclusive_args.add_argument(
     "-ah",
-    help="Ask for field names (headers) to add to CSVs. No file cleaning.",
+    help="Ask for headers to add to CSVs. No file cleaning.",
     action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
-parser.add_argument("--confidence_interval",
-                    type=float,
-                    default=2.0,
-                    help="Confidence interval (float) [default: 2.0]")
-parser.add_argument("--confidence_level",
-                    type=int,
-                    default=95,
-                    help="Confidence level required (percent) [default: 95]")
+
 exclusive_args.add_argument(
     "-cl",
     help="Cleanse filename(s) of unwanted text. No file cleaning.",
@@ -132,14 +125,23 @@ parser.add_argument(
     nargs='+',
     help="Path to one or more csv file(s) or folder(s)")
 parser.add_argument("-r", type=str, help="Release Name")
-exclusive_args.add_argument("--sampling",
+exclusive_args.add_argument("-s",
                             help="Create sample of csv(s). No file cleaning.",
                             action="store_true")
+parser.add_argument(
+    "-sci",
+    type=float,
+    default=3.0,
+    help="Sampling Confidence interval (float) [default: 3.0]")
+parser.add_argument(
+    "-scl",
+    type=int,
+    default=95,
+    help="Sampling Confidence level required (percent) [default: 95]")
 exclusive_args.add_argument(
     "-sh",
     type=str,
     help="Specify headers to use for multiple files. No file cleaning.")
-
 args = parser.parse_args()
 
 if (args.c and (not args.d)) or (not args.c and args.d):
