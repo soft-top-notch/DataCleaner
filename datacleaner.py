@@ -552,8 +552,10 @@ def get_headers(csv_file, delimiter, column_count):
                 if header in ENUMERATED:
                     if tracked[header]:
                         header_format = '{}{}'.format(header, tracked[header])
+                        tracked[header] += 1
                         header = header_format
-                    tracked[header] += 1
+                    else:
+                        tracked[header] += 1
                 headers.append(header)
             else:
                 csv_file.seek(starting_location)
@@ -612,8 +614,10 @@ def ask_headers(column_count):
             if header in ENUMERATED:
                 if tracked[header]:
                     header_format = '{}{}'.format(header, tracked[header])
+                    tracked[header] += 1
                     header = header_format
-                tracked[header] += 1
+                else:
+                    tracked[header] += 1
             headers.append(header)
 
     return headers
@@ -751,7 +755,7 @@ def parse_file(tfile):
 def write_headers(f, headers):
     """Write headers to file."""
     header_line = ','.join(headers)
-    f.write(header_line + '\n')
+    return f.write(header_line + '\n')
 
 
 def print_lines(f, num_of_lines):
@@ -830,18 +834,32 @@ def main():
     elif args.sh or args.ah:
         for filepath in nonsql_files:
             headers = []
+            p_warning('{}: Checking for headers'.format(filepath))
             with open(filepath, 'rb') as cf:
                 headers = set_headers(cf, dialect)
                 if headers:
+                    p_success('{}: Headers found, writing new file'
+                              .format(filepath))
+                    pbar = tqdm(total=os.path.getsize(filepath), unit=' bytes')
                     with open(filepath + '~', 'wb') as new_csv:
                         write_headers(new_csv, headers)
+                        last_pos = new_csv.tell()
+                        pbar.update(last_pos)
                         for line in cf:
                             new_csv.write(line)
+                            new_pos = new_csv.tell()
+                            pbar.update(new_pos - last_pos)
+                            last_pos = new_pos
+                    pbar.close()
+                    p_warning('{}: New file written'.format(filepath))
             if headers:
+                p_warning('{}: Moving to {}/'.format(filepath,
+                                                    DIRS['headers_success']))
                 os.rename(filepath + '~', filepath)
                 move(filepath, DIRS['headers_success'])
             else:
-                p_failure('Skipping setting headers for {}'.format(filepath))
+                p_failure('{}: Skipping setting headers, moving to {}/'
+                          .format(filepath, DIRS['headers_skip']))
                 move(filepath, DIRS['headers_skip'])
     elif args.j:
         if not nonsql_files:
