@@ -7,12 +7,13 @@ Called with filename argument for one or more files. Filename argument can be a\
 CSV must have headers defined and shortened.
 
 Usage:
-    search.py [-h] [--host HOST] [--port PORT] PATH...
+    search.py [-hv] [--host HOST] [--port PORT] PATH...
 
 Options:
     -h, --help                    This help output
     --host HOST                   Elasticsearch host [default: localhost]
     --port PORT                   Elasticsearch port [default: 9200]
+    -v, --verbose                 Print out each query before submitting
 
 Examples:
     search.py test.csv
@@ -49,6 +50,7 @@ def main(args):
                               max_retries=ES_CONFIG['max_retries'],
                               retry_on_timeout=ES_CONFIG['retry_on_timeout'])
     file_list = gather_files(args['PATH'])
+    verbose = args['--verbose']
     last = 0
     for filename in file_list:
         print('{}: Processing...'.format(filename))
@@ -97,7 +99,7 @@ def main(args):
                     'size': 0
                 })
                 if len(to_search) == MAX_SEARCH:
-                    non_matching_rows = search(es_client, to_search)
+                    non_matching_rows = search(es_client, to_search, verbose)
                     for row in non_matching_rows:
                         not_found += 1
                         nf_pbar.update(1)
@@ -106,7 +108,7 @@ def main(args):
 
             # After reading full csv, search for remaining items
             if to_search:
-                non_matching_rows = search(es_client, to_search)
+                non_matching_rows = search(es_client, to_search, verbose)
                 for row in non_matching_rows:
                     not_found += 1
                     nf_pbar.update(1)
@@ -119,8 +121,13 @@ def main(args):
         move(filename, DIRS['done'])
 
 
-def search(es_client, to_search):
+def search(es_client, to_search, verbose):
     non_matching_rows = []
+    if verbose:
+        print('\nWill use the following queries to _msearch:\n"')
+        for search in to_search:
+            print(search)
+        print('"')
     results = es_client.msearch(to_search)
     for index, result in enumerate(results['responses']):
         if not result['hits']['total']:
