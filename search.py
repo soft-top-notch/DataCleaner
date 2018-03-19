@@ -26,8 +26,9 @@ import os
 
 from docopt import docopt
 from elasticsearch import Elasticsearch
+from tqdm import tqdm
 
-from datacleaner import gather_files, move, print_progress
+from datacleaner import gather_files, move
 
 ES_CONFIG = {
     'timeout': 30,
@@ -48,9 +49,9 @@ def main(args):
                               max_retries=ES_CONFIG['max_retries'],
                               retry_on_timeout=ES_CONFIG['retry_on_timeout'])
     file_list = gather_files(args['PATH'])
+    last = 0
     for filename in file_list:
-        progress = print_progress(filename)
-        progress('processing...')
+        print('{}: Processing...'.format(filename))
         base = filename.rstrip('.csv')
         lines_read = 0
         not_found = 0
@@ -69,16 +70,19 @@ def main(args):
                 account_key = 'u'
             else:
                 # skip file if no email and username fields
-                progress('ERROR: missing "e" and "u" headers, skipping', newline=True)
+                print('{}: ERROR: missing "e" and "u" headers, skipping'
+                      .format(filename))
                 continue
             if 'p' not in reader.fieldnames:
                 # skip file if no password fields
-                progress('ERROR: missing "p" header, skipping', newline=True)
+                print('{}: ERROR: missing "p" header, skipping'
+                      .format(filename))
                 continue
+            read_pbar = tqdm(desc='Read', unit=' lines')
+            nf_pbar = tqdm(desc='Not found', unit=' combos')
             for row in reader:
                 lines_read += 1
-                msg = 'lines read: {}  not found: {}'.format(lines_read,
-                                                             not_found)
+                read_pbar.update(1)
                 to_search.append({})
                 to_search.append({
                     'query': {
@@ -93,28 +97,25 @@ def main(args):
                     'size': 0
                 })
                 if len(to_search) == MAX_SEARCH:
-                    progress(msg + ' searching with {} items...'.format(MAX_SEARCH))
                     non_matching_rows = search(es_client, to_search)
                     for row in non_matching_rows:
                         not_found += 1
-                        msg = 'lines read: {}  not found: {}'.format(lines_read,
-                                                                     not_found)
-
-                        progress(msg + ' writing rows to csv')
+                        nf_pbar.update(1)
                         write_row(row, verified_csv)
                     to_search = []
-                progress(msg)
 
             # After reading full csv, search for remaining items
             if to_search:
-                progress('Searching for {} items...'.format(len(to_search)))
                 non_matching_rows = search(es_client, to_search)
                 for row in non_matching_rows:
                     not_found += 1
+                    nf_pbar.update(1)
                     write_row(row, verified_csv)
+        read_pbar.close()
+        nf_pbar.close()
 
-        progress('{} entries were not found'.format(not_found), newline=True)
-        print('Moving {} to {}'.format(filename, DIRS['done']))
+        print('{}: {} entries were not found'.format(filename, not_found))
+        print('{}: Moving to {}'.format(filename, DIRS['done']))
         move(filename, DIRS['done'])
 
 

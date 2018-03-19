@@ -9,6 +9,8 @@ import os
 import re
 import sys
 
+from tqdm import tqdm
+
 import parse_sql
 from datacleaner import gather_files, move, p_failure, p_success, p_warning
 from datacleaner.sampling import create_sample
@@ -464,6 +466,8 @@ def write_json(source):
     with open(os.path.join(DIRS['json_success'], json_file), 'w') as outfile:
         # Add first line of json
         line_count = 0
+        pbar = tqdm(desc='Writing JSON', unit=' row')
+
         for row in out_reader:
             # If this is not the first row, add a new line
             if line_count > 0:
@@ -500,12 +504,10 @@ def write_json(source):
 
             outfile.write(json.dumps(data))
             line_count += 1
-            if line_count % 100:
-                print "\r \033[38;5;245mWriting json row: {}".format(
-                    line_count),
-                sys.stdout.flush()
+            pbar.update(1)
         # Write final newline (no comma) and close json brackets
         outfile.write('\n')
+        pbar.close()
 
 
 def get_headers(csv_file, delimiter, column_count):
@@ -683,12 +685,11 @@ def parse_file(tfile):
         a.write(lk)
         a.seek(0)
         orig_reader = UnicodeReader(a, dialect=dialect)
+        pbar = tqdm(desc='Parsing', unit=' line')
 
         for row in orig_reader:
             l_count += 1
-            if l_count % 100:
-                print "\r \033[38;5;245mParsing line: {0}".format(l_count),
-                sys.stdout.flush()
+            pbar.update(1)
 
             row = [x.replace('\n', '').replace('\r', '') for x in row]
 
@@ -706,6 +707,7 @@ def parse_file(tfile):
                     clean_writer.writerow(lx)
                 else:
                     error_writer.writerow(row)
+        pbar.close()
 
     F.close()
     out_file_csv_file.close()
