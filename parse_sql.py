@@ -36,13 +36,12 @@ import sys
 import attr
 import magic
 from docopt import docopt
-from tqdm import tqdm
 from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
     ParseException, ParseResults, quotedString, Regex, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
-from datacleaner import move, p_failure, p_success, p_warning
+from datacleaner import move, p_failure, p_success, p_warning, TqdmUpTo
 
 __version__ = '0.5.0'
 __license__ = """
