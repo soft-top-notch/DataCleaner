@@ -25,7 +25,7 @@ import random
 from docopt import docopt
 from tqdm import tqdm
 
-from datacleaner import gather_files, move, print_progress
+from datacleaner import gather_files, move
 
 
 # SUPPORTED CONFIDENCE LEVELS: 50%, 68%, 90%, 95%, and 99%
@@ -44,16 +44,13 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
 
     Returns path for sample (str).
     """
-    progress = print_progress(path)
-    last = 0
     name = path.rstrip('.csv')
     base_dir = os.path.dirname(path)
     sample_path = os.path.join(base_dir, name + '-sample.csv')
     num_of_lines = sum(1 for _ in open(path)) - 1
     sample_size = calc_sample_size(num_of_lines, con_level, con_interval)
-    progress('Will use sample size of {} from {} total lines for {}% '
-             'confidence'.format(sample_size, num_of_lines, con_level),
-             newline=True)
+    print('{}: Will use sample size of {} from {} total lines for {}% '
+             'confidence'.format(path, sample_size, num_of_lines, con_level))
     sample_lines = sorted(random.sample(xrange(1, num_of_lines + 1),
                                         sample_size))
 
@@ -61,7 +58,7 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
         with open(path, 'rb') as oc:
             # Write headers
             sc.write(oc.readline())
-            progress('Wrote headers to {}'.format(sample_path), newline=True)
+            print('{}: Wrote headers to {}'.format(path, sample_path))
             pbar = tqdm(total=sample_size)
             line_number = 1
             lines_written = 0
@@ -72,11 +69,10 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
                     lines_written += 1
                     pbar.update(1)
     pbar.close()
-    progress('{} of {} lines written to sample'.format(lines_written + 1,
-                                                       num_of_lines),
-             newline=True, last_len=last)
+    print('{}: {} of {} lines written to sample'.format(path, lines_written + 1,
+                                                        num_of_lines))
     if dest_dir:
-        progress('Moving {} to {}'.format(sample_path, dest_dir))
+        print('{}: Moving {} to {}'.format(path, sample_path, dest_dir))
         move(sample_path, dest_dir)
     return sample_path
 

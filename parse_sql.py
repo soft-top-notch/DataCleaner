@@ -36,12 +36,13 @@ import sys
 import attr
 import magic
 from docopt import docopt
+from tqdm import tqdm
 from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Combine, Group, NotAny, nums, Optional, oneOf, OneOrMore, \
     ParseException, ParseResults, quotedString, Regex, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
-from datacleaner import move, p_failure, p_success, p_warning, print_progress
+from datacleaner import move, p_failure, p_success, p_warning
 
 __version__ = '0.5.0'
 __license__ = """
@@ -134,7 +135,7 @@ def main(args):
             if args['--exit-on-error']:
                 raise
             else:
-                print_progress(filepath)('ERROR: ' + str(error), end=True)
+                print('{} ERROR:{}'.format(filepath, error))
         else:
             move(filepath, args['--completed'])
 
@@ -142,7 +143,6 @@ def main(args):
 def parse(filepath):
     """Opens sql file and parses statements, outputing data into CSV."""
     field_names = []
-    progress = print_progress(filepath)
 
     # Delete old bad_inserts file if exists
     if os.path.exists(filepath + '.bad_inserts.txt'):
@@ -171,67 +171,72 @@ def parse(filepath):
     bad_inserts = 0
     total_inserts = 0
     table_name = None
+    last_read = 0
+
     # Extract data from statements and write to csv file
     with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
         user_table = read_file(sqlfile)
+        create_table, table_name, insert, line_num = user_table.next()
+        if create_table:
+            p_warning('Getting field names from create table')
+            match = parse_sql(create_table.statement, CREATE_FULL)
+            if match and isinstance(match, ParseResults):
+                field_names = match.asDict()['field_names']
+            elif isinstance(match, ParseException):
+                raise_error(match, encoding)
+            else:
+                raise_error(Exception('Unknown error has occurred'))
+        elif insert:
+            p_warning('Getting field names from first insert')
+            fields_only = re.search('(\(`.*`\))', insert).group(1)
+            match = parse_sql(fields_only, INSERT_FIELDS)
+            if match and isinstance(match, ParseResults):
+                field_names = match.asDict().get('field_names')
+            elif isinstance(match, ParseException):
+                pass
+            else:
+                raise (Exception('Unknown error has occurred'))
+
+        with io.open(filepath + '.csv', 'w', encoding=encoding) as cf:
+            if field_names:
+                p_success('Found field names')
+                cf.write(','.join(field_names))
+                cf.write(u'\n')
+            else:
+                p_failure('No field names found')
+
+        read_pbar = tqdm(desc='read', unit=' lines')
+        insert_pbar = tqdm(desc='processing', unit=' inserts')
+        total_inserts += 1
+
+        read_pbar.update(line_num)
+        last_read = line_num
+
+        error = process_insert(filepath, encoding, insert)
+        if not error:
+            insert_pbar.update(1)
+
         for create_table, table_name, insert, line_num in user_table:
             total_inserts += 1
-            if not field_names:
-                if create_table:
-                    p_warning('Getting field names from create table')
-                    match = parse_sql(create_table.statement, CREATE_FULL)
-                    if match and isinstance(match, ParseResults):
-                        field_names = match.asDict()['field_names']
-                    elif isinstance(match, ParseException):
-                        raise_error(match, encoding)
-                    else:
-                        raise_error(Exception('Unknown error has occurred'))
-                elif insert:
-                    p_warning('Getting field names from first insert')
-                    fields_only = re.search('(\(`.*`\))', insert).group(1)
-                    match = parse_sql(fields_only, INSERT_FIELDS)
-                    if match and isinstance(match, ParseResults):
-                        field_names = match.asDict().get('field_names')
-                    elif isinstance(match, ParseException):
-                        pass
-                    else:
-                        raise (Exception('Unknown error has occurred'))
+            read_pbar.update(line_num - last_read)
+            last_read = line_num
 
-                with io.open(filepath + '.csv', 'w', encoding=encoding) as cf:
-                    if field_names:
-                        p_success('Found field names')
-                        cf.write(','.join(field_names))
-                        cf.write(u'\n')
-                    else:
-                        p_failure('No field names found')
-                        field_names = 'NOT FOUND'
-
-            progress('{0:} lines read. Processing insert {1:}...'.format(
-                line_num, total_inserts))
-            match = re.search('^(?:.*)?(VALUES.*;)', insert)
-            if match:
-                value_only = match.group(1)
-            else:
-                continue
-            result = parse_sql(value_only, VALUES_ONLY)
-            if result and isinstance(result, ParseResults):
-                values_list = result.asDict()['values']
-                with io.open(filepath + '.csv', 'a', encoding=encoding) as cf:
-                    for values in values_list:
-                        cf.write(','.join(
-                            ['"%s"' % value for value in values]))
-                        cf.write(u'\n')
-            elif isinstance(result, ParseException):
+            error = process_insert(filepath, encoding, insert)
+            if error:
                 error_rate = bad_inserts / total_inserts
                 # Consider the processing failed if over max failure rate
                 if error_rate > MAX_FAILURE_RATE and total_inserts > 5:
-                    progress('Error rate is too high', end=True)
-                    raise_error(result, encoding)
+                    print('{}: Error rate is too high'.format(filepath))
+                    raise_error(error, encoding)
                 else:
                     # write insert #, error msg, and insert
-                    write_bad(filepath, total_inserts, result, insert)
+                    write_bad(filepath, total_inserts, error, insert)
             else:
-                raise (Exception('Unknown error has occurred'))
+                insert_pbar.update(1)
+
+
+    read_pbar.close()
+    insert_pbar.close()
 
     if not total_inserts:
         if not table_name:
@@ -240,10 +245,8 @@ def parse(filepath):
             error = 'No matching INSERT statements found'
         raise_error(ValueError(error))
 
-    progress(
-        'Processed {} insert(s) and skipped {} errors'.format(
-            total_inserts, bad_inserts),
-        end=True)
+    print('{}: Processed {} insert(s) and skipped {} errors'.format(
+          filepath, total_inserts, bad_inserts))
 
 
 def parse_sql(line, pattern):
@@ -251,6 +254,24 @@ def parse_sql(line, pattern):
         return pattern.parseString(line)
     except ParseException as pe:
         return pe
+
+
+def process_insert(path, encoding, insert):
+    match = re.search('^(?:.*)?(VALUES.*;)', insert)
+    if match:
+        value_only = match.group(1)
+    else:
+        return
+    result = parse_sql(value_only, VALUES_ONLY)
+    if result and isinstance(result, ParseResults):
+        values_list = result.asDict()['values']
+        with io.open(path + '.csv', 'a', encoding=encoding) as cf:
+            for values in values_list:
+                cf.write(','.join(
+                    ['"%s"' % value for value in values]))
+                cf.write(u'\n')
+    else:
+        return result
 
 
 def raise_error(exception, encoding=None):
