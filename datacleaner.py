@@ -681,12 +681,12 @@ def parse_file(tfile):
         write_headers(out_file_csv_file, headers)
         l_count += 1
 
+    pbar = tqdm(desc='Parsing', unit=' line')
     for lk in F:
         a = StringIO.StringIO()
         a.write(lk)
         a.seek(0)
         orig_reader = UnicodeReader(a, dialect=dialect)
-        pbar = tqdm(desc='Parsing', unit=' line')
 
         for row in orig_reader:
             l_count += 1
@@ -708,7 +708,7 @@ def parse_file(tfile):
                     clean_writer.writerow(lx)
                 else:
                     error_writer.writerow(row)
-        pbar.close()
+    pbar.close()
 
     F.close()
     out_file_csv_file.close()
