@@ -152,9 +152,10 @@ def parse(filepath):
     encoding = 'iso-8859-1'
     retry = False
     # Determine encoding
+    print('{}: Determining encoding'.format(filepath))
     try:
         with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
-            sqlfile.readlines(READ_BUFFER)
+            sqlfile.read(READ_BUFFER)
     except UnicodeDecodeError:
         retry = True
     if retry:
@@ -163,10 +164,11 @@ def parse(filepath):
         encoding = m.from_file(filepath)
         try:
             with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
-                sqlfile.readlines(READ_BUFFER)
+                sqlfile.read(READ_BUFFER)
         except UnicodeDecodeError:
-            print('Unable to determine encoding of file')
+            print('{}: Unable to determine encoding of file'.format(filepath))
             raise
+    print('{}: Using {} encoding'.format(filepath, encoding))
 
     bad_inserts = 0
     total_inserts = 0
@@ -176,7 +178,7 @@ def parse(filepath):
     # Extract data from statements and write to csv file
     with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
         user_table = read_file(sqlfile)
-        create_table, table_name, insert, line_num = user_table.next()
+        create_table, table_name, insert, byte_num = user_table.next()
         if create_table:
             p_warning('Getting field names from create table')
             match = parse_sql(create_table.statement, CREATE_FULL)
@@ -205,22 +207,19 @@ def parse(filepath):
             else:
                 p_failure('No field names found')
 
-        read_pbar = tqdm(desc='read', unit=' lines')
-        insert_pbar = tqdm(desc='processing', unit=' inserts')
-        total_inserts += 1
+        read_pbar = TqdmUpTo(desc='read', unit=' bytes',
+                         total=os.path.getsize(filepath))
+        read_pbar.update_to(byte_num)
 
-        read_pbar.update(line_num)
-        last_read = line_num
+        insert_pbar = TqdmUpTo(desc='processing', unit=' inserts')
+        total_inserts += 1
 
         error = process_insert(filepath, encoding, insert)
         if not error:
             insert_pbar.update(1)
 
-        for create_table, table_name, insert, line_num in user_table:
-            total_inserts += 1
-            read_pbar.update(line_num - last_read)
-            last_read = line_num
-
+        for create_table, table_name, insert, byte_num in user_table:
+            read_pbar.update_to(byte_num)
             error = process_insert(filepath, encoding, insert)
             if error:
                 error_rate = bad_inserts / total_inserts
@@ -232,7 +231,8 @@ def parse(filepath):
                     # write insert #, error msg, and insert
                     write_bad(filepath, total_inserts, error, insert)
             else:
-                insert_pbar.update(1)
+                total_inserts += 1
+                insert_pbar.update_to(total_inserts)
 
 
     read_pbar.close()
@@ -293,14 +293,14 @@ def read_file(sqlfile):
     # List of insert statments
     table_name = None
     parsing = None
-    # Extract the CREATE TABLE and INSERT INTO statements for the user table
-    line_num = 0
+    # Estimate byte length based on line length
+    byte_num = 0
     while True:
         lines = sqlfile.readlines(READ_BUFFER)
         if not lines:
             break
         for line in lines:
-            line_num += 1
+            byte_num += len(line)
             valid_insert = None
             # If not parsing a CREATE or INSERT statement, look for one
             if parsing:
@@ -344,7 +344,7 @@ def read_file(sqlfile):
                                 if create_table.ending not in line:
                                     parsing = create_table
             if valid_insert:
-                yield create_table, table_name, valid_insert, line_num
+                yield create_table, table_name, valid_insert, byte_num
 
 
 def rm_newlines(lines):

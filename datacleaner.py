@@ -9,10 +9,9 @@ import os
 import re
 import sys
 
-from tqdm import tqdm
-
 import parse_sql
-from datacleaner import gather_files, move, p_failure, p_success, p_warning
+from datacleaner import gather_files, move, p_failure, p_success, p_warning,\
+    TqdmUpTo
 from datacleaner.sampling import create_sample
 
 # Full path to directories used
@@ -218,6 +217,9 @@ class UnicodeWriter:
         self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
         self.stream = f
         self.encoder = codecs.getincrementalencoder(encoding)()
+
+    def tell(self):
+        return self.stream.tell()
 
     def writerow(self, row):
         self.writer.writerow([s.encode("utf-8") for s in row])
@@ -467,7 +469,7 @@ def write_json(source):
     with open(os.path.join(DIRS['json_success'], json_file), 'w') as outfile:
         # Add first line of json
         line_count = 0
-        pbar = tqdm(desc='Writing JSON', unit=' row')
+        pbar = TqdmUpTo(desc='Writing JSON', unit=' row')
 
         for row in out_reader:
             # If this is not the first row, add a new line
@@ -636,7 +638,7 @@ def parse_file(tfile):
 
     f_name, f_ext = os.path.splitext(tfile)
 
-    print "\n\033[38;5;244mEscaping grabage characters"
+    print "\n\033[38;5;244mEscaping garbage characters"
 
     gc_file = "{0}_gc~".format(tfile)
 
@@ -685,7 +687,8 @@ def parse_file(tfile):
         write_headers(out_file_csv_file, headers)
         l_count += 1
 
-    pbar = tqdm(desc='Parsing', unit=' line')
+    pbar = TqdmUpTo(desc='Writing', unit=' bytes',
+                    total=os.path.getsize(gc_file))
     for lk in F:
         a = StringIO.StringIO()
         a.write(lk)
@@ -694,7 +697,6 @@ def parse_file(tfile):
 
         for row in orig_reader:
             l_count += 1
-            pbar.update(1)
 
             row = [x.replace('\n', '').replace('\r', '') for x in row]
 
@@ -712,6 +714,7 @@ def parse_file(tfile):
                     clean_writer.writerow(lx)
                 else:
                     error_writer.writerow(row)
+            pbar.update_to(clean_writer.tell() + error_writer.tell())
     pbar.close()
 
     F.close()
@@ -840,16 +843,14 @@ def main():
                 if headers:
                     p_success('{}: Headers found, writing new file'
                               .format(filepath))
-                    pbar = tqdm(total=os.path.getsize(filepath), unit=' bytes')
+                    pbar = TqdmUpTo(total=os.path.getsize(filepath),
+                                    unit=' bytes')
                     with open(filepath + '~', 'wb') as new_csv:
                         write_headers(new_csv, headers)
-                        last_pos = new_csv.tell()
-                        pbar.update(last_pos)
+                        pbar.update_to(new_csv.tell())
                         for line in cf:
                             new_csv.write(line)
-                            new_pos = new_csv.tell()
-                            pbar.update(new_pos - last_pos)
-                            last_pos = new_pos
+                            pbar.update_to(new_csv.tell())
                     pbar.close()
                     p_warning('{}: New file written'.format(filepath))
             if headers:
