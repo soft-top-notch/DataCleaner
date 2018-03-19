@@ -21,6 +21,7 @@ DIRS = {
     'clean_success': 'done',
     'headers_skip': 'headers_skip',
     'headers_success': 'success',
+    'json_done': 'csv_complete',
     'json_success': 'success',
     'sample': 'samples',
     'skipped': ('completed', 'error', 'failed', 'fail', 'done','success','headers_skip'),
@@ -847,7 +848,7 @@ def main():
             p_failure('No non-sql files found to write json for')
         for cf in nonsql_files:
             write_json(cf)
-            move(cf, DIRS['done'])
+            move(cf, DIRS['json_done'])
     elif args.o:
         for path in nonsql_files:
             with open(path, 'rb') as f:
