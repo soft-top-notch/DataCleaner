@@ -90,8 +90,8 @@ def main(args):
                     'query': {
                         'bool': {
                             'must': [
-                                {'term': {account_key: row[account_key]}},
-                                {'term': {'p': row['p']}}
+                                {'term': {account_key + '.keyword': row[account_key]}},
+                                {'term': {'p.keyword': row['p']}}
                             ]
                         }
                     },
