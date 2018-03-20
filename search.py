@@ -20,7 +20,7 @@ Examples:
     search.py ~/samples/*.csv
     search.py --host localhost --port 9200 *.csv
 """
-from __future__ import print_function
+from __future__ import print_function, division
 
 import csv
 import os
@@ -43,6 +43,7 @@ DIRS = {
 }
 
 MAX_SEARCH = 100
+UNIQUE_COUNT = '../unique_count.csv'
 
 def main(args):
     es_client = Elasticsearch('{}:{}'.format(args['--host'], args['--port']),
@@ -128,6 +129,15 @@ def main(args):
         print('{}: {} entries were not found'.format(filename, not_found))
         print('{}: Moving to {}'.format(filename, DIRS['done']))
         move(filename, DIRS['done'])
+        if os.path.exists(UNIQUE_COUNT):
+            mode = 'a'
+        else:
+            mode = 'w'
+        with open(UNIQUE_COUNT, mode) as uc:
+            if mode == 'w':
+                uc.write('filename,sample size,unique size,percentage\n')
+            uc.write('"{}","{}","{}","{:.2f}"\n'.format(filename, lines_read, not_found,
+                                            not_found / lines_read))
 
 
 def search(es_client, to_search, verbose):
