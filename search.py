@@ -85,6 +85,14 @@ def main(args):
             for row in reader:
                 lines_read += 1
                 read_pbar.update(1)
+                if not row.get(account_key):
+                    print('\n{}: "{}" field was empty on line {}, skipping'
+                          .format(filename, account_key, lines_read))
+                    continue
+                elif not row.get('p'):
+                    print('\n{}: "p" field was empty on line {}, skipping'
+                          .format(filename, lines_read))
+                    continue
                 to_search.append({})
                 to_search.append({
                     'query': {
@@ -98,7 +106,8 @@ def main(args):
                     'terminate_after': 1,
                     'size': 0
                 })
-                if len(to_search) == MAX_SEARCH:
+                # Multiple MAX_SEARCH by 2 to account for empty {} added
+                if len(to_search) == MAX_SEARCH * 2:
                     non_matching_rows = search(es_client, to_search, verbose)
                     for row in non_matching_rows:
                         not_found += 1
