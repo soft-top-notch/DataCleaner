@@ -924,7 +924,6 @@ def main():
             c_action_info
             print "\033[0mFile {}/{}".format(fc, nf)
             c_action('Processing {}'.format(filename))
-            c_action('Processing {}'.format(filename))
 
             if os.stat(filename).st_size > 0:
                 parse_file(filename)
