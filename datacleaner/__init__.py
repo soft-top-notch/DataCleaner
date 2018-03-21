@@ -74,6 +74,7 @@ def print_color(fg_color, attr=None):
 
 
 c_success = print_color('sea_green_1a')
+c_sys_success = print_color('medium_purple_1')
 c_failure = print_color('red_1', 'bold')
 c_warning = print_color('yellow_1', 'bold')
 c_error = print_color('dark_orange_3b')
