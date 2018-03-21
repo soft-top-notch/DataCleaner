@@ -10,7 +10,7 @@ import re
 import sys
 
 import parse_sql
-from datacleaner import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system\
+from datacleaner import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system,\
     c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
     TqdmUpTo
 from datacleaner.sampling import create_sample
