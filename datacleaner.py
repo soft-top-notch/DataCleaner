@@ -654,7 +654,7 @@ def parse_file(tfile):
     dialect = None
 
     if guess:
-        #c_action_system('Guessing delimiter')
+        c_action_system('   Guessing delimiter \n')
         dialect, csv_column_count = guess_delimeter(F)
 
     if not dialect and args.p:
@@ -664,7 +664,7 @@ def parse_file(tfile):
         dialect.delimiter = args.d.decode('string_escape')
         csv_column_count = args.c
 
-    c_sys_success('Using column number [{}] and delimiter [{}]'.format(csv_column_count, dialect.delimiter))
+    c_sys_success('Using column number [{}] and delimiter [{}]\n'.format(csv_column_count, dialect.delimiter))
 
     F.seek(0)
 
