@@ -41,7 +41,7 @@ from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     ParseException, ParseResults, quotedString, Regex, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
-from datacleaner import move, p_failure, p_success, p_warning, TqdmUpTo
+from datacleaner import move, c_failure, c_success, c_warning, TqdmUpTo
 
 __version__ = '0.5.0'
 __license__ = """

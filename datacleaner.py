@@ -10,7 +10,8 @@ import re
 import sys
 
 import parse_sql
-from datacleaner import gather_files, move, p_failure, p_success, p_warning,\
+from datacleaner import gather_files, move, c_failure, c_success, c_action,\
+    c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
     TqdmUpTo
 from datacleaner.sampling import create_sample
 
@@ -600,8 +601,8 @@ def ask_headers(column_count):
             else:
                 if 'zz' in user_headers:
                     return headers
-                print '\nERROR: {} headers entered for {} columns\n'.format(
-                    header_len, column_count)
+                c_error('\nERROR: {} headers entered for {} columns\n'.format(
+                    header_len, column_count))
         else:
             print '\nERROR: No headers entered\n'
 
@@ -788,15 +789,15 @@ def set_headers(f, dialect, csv_column_count=0):
             # Add a new line
             print
             if headers:
-                p_success('Headers found for {}\n'.format(f.name))
-                p_warning('Headers to be used: {}'.format(' '.join(headers)))
+                c_success('Headers found for {}\n'.format(f.name))
+                c_warning('Headers to be used: {}'.format(' '.join(headers)))
                 correct = confirm()
                 if correct:
                     break
                 else:
                     headers = []
             else:
-                p_warning('Setting the headers for file {}\n'.format(f.name))
+                c_warning('Setting the headers for file {}\n'.format(f.name))
                 headers = ask_headers(csv_column_count)
                 break
     return headers
@@ -814,7 +815,7 @@ def confirm():
         elif resp.lower() == 'n':
             return False
         else:
-            p_failure('Please answer y or n')
+            c_failure('Please answer y or n')
 
 
 def check_unwanted(filename):
@@ -837,11 +838,11 @@ def main():
     elif args.sh or args.ah:
         for filepath in nonsql_files:
             headers = []
-            p_warning('{}: Checking for headers'.format(filepath))
+            c_warning('{}: Checking for headers'.format(filepath))
             with open(filepath, 'rb') as cf:
                 headers = set_headers(cf, dialect)
                 if headers:
-                    p_success('{}: Headers found, writing new file'
+                    c_success('{}: Headers found, writing new file'
                               .format(filepath))
                     pbar = TqdmUpTo(total=os.path.getsize(filepath),
                                     unit=' bytes')
@@ -852,19 +853,19 @@ def main():
                             new_csv.write(line)
                             pbar.update_to(new_csv.tell())
                     pbar.close()
-                    p_warning('{}: New file written'.format(filepath))
+                    c_warning('{}: New file written'.format(filepath))
             if headers:
-                p_warning('{}: Moving to {}/'.format(filepath,
+                c_warning('{}: Moving to {}/'.format(filepath,
                                                     DIRS['headers_success']))
                 os.rename(filepath + '~', filepath)
                 move(filepath, DIRS['headers_success'])
             else:
-                p_failure('{}: Skipping setting headers, moving to {}/'
+                c_failure('{}: Skipping setting headers, moving to {}/'
                           .format(filepath, DIRS['headers_skip']))
                 move(filepath, DIRS['headers_skip'])
     elif args.j:
         if not nonsql_files:
-            p_failure('No non-sql files found to write json for')
+            c_failure('No non-sql files found to write json for')
         for cf in nonsql_files:
             write_json(cf)
             move(cf, DIRS['json_done'])
@@ -881,16 +882,16 @@ def main():
             else:
                 print('{} has {} columns, skipping'.format(path, column_count))
     elif args.s:
-        p_warning('Creating samples of CSV(s)\n')
+        c_warning('Creating samples of CSV(s)\n')
         for path in nonsql_files:
-            p_warning('Sampling {}'.format(path))
+            c_warning('Sampling {}'.format(path))
             create_sample(path, args.scl, args.sci,
                           DIRS['sample'])
     elif files:
         if nonsql_files:
             print
-            print "\033[38;5;248m PARSING TXT and CSV FILES"
-            print "\033[38;5;240m  -------------------------"
+            c_lightgray('PARSING TXT and CSV FILES')
+            c_dark_gray('-------------------------')
 
             fc = 0
             nf = len(nonsql_files)
@@ -918,8 +919,8 @@ def main():
 
             fc += 1
             print
-            print "\033[38;5;240m ------------------------------------------\n"
-            print "\033[1;34mProcessing", filename
+            c_dark_gray('------------------------------------------\n')
+            c_action('Processing', filename)
             print "\033[0mFile {}/{}".format(fc, nf)
             if os.stat(filename).st_size > 0:
                 parse_file(filename)
@@ -929,18 +930,18 @@ def main():
         sql_files = [x for x in files if x.endswith('.sql')]
         if sql_files:
             print
-            print "\033[1;31m PARSING SQL FILES"
-            print "\033[38;5;240m -------------------------\n\033[38;5;255m"
+            c_action('PARSING SQL FILES')
+            c_dark_gray('------------------------------------------\n')
 
         for sf in sql_files:
             try:
                 parse_sql.parse(sf)
             except KeyboardInterrupt:
-                print('Control-c pressed...')
+                c_warning('Control-c pressed...')
                 sys.exit(138)
             except Exception as error:
                 move(sf, DIRS['sql_fail'])
-                print 'ERROR:', str(error)
+                c_error('ERROR:', str(error))
             else:
                 move(sf, DIRS['sql_success'])
 
