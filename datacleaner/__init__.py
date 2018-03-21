@@ -73,14 +73,14 @@ def print_color(fg_color, attr=None):
     return color_me
 
 
-c_success = print_color('spring_green_1')
+c_success = print_color('sea_green_1a')
 c_failure = print_color('red_1', 'bold')
 c_warning = print_color('yellow_1', 'bold')
 c_error = print_color('dark_orange_3b')
 c_info = print_color('grey')
 c_action = print_color('steel_blue_1b')
-c_action_system = print_color('grey_35')
-c_action_info = print_color('grey_54')
+c_action_system = print_color('grey_42')
+c_action_info = print_color('grey_70')
 c_darkgreen = print_color('dark_turquoise')
 c_lightgreen = print_color('spring_green_2a')
 c_darkgray = print_color('grey_23')
