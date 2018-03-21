@@ -920,7 +920,7 @@ def main():
             fc += 1
             print
             c_darkgray('------------------------------------------\n')
-            c_action('Processing', filename)
+            c_action('Processing {}'.format(filename))
             print "\033[0mFile {}/{}".format(fc, nf)
             if os.stat(filename).st_size > 0:
                 parse_file(filename)
