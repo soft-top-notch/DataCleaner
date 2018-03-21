@@ -891,7 +891,7 @@ def main():
         if nonsql_files:
             print
             c_lightgray('PARSING TXT and CSV FILES')
-            c_dark_gray('-------------------------')
+            c_darkgray('-------------------------')
 
             fc = 0
             nf = len(nonsql_files)
@@ -919,7 +919,7 @@ def main():
 
             fc += 1
             print
-            c_dark_gray('------------------------------------------\n')
+            c_darkgray('------------------------------------------\n')
             c_action('Processing', filename)
             print "\033[0mFile {}/{}".format(fc, nf)
             if os.stat(filename).st_size > 0:
@@ -931,7 +931,7 @@ def main():
         if sql_files:
             print
             c_action('PARSING SQL FILES')
-            c_dark_gray('------------------------------------------\n')
+            c_darkgray('------------------------------------------\n')
 
         for sf in sql_files:
             try:
