@@ -640,7 +640,7 @@ def parse_file(tfile):
 
     f_name, f_ext = os.path.splitext(tfile)
 
-    c_action_system('Escaping garbage characters')
+    c_action_system('   Escaping garbage characters')
 
     gc_file = "{0}_gc~".format(tfile)
 
@@ -648,13 +648,13 @@ def parse_file(tfile):
 
     os.system(gc_cmd)
 
-    c_action_info('Parsing file: {}'.format(gc_file))
+    c_action_info('   Parsing file: {}'.format(gc_file))
 
     F = open(gc_file, 'rb')
     dialect = None
 
     if guess:
-        c_action_system('Guessing delimiter')
+        #c_action_system('Guessing delimiter')
         dialect, csv_column_count = guess_delimeter(F)
 
     if not dialect and args.p:
@@ -677,7 +677,7 @@ def parse_file(tfile):
 
     out_file_err_file = open(out_file_err_temp, 'wb')
 
-    c_action_system('Cleaning ... ')
+    #c_action_system('Cleaning ... ')
 
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
     error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
