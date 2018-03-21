@@ -10,7 +10,7 @@ import re
 import sys
 
 import parse_sql
-from datacleaner import gather_files, move, c_failure, c_success, c_action,\
+from datacleaner import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system\
     c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
     TqdmUpTo
 from datacleaner.sampling import create_sample
@@ -335,7 +335,8 @@ def guess_delimeter(F):
     if csv_guess:
         rdialect, csv_column_count = csv_guess
         csv_delimeter = rdialect.delimiter
-        print "\033[38;5;117mGuessed CSV delimeter -> {}".format(csv_delimeter)
+        c_action('Guessed CSV delimeter -> {}'.format(csv_delimeter))
+
     else:
         delim_counts_list = {}
         delim_freq = {}
@@ -639,7 +640,7 @@ def parse_file(tfile):
 
     f_name, f_ext = os.path.splitext(tfile)
 
-    print "\n\033[38;5;244mEscaping garbage characters"
+    c_action_system('Escaping garbage characters')
 
     gc_file = "{0}_gc~".format(tfile)
 
@@ -647,13 +648,13 @@ def parse_file(tfile):
 
     os.system(gc_cmd)
 
-    print "\033[0mParsing file: ", gc_file
+    c_action_info('Parsing file: {}'.format(gc_file))
 
     F = open(gc_file, 'rb')
     dialect = None
 
     if guess:
-        print "\n\033[38;5;244mGuessing delimiter"
+        c_action_system('Guessing delimiter')
         dialect, csv_column_count = guess_delimeter(F)
 
     if not dialect and args.p:
@@ -663,8 +664,7 @@ def parse_file(tfile):
         dialect.delimiter = args.d.decode('string_escape')
         csv_column_count = args.c
 
-    print "\033[38;5;156mUsing column number [{}] and delimiter [{}]".format(
-        csv_column_count, dialect.delimiter)
+    c_success('Using column number [{}] and delimiter [{}]'.format(csv_column_count, dialect.delimiter))
 
     F.seek(0)
 
@@ -677,7 +677,7 @@ def parse_file(tfile):
 
     out_file_err_file = open(out_file_err_temp, 'wb')
 
-    print "\033[38;5;244mCleaning ... \n"
+    c_action_system('Cleaning ... ')
 
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
     error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
@@ -919,9 +919,13 @@ def main():
 
             fc += 1
             print
-            c_darkgray('------------------------------------------\n')
-            c_action('Processing {}'.format(filename))
+            c_darkgray('------------------------------------------')
+            
+            c_action_info
             print "\033[0mFile {}/{}".format(fc, nf)
+            c_action('Processing {}'.format(filename))
+            c_action('Processing {}'.format(filename))
+
             if os.stat(filename).st_size > 0:
                 parse_file(filename)
             else:
