@@ -688,7 +688,7 @@ def parse_file(tfile):
         write_headers(out_file_csv_file, headers)
         l_count += 1
 
-    pbar = TqdmUpTo(desc='\033[38;5;226mWriting ', unit=' bytes ',
+    pbar = TqdmUpTo(desc='Writing ', unit=' bytes ',
                     total=os.path.getsize(gc_file))
     for lk in F:
         a = StringIO.StringIO()
