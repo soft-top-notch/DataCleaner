@@ -42,7 +42,7 @@ from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     Suppress, Word, WordEnd, ZeroOrMore
 
 from datacleaner import move, TqdmUpTo, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
-    c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
+    c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue
 
 
 __version__ = '0.5.0'
