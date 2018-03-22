@@ -878,14 +878,14 @@ def main():
                 existing_dir = os.path.dirname(path)
                 new_dir = '{}col'.format(column_count)
                 new_path = os.path.join(existing_dir, new_dir)
-                print('Moving {} to {}'.format(path, new_path))
+                c_action_system('Moving {} to {}'.format(path, new_path))
                 move(path, new_path)
             else:
-                print('{} has {} columns, skipping'.format(path, column_count))
+                c_warning('{} has {} columns, skipping'.format(path, column_count))
     elif args.s:
-        c_warning('Creating samples of CSV(s)\n')
+        c_action_system('Creating samples of CSV(s)\n')
         for path in nonsql_files:
-            c_warning('Sampling {}'.format(path))
+            c_action_info('\nSampling {}'.format(path))
             create_sample(path, args.scl, args.sci,
                           DIRS['sample'])
     elif files:
