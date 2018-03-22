@@ -71,8 +71,8 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
                     lines_written += 1
                     pbar.update(1)
     pbar.close()
-    print('{}: {} of {} lines written to sample'.format(path, lines_written + 1,
-                                                        num_of_lines))
+    c_action_system('{}: {} of {} lines written to sample'.format(
+        path, lines_written + 1, num_of_lines))
     if dest_dir:
         c_action_system('{}: Moving {} to {}'.format(path, sample_path,dest_dir))
         move(sample_path, dest_dir)
