@@ -41,7 +41,9 @@ from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     ParseException, ParseResults, quotedString, Regex, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
-from datacleaner import move, c_failure, c_success, c_warning, TqdmUpTo
+from datacleaner import move, TqdmUpTo, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
+    c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
+
 
 __version__ = '0.5.0'
 __license__ = """
@@ -188,7 +190,7 @@ def parse(filepath):
             else:
                 raise_error(Exception('Unknown error has occurred'))
         elif insert:
-            p_warning('Getting field names from first insert')
+            c_warning('Getting field names from first insert')
             fields_only = re.search('(\(`.*`\))', insert).group(1)
             match = parse_sql(fields_only, INSERT_FIELDS)
             if match and isinstance(match, ParseResults):
@@ -200,11 +202,11 @@ def parse(filepath):
 
         with io.open(filepath + '.csv', 'w', encoding=encoding) as cf:
             if field_names:
-                p_success('Found field names')
+                c_success('Found field names')
                 cf.write(','.join(field_names))
                 cf.write(u'\n')
             else:
-                p_failure('No field names found')
+                c_error('No field names found')
 
         read_pbar = TqdmUpTo(desc='read', unit=' bytes',
                          total=os.path.getsize(filepath))
