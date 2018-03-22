@@ -838,11 +838,11 @@ def main():
     elif args.sh or args.ah:
         for filepath in nonsql_files:
             headers = []
-            c_warning('{}: Checking for headers'.format(filepath))
+            c_action_info('{}: Checking for headers'.format(filepath))
             with open(filepath, 'rb') as cf:
                 headers = set_headers(cf, dialect)
                 if headers:
-                    c_success('{}: Headers found, writing new file'
+                    c_sys_success('{}: Headers found, writing new file'
                               .format(filepath))
                     pbar = TqdmUpTo(total=os.path.getsize(filepath),
                                     unit=' bytes')
@@ -853,14 +853,14 @@ def main():
                             new_csv.write(line)
                             pbar.update_to(new_csv.tell())
                     pbar.close()
-                    c_warning('{}: New file written'.format(filepath))
+                    c_action_info('{}: New file written'.format(filepath))
             if headers:
-                c_warning('{}: Moving to {}/'.format(filepath,
+                c_action_info('{}: Moving to {}/'.format(filepath,
                                                     DIRS['headers_success']))
                 os.rename(filepath + '~', filepath)
                 move(filepath, DIRS['headers_success'])
             else:
-                c_failure('{}: Skipping setting headers, moving to {}/'
+                c_warning('{}: Skipping setting headers, moving to {}/'
                           .format(filepath, DIRS['headers_skip']))
                 move(filepath, DIRS['headers_skip'])
     elif args.j:
@@ -918,11 +918,9 @@ def main():
                 filename = new_filename
 
             fc += 1
-            print
             c_darkgray('------------------------------------------')
-            
-            c_action_info
-            print "\033[0mFile {}/{}".format(fc, nf)
+
+            c_action_info('File {}/{}'.format(fc, nf))
             c_action('Processing {}'.format(filename))
 
             if os.stat(filename).st_size > 0:
