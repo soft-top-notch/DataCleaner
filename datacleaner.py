@@ -649,7 +649,7 @@ def parse_file(tfile):
 
     os.system(gc_cmd)
 
-    c_action_info('   Parsing file: {}'.format(gc_file))
+    c_action_system('   Parsing file: {}'.format(gc_file))
 
     F = open(gc_file, 'rb')
     dialect = None
