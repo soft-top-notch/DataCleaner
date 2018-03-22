@@ -731,18 +731,18 @@ def parse_file(tfile):
 
     c_action_info('Output file {} had {} bytes written/'.format(out_file_csv_temp, output_stats.st_size))
     c_action_info('Error file {} had {} bytes written/'.format(out_file_err_temp, errors_stats.st_size))
-    c_action_info('Moving {} to completed folder/'.format(tfile))
+    c_action_system('Moving {} to completed folder/'.format(tfile))
     if headers:
         move(tfile, DIRS['headers_success'])
     else:
         move(tfile, DIRS['clean_success'])
 
     if errors_stats.st_size > 0:
-        print "\033[38;5;241m Moving {} to error folder".format(
-            out_file_err_temp)
+        # print "\033[38;5;241m Moving {} to error folder".format(
+        #     out_file_err_temp)
         move(out_file_err_temp, DIRS['clean_fail'])
     else:
-        print "Removing", out_file_err_temp
+        # print "Removing", out_file_err_temp
         os.remove(out_file_err_temp)
 
     if os.path.exists(out_file_csv_temp):
