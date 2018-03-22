@@ -602,8 +602,9 @@ def ask_headers(column_count):
             else:
                 if 'zz' in user_headers:
                     return headers
-                c_error('\nERROR: {} headers entered for {} columns\n'.format(
-                    header_len, column_count))
+                c_failure(
+                    '\nERROR: {} headers entered for {} columns\n'.format(
+                        header_len, column_count))
         else:
             print '\nERROR: No headers entered\n'
 
@@ -726,11 +727,11 @@ def parse_file(tfile):
     errors_stats = os.stat(out_file_err_temp)
 
     print
-    print "\033[38;5;241m Output file {} had {} bytes written".format(
-        out_file_csv_temp, output_stats.st_size)
-    print "\033[38;5;241m Error file {} had {} bytes written".format(
-        out_file_err_temp, errors_stats.st_size)
-    print "\033[38;5;241m Moving {} to completed folder".format(tfile)
+
+
+    c_action_info('Output file {} had {} bytes written/'.format(out_file_csv_temp, output_stats.st_size))
+    c_action_info('Error file {} had {} bytes written/'.format(out_file_err_temp, errors_stats.st_size))
+    c_action_info('Moving {} to completed folder/'.format(tfile))
     if headers:
         move(tfile, DIRS['headers_success'])
     else:
@@ -942,7 +943,7 @@ def main():
                 sys.exit(138)
             except Exception as error:
                 move(sf, DIRS['sql_fail'])
-                c_error('ERROR:', str(error))
+                c_failure('ERROR:', str(error))
             else:
                 move(sf, DIRS['sql_success'])
 
