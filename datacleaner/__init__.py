@@ -38,7 +38,7 @@ def gather_files(path, skip=[], file_list=[]):
                 if os.path.exists(path):
                     file_list.append(path)
                 else:
-                    p_failure('File {} does not exist'.format(path))
+                    c_failure('File {} does not exist'.format(path))
     return file_list
 
 
