@@ -483,7 +483,7 @@ def write_json(source):
             # Clean up source of unwanted values before writing json
             for header, value in source.items():
                 # Remove misc headers (x[0-9])
-                if re.search('^x\d+$', header):
+                if re.search('^x(?:\d+)?$', header):
                     del source[header]
                 # Remove entries that are empty
                 elif not value or value in ('NULL', 'null', 'xxx'):
