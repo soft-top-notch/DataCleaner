@@ -491,9 +491,9 @@ def write_json(source):
                 else:
                     # Consolidate 'a' entries
                     if re.search('^a\d', header):
-                        existing_data = source.get('a', [])
-                        existing_data.append(value.rstrip())
-                        source['a'] = existing_data
+                        existing_data = source.get('a', '')
+                        existing_data += ' {}'.format(value.rstrip())
+                        source['a'] = existing_data.strip()
                         del source[header]
                     else:
                         source[header] = value.rstrip()
