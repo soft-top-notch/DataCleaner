@@ -5,11 +5,15 @@ Called with filename argument for one or more files. Filename argument can be a\
  list of files or wildcard (*).
 
 Usage:
-    databackup.py [-hz] PATH...
+    databackup.py [-h] --bi SOURCE_PATH DEST_DIR
+    databackup.py [-h] --bz BACKUP_PATH
+    databackup.py [-h] --z PATH...
 
 Options:
     -h, --help                    This help output
-    -z, --zip                     Zip list of files
+    --bi                          Syncs indexes
+    --bz                          Copies zip files
+    --z                           Zip list of files
 
 Examples:
     databackup.py -z test.sql
@@ -18,17 +22,43 @@ Examples:
 from __future__ import print_function
 
 import os
+import subprocess
+import sys
 import zipfile
 
 from docopt import docopt
+from tqdm import tqdm
+
+
+RCLONE_PATH = '/usr/local/bin/rclone'
 
 
 def main(args):
-    if args['--zip']:
+    if args['--bi']:
+        dest_dir = 'ViperElastic/{}'.format(args['DEST_DIR'])
+        rclone('sync', args['SOURCE_PATH'], dest_dir)
+    elif args['--bz']:
+        rclone('copy', args['BACKUP_PATH'], 'ViperStorage/datadumps')
+    elif args['--z']:
+        pbar = tqdm(desc='zipping', unit=' files', total=len(args['PATH']))
         for filename in args['PATH']:
             zip(filename)
-    else:
-        print('Nothing to do. Exiting...')
+            pbar.update(1)
+        pbar.close()
+
+
+def rclone(mode, source_path, dest_dir):
+    dest_path = 'b2:{}'.format(dest_dir)
+    print('Using rclone to {} {} to {}\n'.format(mode, source_path, dest_path))
+    command = [RCLONE_PATH, '-v', mode, source_path, dest_path]
+    try:
+        output = subprocess.check_output(' '.join(command),
+                                         stderr=subprocess.STDOUT,
+                                         shell=True)
+        print(output)
+    except subprocess.CalledProcessError as e:
+        print('ERROR! CMD USED: {}'.format(' '.join(command)))
+        sys.exit(e.output)
 
 
 def zip(filename):
