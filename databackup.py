@@ -21,7 +21,6 @@ Examples:
 """
 from __future__ import print_function
 
-import os
 import subprocess
 import sys
 import zipfile
@@ -29,7 +28,9 @@ import zipfile
 from docopt import docopt
 from tqdm import tqdm
 
+from datacleaner import move
 
+AFTER_ZIP_DIR = '../zip_done'
 RCLONE_PATH = '/usr/local/bin/rclone'
 
 
@@ -64,7 +65,7 @@ def rclone(mode, source_path, dest_dir):
 def zip(filename):
     with zipfile.ZipFile(filename + '.zip', 'w') as z:
         z.write(filename)
-    os.unlink(filename)
+    move(filename, AFTER_ZIP_DIR)
 
 
 if __name__ == '__main__':
