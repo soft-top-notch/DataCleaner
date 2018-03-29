@@ -32,6 +32,10 @@ DIRS = {
 # Parts of filename to be removed when cleaned
 UNWANTED = ('_cleaned', '_dump')
 
+# Parts of filename not to include in release name
+UNWANTED_RELEASE = set(UNWANTED)
+UNWANTED_RELEASE.update({'_part1', '_part2', '_part3', '_2017'})
+
 # Headers matched
 HEADERS = [
     ('misc', 'x'),
@@ -503,7 +507,10 @@ def write_json(source):
                 source['r'] = args.r
             # Use filename without extension as release name
             else:
-                source['r'] = os.path.splitext(fbasename)[0]
+                filename = os.path.splitext(fbasename)[0]
+                for undesirable in UNWANTED_RELEASE:
+                    filename = filename.replace(undesirable, '')
+                source['r'] = filename
 
             data = {'_type': 'breach', '_source': source}
 
