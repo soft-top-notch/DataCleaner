@@ -29,6 +29,10 @@ DIRS = {
     'sql_success': 'success'
 }
 
+# Entries to be skipped when writing JSON.  Case insensitive, and will also
+# match entries that are surrounded by a single charactor (#, <>, etc)
+JSON_ENTRIES_SKIP = ('null', 'blank', 'xxx')
+
 # Parts of filename to be removed when cleaned
 UNWANTED = ('_cleaned', '_dump')
 
@@ -455,6 +459,13 @@ def clean_filename(source):
         os.rename(source, new_name)
 
 
+def found_in(value, array):
+    for item in array:
+        if re.match('[<#]?{}[#>]?$'.format(item), value, flags=re.IGNORECASE):
+            return True
+    return False
+
+
 def wrap_fields(l, wrapper='"'):
     return ['{0}{1}{0}'.format(wrapper, x) for x in l]
 
@@ -490,7 +501,10 @@ def write_json(source):
                 if re.search('^x(?:\d+)?$', header):
                     del source[header]
                 # Remove entries that are empty
-                elif not value or value in ('NULL', 'null', 'xxx'):
+                elif not value:
+                    del source[header]
+                # Remove entries that are in JSON_ENTRIES_SKIP
+                elif found_in(value, JSON_ENTRIES_SKIP):
                     del source[header]
                 else:
                     # Consolidate 'a' entries
@@ -950,7 +964,7 @@ def main():
                 sys.exit(138)
             except Exception as error:
                 move(sf, DIRS['sql_fail'])
-                c_failure('ERROR:', str(error))
+                c_failure('ERROR: {}'.format(str(error)))
             else:
                 move(sf, DIRS['sql_success'])
 
