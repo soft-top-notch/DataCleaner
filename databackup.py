@@ -31,7 +31,7 @@ from tqdm import tqdm
 from datacleaner import move
 
 AFTER_ZIP_DIR = '../zip_done'
-RCLONE_PATH = '/usr/local/bin/rclone'
+RCLONE_PATH = 'rclone'
 
 
 def main(args):
