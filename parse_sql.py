@@ -181,7 +181,7 @@ def parse(filepath):
         user_table = read_file(sqlfile)
         create_table, table_name, insert, byte_num = user_table.next()
         if create_table:
-            p_warning('Getting field names from create table')
+            c_warning('Getting field names from create table')
             match = parse_sql(create_table.statement, CREATE_FULL)
             if match and isinstance(match, ParseResults):
                 field_names = match.asDict()['field_names']
