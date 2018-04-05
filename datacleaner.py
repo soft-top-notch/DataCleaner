@@ -17,16 +17,26 @@ from datacleaner.sampling import create_sample
 
 # Full path to directories used
 DIRS = {
-    'clean_fail': 'fail',
-    'clean_success': 'done',
-    'headers_skip': 'headers_skip',
-    'headers_success': 'success',
-    'json_done': 'csv_complete',
-    'json_success': 'success',
-    'sample': 'samples',
-    'skipped': ('completed', 'error', 'failed', 'fail', 'done','success','headers_skip'),
-    'sql_fail': 'sql_fail',
-    'sql_success': 'success'
+    'clean_fail':
+    'fail',
+    'clean_success':
+    'done',
+    'headers_skip':
+    'headers_skip',
+    'headers_success':
+    'success',
+    'json_done':
+    'csv_complete',
+    'json_success':
+    'success',
+    'sample':
+    'samples',
+    'skipped': ('completed', 'error', 'failed', 'fail', 'done', 'success',
+                'headers_skip'),
+    'sql_fail':
+    'sql_fail',
+    'sql_success':
+    'success'
 }
 
 # Entries to be skipped when writing JSON.  Case insensitive, and will also
@@ -38,7 +48,10 @@ UNWANTED = ('_cleaned', '_dump')
 
 # Parts of filename not to include in release name
 UNWANTED_RELEASE = set(UNWANTED)
-UNWANTED_RELEASE.update({'_part1', '_part2', '_part3', '_2017', '_cleaned', '_error', '_vb-2017', '-vb-2016', '_vb___17', '_vb___16', '_p2', '_p3', '_p4', '-2016', '-2017'})
+UNWANTED_RELEASE.update({
+    '_part1', '_part2', '_part3', '_2017', '_cleaned', '_error', '_vb-2017',
+    '-vb-2016', '_vb___17', '_vb___16', '_p2', '_p3', '_p4', '-2016', '-2017'
+})
 
 # Headers matched
 HEADERS = [
@@ -92,8 +105,6 @@ HEADERS = [
     ('lastip', 'i'),
     ('last_ip', 'i'),
     ('uuid', 'did')
-
-
 ]  # yapf: disable
 
 # Abbreviated headers that are enumerated
@@ -102,7 +113,6 @@ ENUMERATED = ('x', 'a', 'i')
 ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
 # Headers to abbreviations
 HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
-
 
 csv.field_size_limit(sys.maxsize)
 
@@ -126,8 +136,7 @@ exclusive_args.add_argument(
 parser.add_argument(
     "-m", help="Merge remaining columns into last", action="store_true")
 parser.add_argument(
-    "-o", help="Organize CSVs by column number", action="store_true"
-)
+    "-o", help="Organize CSVs by column number", action="store_true")
 parser.add_argument(
     "-p", help="Pass if delimiter can't guessed", action="store_true")
 parser.add_argument(
@@ -136,9 +145,10 @@ parser.add_argument(
     nargs='+',
     help="Path to one or more csv file(s) or folder(s)")
 parser.add_argument("-r", type=str, help="Release Name")
-exclusive_args.add_argument("-s",
-                            help="Create sample of csv(s). No file cleaning.",
-                            action="store_true")
+exclusive_args.add_argument(
+    "-s",
+    help="Create sample of csv(s). No file cleaning.",
+    action="store_true")
 parser.add_argument(
     "-sci",
     type=float,
@@ -413,12 +423,11 @@ def guess_delimeter(F):
     # print first 10 lines
     print_lines(F, 10)
 
-    print "\033[38;5;147m Gusessed delimeter -> {}".format(
-        '{tab}' if csv_delimeter == '\t' else csv_delimeter)
+    print "\033[38;5;147m Guessed delimeter -> {}".format(repr(csv_delimeter))
     print "\033[38;5;147m Guessed column number", csv_column_count
 
-    r = raw_input("Do you want to proceed with these guessed values? [Y|n]: ")
-    if (not r) or (r in ('Y', 'y')):
+    confirmed = confirm()
+    if confirmed:
         return rdialect, csv_column_count
     else:
         csv_delimeter, csv_column_count = ask_user_for_delimeter()
@@ -524,6 +533,7 @@ def write_json(source):
                 filename = os.path.splitext(fbasename)[0]
                 for undesirable in UNWANTED_RELEASE:
                     filename = filename.replace(undesirable, '')
+                filename = filename.replace('_', ' ')
                 source['r'] = filename
 
             data = {'_type': 'breach', '_source': source}
@@ -531,6 +541,7 @@ def write_json(source):
             outfile.write(json.dumps(data))
             line_count += 1
             pbar.update(1)
+
         # Write final newline (no comma) and close json brackets
         outfile.write('\n')
         pbar.close()
@@ -686,7 +697,8 @@ def parse_file(tfile):
         dialect.delimiter = args.d.decode('string_escape')
         csv_column_count = args.c
 
-    c_sys_success('Using column number [{}] and delimiter [{}]\n'.format(csv_column_count, dialect.delimiter))
+    c_sys_success('Using column number [{}] and delimiter [{}]\n'.format(
+        csv_column_count, repr(dialect.delimiter)))
 
     F.seek(0)
 
@@ -710,8 +722,8 @@ def parse_file(tfile):
         write_headers(out_file_csv_file, headers)
         l_count += 1
 
-    pbar = TqdmUpTo(desc='Writing ', unit=' bytes ',
-                    total=os.path.getsize(gc_file))
+    pbar = TqdmUpTo(
+        desc='Writing ', unit=' bytes ', total=os.path.getsize(gc_file))
     for lk in F:
         a = StringIO.StringIO()
         a.write(lk)
@@ -749,9 +761,10 @@ def parse_file(tfile):
 
     print
 
-
-    c_action_info('Output file {} had {} bytes written/'.format(out_file_csv_temp, output_stats.st_size))
-    c_action_info('Error file {} had {} bytes written/'.format(out_file_err_temp, errors_stats.st_size))
+    c_action_info('Output file {} had {} bytes written/'.format(
+        out_file_csv_temp, output_stats.st_size))
+    c_action_info('Error file {} had {} bytes written/'.format(
+        out_file_err_temp, errors_stats.st_size))
     c_action_system('Moving {} to completed folder/'.format(tfile))
     if headers:
         move(tfile, DIRS['headers_success'])
@@ -865,9 +878,9 @@ def main():
                 headers = set_headers(cf, dialect)
                 if headers:
                     c_sys_success('{}: Headers found, writing new file'
-                              .format(filepath))
-                    pbar = TqdmUpTo(total=os.path.getsize(filepath),
-                                    unit=' bytes')
+                                  .format(filepath))
+                    pbar = TqdmUpTo(
+                        total=os.path.getsize(filepath), unit=' bytes')
                     with open(filepath + '~', 'wb') as new_csv:
                         write_headers(new_csv, headers)
                         pbar.update_to(new_csv.tell())
@@ -877,13 +890,13 @@ def main():
                     pbar.close()
                     c_action_info('{}: New file written'.format(filepath))
             if headers:
-                c_action_info('{}: Moving to {}/'.format(filepath,
-                                                    DIRS['headers_success']))
+                c_action_info('{}: Moving to {}/'.format(
+                    filepath, DIRS['headers_success']))
                 os.rename(filepath + '~', filepath)
                 move(filepath, DIRS['headers_success'])
             else:
-                c_warning('{}: Skipping setting headers, moving to {}/'
-                          .format(filepath, DIRS['headers_skip']))
+                c_warning('{}: Skipping setting headers, moving to {}/'.format(
+                    filepath, DIRS['headers_skip']))
                 move(filepath, DIRS['headers_skip'])
     elif args.j:
         if not nonsql_files:
@@ -902,13 +915,13 @@ def main():
                 c_action_system('Moving {} to {}'.format(path, new_path))
                 move(path, new_path)
             else:
-                c_warning('{} has {} columns, skipping'.format(path, column_count))
+                c_warning('{} has {} columns, skipping'.format(
+                    path, column_count))
     elif args.s:
         c_action_system('Creating samples of CSV(s)\n')
         for path in nonsql_files:
             c_action_info('\nSampling {}'.format(path))
-            create_sample(path, args.scl, args.sci,
-                          DIRS['sample'])
+            create_sample(path, args.scl, args.sci, DIRS['sample'])
     elif files:
         if nonsql_files:
             print
