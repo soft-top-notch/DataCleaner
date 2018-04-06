@@ -853,15 +853,6 @@ def confirm():
             c_failure('Please answer y or n')
 
 
-def check_unwanted(filename):
-    for unwanted in UNWANTED:
-        if unwanted in filename:
-            print "Skipping {} because {} in filename".format(
-                filename, unwanted)
-            return True
-    return False
-
-
 def main():
     dialect = myDialect()
     files = gather_files(args.path, DIRS['skipped'])
@@ -931,8 +922,8 @@ def main():
             fc = 0
             nf = len(nonsql_files)
         for filename in nonsql_files:
-            # Skip files with unwanted filenames (cleaned, errored, etc)
-            if check_unwanted(filename):
+            # Skip files with _cleaned in filename
+            if '_cleaned' in filename:
                 continue
             # print "\n \033[1;34mProcessing", f
             # print "\033[0m"
