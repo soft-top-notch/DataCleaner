@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+from collections import Counter
 
 import parse_sql
 from datacleaner import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
@@ -267,32 +268,19 @@ class myDialect(csv.Dialect):
     escapechar = '\\'
 
 
-def find_mode(L):
-    mDict = {}
-    for i in L:
-        if i in mDict:
-            mDict[i] += 1
-        else:
-            mDict[i] = 1
-
-    mList = [(mDict[i], i) for i in mDict]
-
-    if mList:
-        return max(mList)
-
-
 def find_column_count(f, dialect=csv.excel):
-    column_count = 0
+    """Find the column count with the most occurences in 1000 lines."""
+    row_lengths = []
     reader = UnicodeReader(f, dialect=dialect)
-    for x in range(10):
+    for _ in range(1000):
         try:
             row = reader.next()
         except StopIteration:
             break
-        length = len(row)
-        if length > column_count:
-            column_count = length
-    return column_count
+        row_lengths.append(len(row))
+    counts = Counter(row_lengths)
+    column_count = counts.most_common(1)[0]
+    return column_count[0]
 
 
 def guess_delimeter_by_csv(F):
