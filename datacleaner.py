@@ -627,16 +627,24 @@ def ask_headers(column_count):
             format(column_count))
 
         if user_headers:
-            user_headers = user_headers.split(' ')
+            user_headers = user_headers.strip().split(' ')
             header_len = len(user_headers)
-            if header_len == column_count:
-                break
-            else:
-                if 'zz' in user_headers:
-                    return headers
-                c_failure(
-                    '\nERROR: {} headers entered for {} columns\n'.format(
-                        header_len, column_count))
+            if 'zz' in user_headers:
+                return headers
+            blank_header = False
+            for header in user_headers:
+                if not header:
+                    blank_header = True
+                    c_failure(
+                        '\nError: One of the provided headers was blank or'
+                        ' more than one space was used between headers')
+            if not blank_header:
+                if header_len == column_count:
+                    break
+                else:
+                    c_failure(
+                        '\nERROR: {} headers entered for {} columns\n'.format(
+                            header_len, column_count))
         else:
             print '\nERROR: No headers entered\n'
 
