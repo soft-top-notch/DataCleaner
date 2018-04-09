@@ -381,10 +381,12 @@ def guess_delimeter(F):
                     most_frequent = (d, delim_freq[d][c], c)
 
         csv_delimeter = most_frequent[0]
-        csv_column_count = most_frequent[2] + 1
 
         rdialect = csv.excel
         rdialect.delimiter = csv_delimeter
+
+        F.seek(0)
+        csv_column_count = find_column_count(F, rdialect)
 
         if csv_delimeter:
 
