@@ -63,7 +63,7 @@ def rclone(mode, source_path, dest_dir):
 
 
 def zip(filename):
-    with zipfile.ZipFile(filename + '.zip', 'w', allowZip64=True) as z:
+    with zipfile.ZipFile(filename + '.zip', 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as z:
         z.write(filename)
     move(filename, AFTER_ZIP_DIR)
 
