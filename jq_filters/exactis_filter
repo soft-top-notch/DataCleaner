@@ -1,1 +1,1 @@
-with_entries(. as $value | ("dob", "email", "name") as $desired | if ($desired | index($value.key)) then . else empty end)
+._source | with_entries(. as $value | ("name", "email", "url", "ip", "name_first", "name_last", "address", "address2", "state", "zip") as $desired | if ($desired | index($value.key)) then (. | select(.value != "")) else empty end)
