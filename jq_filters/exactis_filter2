@@ -1,0 +1,1 @@
+'.dob = .persondateofbirthmonth + "-" + .persondateofbirthday + "-" + .persondateofbirthyear | .address = .address + " " + .city + " " + .state + " " + .zip | del(.name_first) | del(.name_last) | del(.state) | del(.zip) | del(.persondateofbirthmonth) | del(.persondateofbirthday) | del(.persondateofbirthyear)'
