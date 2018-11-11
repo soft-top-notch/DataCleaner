@@ -521,6 +521,10 @@ def write_json(source):
                     else:
                         name = value.rstrip()
                     source['n'] = name
+                    del source[header]
+                # Rename 'd' field to 'dob'
+                elif header == 'd':
+                    source['dob'] = source.pop('d').rstrip()
                 else:
                     source[header] = value.rstrip()
 
