@@ -459,7 +459,32 @@ def clean_filename(source):
 
 
 def data_prep(source):
-    """Clean source of unwanted values before writing json."""
+    """Clean/refactor source dictionary."""
+    # Consolidate address entries to 'a' field
+    full_addy = ''
+    for num in xrange(0, 9):
+        addy_header = 'a' + str(num)
+        addy = source.get(addy_header)
+        if addy:
+            full_addy += ' {}'.format(addy.strip())
+            del source[addy_header]
+    if full_addy:
+        source['a'] = full_addy
+
+    # Consolidate name fields
+    if source.get('fn') or source.get('ln'):
+        source['n'] = '{} {}'.format(
+            source.pop('fn', ''), source.pop('ln', '')).strip()
+
+    # Rename 'd' date of birth field to 'dob'
+    if source.get('d'):
+        source['dob'] = source.pop('d').strip()
+
+    # Split out domain from email address
+    if source.get('e') and '@' in source.get('e'):
+        source['e'], source['d'] = source['e'].split('@')
+
+    # Remove unwanted fields/values
     for header, value in source.items():
         # Remove misc headers (x[0-9]) and entries with empty values
         if re.search('^x(?:\d+)?$', header) or not value:
@@ -467,29 +492,9 @@ def data_prep(source):
         # Remove entries that are in JSON_ENTRIES_SKIP
         elif found_in(value, JSON_ENTRIES_SKIP):
             del source[header]
-        # Consolidate 'a' entries
-        elif re.search('^a\d', header):
-            existing_data = source.get('a', '')
-            existing_data += ' {}'.format(value.rstrip())
-            source['a'] = existing_data.strip()
-            del source[header]
-        # Consolidate name fields
-        elif header in ('fn', 'ln'):
-            existing_name = source.get('n')
-            if existing_name:
-                if header == 'fn':
-                    name = '{} {}'.format(value.rstrip(), existing_name)
-                else:
-                    name = '{} {}'.format(existing_name, value.rstrip())
-            else:
-                name = value.rstrip()
-            source['n'] = name
-            del source[header]
-        # Rename 'd' field to 'dob'
-        elif header == 'd':
-            source['dob'] = source.pop('d').rstrip()
+        # Remove extra spaces at start or end
         else:
-            source[header] = value.rstrip()
+            source[header] = value.strip()
     return source
 
 
