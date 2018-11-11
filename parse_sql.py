@@ -41,10 +41,9 @@ from pyparsing import alphanums, CaselessKeyword, CaselessLiteral, \
     ParseException, ParseResults, quotedString, Regex, removeQuotes, \
     Suppress, Word, WordEnd, ZeroOrMore
 
-from datacleaner import move, TqdmUpTo, c_success, c_action, c_action_info, \
+from dc import move, TqdmUpTo, c_success, c_action, c_action_info, \
     c_action_system, c_sys_success, c_warning, c_darkgray, c_darkgreen,\
     c_lightgreen, c_lightgray, c_lightblue, c_blue, c_error
-
 
 __version__ = '0.5.0'
 __license__ = """
@@ -68,11 +67,12 @@ E = CaselessLiteral("E")
 binop = oneOf("= != < > >= <= eq ne lt le gt ge", caseless=True)
 arithSign = Word("+-", exact=1)
 realNum = Combine(
-    Optional(arithSign) + (Word(nums) + "." + Optional(Word(nums)) | (
-        "." + Word(nums))) + Optional(E + Optional(arithSign) + Word(nums)))
+    Optional(arithSign) +
+    (Word(nums) + "." + Optional(Word(nums)) | ("." + Word(nums))) +
+    Optional(E + Optional(arithSign) + Word(nums)))
 intNum = Combine(
-    Optional(arithSign) + Word(nums) + Optional(E + Optional("+") + Word(nums))
-)
+    Optional(arithSign) + Word(nums) +
+    Optional(E + Optional("+") + Word(nums)))
 
 # Field Names
 KEYS = (CaselessKeyword('PRIMARY') | CaselessKeyword('UNIQUE')
@@ -177,7 +177,6 @@ def parse(filepath):
             raise
     print('{}: Using {} encoding'.format(filepath, encoding))
 
-
     # Extract data from statements and write to csv file
     with io.open(filepath, 'Ur', encoding=encoding) as sqlfile:
         user_table = read_file(sqlfile)
@@ -210,8 +209,8 @@ def parse(filepath):
             else:
                 c_error('No field names found')
 
-        read_pbar = TqdmUpTo(desc='read', unit=' bytes',
-                         total=os.path.getsize(filepath))
+        read_pbar = TqdmUpTo(
+            desc='read', unit=' bytes', total=os.path.getsize(filepath))
         read_pbar.update_to(byte_num)
 
         values_pbar = TqdmUpTo(desc='processed', unit=' value lines')
@@ -245,7 +244,6 @@ def parse(filepath):
                         # write insert #, error msg, and insert
                         write_bad(filepath, total_inserts, error, insert)
 
-
     read_pbar.close()
     values_pbar.close()
 
@@ -256,8 +254,9 @@ def parse(filepath):
             error = 'No matching INSERT statements found'
         raise_error(ValueError(error))
 
-    print('{}: Processed {} insert(s) with {} value lines and skipped {} errors'
-          .format(filepath, total_inserts, total_values, bad_inserts))
+    print(
+        '{}: Processed {} insert(s) with {} value lines and skipped {} errors'.
+        format(filepath, total_inserts, total_values, bad_inserts))
 
 
 def parse_sql(line, pattern):

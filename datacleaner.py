@@ -11,10 +11,10 @@ import sys
 from collections import Counter
 
 import parse_sql
-from datacleaner import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
+from dc import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
     c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
     TqdmUpTo
-from datacleaner.sampling import create_sample
+from dc.sampling import create_sample
 
 # Full path to directories used
 DIRS = {

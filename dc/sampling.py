@@ -25,9 +25,8 @@ import random
 from docopt import docopt
 from tqdm import tqdm
 
-from datacleaner import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
+from dc import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
     c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue
-
 
 # SUPPORTED CONFIDENCE LEVELS: 50%, 68%, 90%, 95%, and 99%
 CONFIDENCE_LEVELS = {50: .67, 68: .99, 90: 1.64, 95: 1.96, 99: 2.57}
@@ -52,8 +51,8 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
     sample_size = calc_sample_size(num_of_lines, con_level, con_interval)
     c_action('{}: Will use sample size of {} from {} total lines for {}% '
              'confidence'.format(path, sample_size, num_of_lines, con_level))
-    sample_lines = sorted(random.sample(xrange(1, num_of_lines + 1),
-                                        sample_size))
+    sample_lines = sorted(
+        random.sample(xrange(1, num_of_lines + 1), sample_size))
 
     with open(sample_path, 'wb') as sc:
         with open(path, 'rb') as oc:
@@ -74,7 +73,8 @@ def create_sample(path, con_level, con_interval, dest_dir=None):
     c_action_system('{}: {} of {} lines written to sample'.format(
         path, lines_written + 1, num_of_lines))
     if dest_dir:
-        c_action_system('{}: Moving {} to {}'.format(path, sample_path,dest_dir))
+        c_action_system('{}: Moving {} to {}'.format(path, sample_path,
+                                                     dest_dir))
         move(sample_path, dest_dir)
     return sample_path
 
@@ -92,7 +92,7 @@ def calc_sample_size(num_of_lines, confidence_level, confidence_interval):
                          .format(CONFIDENCE_LEVELS.keys()))
 
     # Calc sample size
-    n_0 = ((Z ** 2) * p * (1 - p)) / (e ** 2)
+    n_0 = ((Z**2) * p * (1 - p)) / (e**2)
 
     # Adjust sample size for finite number of lines
     n = n_0 / (1 + ((n_0 - 1) / float(N)))

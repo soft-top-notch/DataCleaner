@@ -29,27 +29,22 @@ from docopt import docopt
 from elasticsearch import Elasticsearch
 from tqdm import tqdm
 
-from datacleaner import gather_files, move
+from dc import gather_files, move
 
-ES_CONFIG = {
-    'timeout': 30,
-    'max_retries': 10,
-    'retry_on_timeout': True
-}
+ES_CONFIG = {'timeout': 30, 'max_retries': 10, 'retry_on_timeout': True}
 
-DIRS = {
-    'verified': '../verified',
-    'done': '../done'
-}
+DIRS = {'verified': '../verified', 'done': '../done'}
 
 MAX_SEARCH = 100
 UNIQUE_COUNT = '../unique_count.csv'
 
+
 def main(args):
-    es_client = Elasticsearch('{}:{}'.format(args['--host'], args['--port']),
-                              timeout=ES_CONFIG['timeout'],
-                              max_retries=ES_CONFIG['max_retries'],
-                              retry_on_timeout=ES_CONFIG['retry_on_timeout'])
+    es_client = Elasticsearch(
+        '{}:{}'.format(args['--host'], args['--port']),
+        timeout=ES_CONFIG['timeout'],
+        max_retries=ES_CONFIG['max_retries'],
+        retry_on_timeout=ES_CONFIG['retry_on_timeout'])
     file_list = gather_files(args['PATH'])
     verbose = args['--verbose']
     last = 0
@@ -73,13 +68,13 @@ def main(args):
                 account_key = 'u'
             else:
                 # skip file if no email and username fields
-                print('{}: ERROR: missing "e" and "u" headers, skipping'
-                      .format(filename))
+                print('{}: ERROR: missing "e" and "u" headers, skipping'.
+                      format(filename))
                 continue
             if 'p' not in reader.fieldnames:
                 # skip file if no password fields
-                print('{}: ERROR: missing "p" header, skipping'
-                      .format(filename))
+                print(
+                    '{}: ERROR: missing "p" header, skipping'.format(filename))
                 continue
             read_pbar = tqdm(desc='Read', unit=' lines')
             nf_pbar = tqdm(desc='Not found', unit=' combos')
@@ -87,21 +82,26 @@ def main(args):
                 lines_read += 1
                 read_pbar.update(1)
                 if not row.get(account_key):
-                    print('\n{}: "{}" field was empty on line {}, skipping'
-                          .format(filename, account_key, lines_read))
+                    print('\n{}: "{}" field was empty on line {}, skipping'.
+                          format(filename, account_key, lines_read))
                     continue
                 elif not row.get('p'):
-                    print('\n{}: "p" field was empty on line {}, skipping'
-                          .format(filename, lines_read))
+                    print('\n{}: "p" field was empty on line {}, skipping'.
+                          format(filename, lines_read))
                     continue
                 to_search.append({})
                 to_search.append({
                     'query': {
                         'bool': {
-                            'must': [
-                                {'term': {account_key + '.keyword': row[account_key]}},
-                                {'term': {'p.keyword': row['p']}}
-                            ]
+                            'must': [{
+                                'term': {
+                                    account_key + '.keyword': row[account_key]
+                                }
+                            }, {
+                                'term': {
+                                    'p.keyword': row['p']
+                                }
+                            }]
                         }
                     },
                     'terminate_after': 1,
@@ -136,8 +136,8 @@ def main(args):
         with open(UNIQUE_COUNT, mode) as uc:
             if mode == 'w':
                 uc.write('filename,sample size,unique size,percentage\n')
-            uc.write('"{}","{}","{}","{:.2f}"\n'.format(filename, lines_read, not_found,
-                                            not_found / lines_read))
+            uc.write('"{}","{}","{}","{:.2f}"\n'.format(
+                filename, lines_read, not_found, not_found / lines_read))
 
 
 def search(es_client, to_search, verbose):
@@ -166,7 +166,9 @@ def write_row(row, verified_csv):
     with open(verified_csv, mode) as verified:
         if mode == 'w':
             # Write headers
-            verified.write(','.join([key for field in row for key in field.keys()]) + '\n')
+            verified.write(
+                ','.join([key for field in row
+                          for key in field.keys()]) + '\n')
         verified.write(line + '\n')
 
 

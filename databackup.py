@@ -28,7 +28,7 @@ import zipfile
 from docopt import docopt
 from tqdm import tqdm
 
-from datacleaner import move
+from dc import move
 
 AFTER_ZIP_DIR = '../zip_done'
 RCLONE_PATH = 'rclone'
@@ -53,9 +53,8 @@ def rclone(mode, source_path, dest_dir):
     print('Using rclone to {} {} to {}\n'.format(mode, source_path, dest_path))
     command = [RCLONE_PATH, '-v', mode, source_path, dest_path]
     try:
-        output = subprocess.check_output(' '.join(command),
-                                         stderr=subprocess.STDOUT,
-                                         shell=True)
+        output = subprocess.check_output(
+            ' '.join(command), stderr=subprocess.STDOUT, shell=True)
         print(output)
     except subprocess.CalledProcessError as e:
         print('ERROR! CMD USED: {}'.format(' '.join(command)))
@@ -63,7 +62,9 @@ def rclone(mode, source_path, dest_dir):
 
 
 def zip(filename):
-    with zipfile.ZipFile(filename + '.zip', 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as z:
+    with zipfile.ZipFile(
+            filename + '.zip', 'w', zipfile.ZIP_DEFLATED,
+            allowZip64=True) as z:
         z.write(filename)
     move(filename, AFTER_ZIP_DIR)
 
