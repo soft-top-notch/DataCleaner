@@ -9,6 +9,7 @@ import os
 import re
 import sys
 from collections import Counter
+from validate_email import validate_email
 
 import parse_sql
 from dc import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
@@ -481,8 +482,16 @@ def data_prep(source):
         source['dob'] = source.pop('d').strip()
 
     # Split out domain from email address
-    if source.get('e') and '@' in source.get('e'):
-        source['e'], source['d'] = source['e'].split('@')
+    if source.get('e'):
+        email = source.get('e')
+        if '@@' in email:
+            email = '@'.join(email.split('@@'))
+        if validate_email(email):
+            source['e'], source['d'] = email.split('@')
+        else:
+            del source['e']
+    else:
+        del source['e']
 
     # Remove unwanted fields/values
     for header, value in source.items():

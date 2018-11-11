@@ -55,9 +55,26 @@ def test_data_prep_dob():
     assert data_prep(source)['dob'] == VALID_RESULT['dob']
 
 
-def test_data_prep_email():
+def test_data_prep_valid_email():
     """Validate domain of email address is split out to 'd' field."""
     source = INPUT_DATA.copy()
     result = data_prep(source)
     assert result.get('e') == VALID_RESULT['e']
     assert result.get('d') == VALID_RESULT['d']
+
+
+def test_data_prep_double_at_email():
+    """Validate domain of email address with @@ is split out to 'd' field."""
+    source = INPUT_DATA.copy()
+    source['e'] = 'wizard@@gmail.com'
+    result = data_prep(source)
+    assert result.get('e') == VALID_RESULT['e']
+    assert result.get('d') == VALID_RESULT['d']
+
+
+def test_data_prep_invalid_email():
+    """Validate deletion of 'e' field when it has invalid email address."""
+    source = INPUT_DATA.copy()
+    source['e'] = 'wizard@gandalf@gmail.com'
+    result = data_prep(source)
+    assert not result.get('e')
