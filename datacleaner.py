@@ -458,6 +458,41 @@ def clean_filename(source):
         os.rename(source, new_name)
 
 
+def data_prep(source):
+    """Clean source of unwanted values before writing json."""
+    for header, value in source.items():
+        # Remove misc headers (x[0-9]) and entries with empty values
+        if re.search('^x(?:\d+)?$', header) or not value:
+            del source[header]
+        # Remove entries that are in JSON_ENTRIES_SKIP
+        elif found_in(value, JSON_ENTRIES_SKIP):
+            del source[header]
+        # Consolidate 'a' entries
+        elif re.search('^a\d', header):
+            existing_data = source.get('a', '')
+            existing_data += ' {}'.format(value.rstrip())
+            source['a'] = existing_data.strip()
+            del source[header]
+        # Consolidate name fields
+        elif header in ('fn', 'ln'):
+            existing_name = source.get('n')
+            if existing_name:
+                if header == 'fn':
+                    name = '{} {}'.format(value.rstrip(), existing_name)
+                else:
+                    name = '{} {}'.format(existing_name, value.rstrip())
+            else:
+                name = value.rstrip()
+            source['n'] = name
+            del source[header]
+        # Rename 'd' field to 'dob'
+        elif header == 'd':
+            source['dob'] = source.pop('d').rstrip()
+        else:
+            source[header] = value.rstrip()
+    return source
+
+
 def found_in(value, array):
     for item in array:
         if re.match('[<#]?{}[#>]?$'.format(item), value, flags=re.IGNORECASE):
@@ -492,41 +527,7 @@ def write_json(source):
             if line_count > 0:
                 outfile.write('\n')
 
-            source = dict(zip(headers, row))
-
-            # Clean up source of unwanted values before writing json
-            for header, value in source.items():
-                # Remove misc headers (x[0-9]) and entries with empty values
-                if re.search('^x(?:\d+)?$', header) or not value:
-                    del source[header]
-                # Remove entries that are in JSON_ENTRIES_SKIP
-                elif found_in(value, JSON_ENTRIES_SKIP):
-                    del source[header]
-                # Consolidate 'a' entries
-                elif re.search('^a\d', header):
-                    existing_data = source.get('a', '')
-                    existing_data += ' {}'.format(value.rstrip())
-                    source['a'] = existing_data.strip()
-                    del source[header]
-                # Consolidate name fields
-                elif header in ('fn', 'ln'):
-                    existing_name = source.get('n')
-                    if existing_name:
-                        if header == 'fn':
-                            name = '{} {}'.format(value.rstrip(),
-                                                  existing_name)
-                        else:
-                            name = '{} {}'.format(existing_name,
-                                                  value.rstrip())
-                    else:
-                        name = value.rstrip()
-                    source['n'] = name
-                    del source[header]
-                # Rename 'd' field to 'dob'
-                elif header == 'd':
-                    source['dob'] = source.pop('d').rstrip()
-                else:
-                    source[header] = value.rstrip()
+            source = data_prep(dict(zip(headers, row)))
 
             # Set release name
             if args.r:
