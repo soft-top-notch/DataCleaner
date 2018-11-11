@@ -496,24 +496,33 @@ def write_json(source):
 
             # Clean up source of unwanted values before writing json
             for header, value in source.items():
-                # Remove misc headers (x[0-9])
-                if re.search('^x(?:\d+)?$', header):
-                    del source[header]
-                # Remove entries that are empty
-                elif not value:
+                # Remove misc headers (x[0-9]) and entries with empty values
+                if re.search('^x(?:\d+)?$', header) or not value:
                     del source[header]
                 # Remove entries that are in JSON_ENTRIES_SKIP
                 elif found_in(value, JSON_ENTRIES_SKIP):
                     del source[header]
-                else:
-                    # Consolidate 'a' entries
-                    if re.search('^a\d', header):
-                        existing_data = source.get('a', '')
-                        existing_data += ' {}'.format(value.rstrip())
-                        source['a'] = existing_data.strip()
-                        del source[header]
+                # Consolidate 'a' entries
+                elif re.search('^a\d', header):
+                    existing_data = source.get('a', '')
+                    existing_data += ' {}'.format(value.rstrip())
+                    source['a'] = existing_data.strip()
+                    del source[header]
+                # Consolidate name fields
+                elif header in ('fn', 'ln'):
+                    existing_name = source.get('n')
+                    if existing_name:
+                        if header == 'fn':
+                            name = '{} {}'.format(value.rstrip(),
+                                                  existing_name)
+                        else:
+                            name = '{} {}'.format(existing_name,
+                                                  value.rstrip())
                     else:
-                        source[header] = value.rstrip()
+                        name = value.rstrip()
+                    source['n'] = name
+                else:
+                    source[header] = value.rstrip()
 
             # Set release name
             if args.r:
@@ -866,8 +875,8 @@ def main():
             with open(filepath, 'rb') as cf:
                 headers = set_headers(cf, dialect)
                 if headers:
-                    c_sys_success('{}: Headers found, writing new file'
-                                  .format(filepath))
+                    c_sys_success(
+                        '{}: Headers found, writing new file'.format(filepath))
                     pbar = TqdmUpTo(
                         total=os.path.getsize(filepath), unit=' bytes')
                     with open(filepath + '~', 'wb') as new_csv:
