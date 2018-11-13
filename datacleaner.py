@@ -490,8 +490,6 @@ def data_prep(source):
             source['e'], source['d'] = email.split('@')
         else:
             del source['e']
-    else:
-        del source['e']
 
     # Remove unwanted fields/values
     for header, value in source.items():

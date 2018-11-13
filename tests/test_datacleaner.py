@@ -78,3 +78,10 @@ def test_data_prep_invalid_email():
     source['e'] = 'wizard@gandalf@gmail.com'
     result = data_prep(source)
     assert not result.get('e')
+
+def test_data_prep_missing_email():
+    """Validate handling of missing 'e' field."""
+    source = INPUT_DATA.copy()
+    del source['e']
+    result = data_prep(source)
+    assert not result.get('e')
