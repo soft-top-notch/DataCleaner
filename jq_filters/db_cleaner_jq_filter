@@ -1,1 +1,78 @@
-with_entries(if (.value | type) == "object" then .value = (.value | if .fn then .n = .fn else . end | if .ln then if .n then .n = .n + " " + .ln else .n = .ln end else . end | with_entries(if .key == "d" then {"key": "dob", "value": .value} else . end | select(.value != "" and .value != "null" and .value != "blank" and (.key | test("x\\d+$") | not) and .key != "fn" and .key != "ln" and (.value | test("^,+$") | not))) | if .e then .d = (.e | split("@")[1]) else . end) else . end)
+with_entries(
+  if (.value | type) == "object" then
+    .value = (
+      .value |
+      if .address then
+        .a = .address
+      else
+        .
+      end |
+      if .city then
+        if .a then
+          .a = .a + " " + .city
+        else
+          .a = .city
+        end
+      else
+        .
+      end |
+      if .state then
+        if .a then
+          .a = .a + " " + .state
+        else
+          .a = .state
+        end
+      else
+        .
+      end |
+      if .zip then
+        if .a then
+          .a = .a + " " + .zip
+        else
+          .a = .zip
+        end
+      else
+        .
+      end |
+      if .fn then
+        .n = .fn
+      else
+        .
+      end |
+      if .ln then
+        if .n then
+          .n = .n + " " + .ln
+        else
+          .n = .ln
+        end
+      else
+        .
+      end |
+      with_entries(
+        if .key == "d" then
+          {"key": "dob", "value": .value}
+        else
+          .
+        end |
+        select(
+          .value != "" and
+          .value != "null" and
+          .value != "blank" and
+          (.key | test("x\\d+$") | not) and
+          .key != "fn" and
+          .key != "ln" and
+          .key != "address" and
+          .key != "city" and
+          .key != "state" and
+          .key != "zip" and
+          (.value | test("^,+$") | not))) |
+          if .e then
+            .d = (.e | split("@")[1])
+          else
+            .
+          end
+        )
+  else
+    .
+  end
+)
