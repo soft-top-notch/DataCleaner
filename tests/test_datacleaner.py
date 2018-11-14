@@ -14,7 +14,7 @@ INPUT_DATA = {
 VALID_RESULT = {
     'dob': '01/1/2010',
     'n': 'George Washington',
-    'e': 'wizard',
+    'e': 'wizard@gmail.com',
     'd': 'gmail.com',
     'a': '123 Shilling Street Seattle Washington 12345'
 }

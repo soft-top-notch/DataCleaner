@@ -487,7 +487,8 @@ def data_prep(source):
         if '@@' in email:
             email = '@'.join(email.split('@@'))
         if validate_email(email):
-            source['e'], source['d'] = email.split('@')
+            source['e'] = email
+            _, source['d'] = email.split('@')
         else:
             del source['e']
 
