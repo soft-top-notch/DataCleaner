@@ -1,0 +1,1 @@
+.address = .address + " " + .city + " " + .state + " " + .zip | .n = .fn + " " + .ln | del(.fn) | del(.ln) | del(.city) | del(.state) | del(.zip) | del(.x) | if .e then .d = (.e | split("@")[1]) else . end
