@@ -411,8 +411,8 @@ def guess_delimeter(F):
     if args.a:
         return rdialect, csv_column_count
 
-    # print first 10 lines
-    print_lines(F, 10)
+    # print first 20 lines
+    print_lines(F, 20)
 
     print "\033[38;5;147m Guessed delimeter -> {}".format(repr(csv_delimeter))
     print "\033[38;5;147m Guessed column number", csv_column_count
