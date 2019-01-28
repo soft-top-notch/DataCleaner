@@ -760,9 +760,13 @@ def parse_file(tfile):
         orig_reader = UnicodeReader(a, dialect=dialect)
 
         for row in orig_reader:
+            if any(dialect.delimiter in i for i in row):
+                final = []
+                for i in row:
+                    final.extend(i.split(dialect.delimiter))
+                row = final
             l_count += 1
-
-            row = [x.replace('\n', '').replace('\r', '') for x in row]
+            row = [x.replace('\n', '').replace('\r', '') for x in row if x]
 
             if len(row) == csv_column_count:
                 clean_writer.writerow(row)
@@ -776,6 +780,12 @@ def parse_file(tfile):
                     lt = dialect.delimiter.join(row[csv_column_count - 1:])
                     lx.append(lt)
                     clean_writer.writerow(lx)
+                elif not args.m and len(row) > csv_column_count:
+                    left = row[:2]
+                    lt = dialect.delimiter.join(row[2:-3])
+                    left.append(lt)
+                    left.extend(row[-3:])
+                    clean_writer.writerow(left)
                 else:
                     error_writer.writerow(row)
             pbar.update_to(clean_writer.tell() + error_writer.tell())
