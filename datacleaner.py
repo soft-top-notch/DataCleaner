@@ -10,6 +10,7 @@ import os
 import re
 import sys
 from collections import Counter
+from itertools import islice
 from validate_email import validate_email
 
 import parse_sql
@@ -176,7 +177,7 @@ guess = True
 if args.c and args.d:
     guess = False
 
-delims = ('\t', ' ', ';', ':', ',', '|')
+delims = ('\\t', ' ', ';', ':', ',', '|', '~')
 
 
 def valid_ip(address):
@@ -221,6 +222,7 @@ class UnicodeReader:
 
     def next(self):
         row = self.reader.next()
+        row = [r for r in row if r]
         return [unicode(s, "utf-8") for s in row]
 
     def __iter__(self):
@@ -291,7 +293,10 @@ def guess_delimeter_by_csv(F):
     sniffer = csv.Sniffer()
 
     try:
-        dialect = sniffer.sniff(F.read(1024 * 5), delimiters=delims)
+        try:
+            dialect = sniffer.sniff(''.join([next(F) for x in xrange(550)]), delimiters=delims)
+        except StopIteration as e:
+            dialect = sniffer.sniff(F.read(), delimiters=delims)
 
         if not dialect.escapechar:
             dialect.escapechar = '\\'
