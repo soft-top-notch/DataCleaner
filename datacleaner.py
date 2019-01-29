@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import traceback
 import StringIO
 import argparse
 import cStringIO
@@ -492,14 +491,11 @@ def data_prep(source):
         email = source.get('e')
         if '@@' in email:
             email = '@'.join(email.split('@@'))
-        try:
-            if validate_email(email):
-                source['e'] = email
-                _, source['d'] = email.split('@')
-            else:
-                del source['e']
-        except:
-            pass
+        if validate_email(email):
+            source['e'] = email
+            _, source['d'] = email.split('@')
+        else:
+            del source['e']
 
     # Remove unwanted fields/values
     for header, value in source.items():
