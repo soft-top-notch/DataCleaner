@@ -221,7 +221,6 @@ class UnicodeReader:
 
     def next(self):
         row = self.reader.next()
-        row = [r for r in row if r]
         return [unicode(s, "utf-8") for s in row]
 
     def __iter__(self):
@@ -767,7 +766,7 @@ def parse_file(tfile):
                     final.extend(i.split(dialect.delimiter))
                 row = final
             l_count += 1
-            row = [x.replace('\n', '').replace('\r', '') for x in row if x]
+            row = [x.replace('\n', '').replace('\r', '') for x in row]
 
             if len(row) == csv_column_count:
                 clean_writer.writerow(row)
