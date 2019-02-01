@@ -9,7 +9,6 @@ import os
 import re
 import sys
 from collections import Counter
-from itertools import islice
 from validate_email import validate_email
 
 import parse_sql
@@ -176,7 +175,7 @@ guess = True
 if args.c and args.d:
     guess = False
 
-delims = ('\\t', ' ', ';', ':', ',', '|', '~')
+delims = ('\t', ' ', ';', ':', ',', '|')
 
 
 def valid_ip(address):
@@ -291,10 +290,7 @@ def guess_delimeter_by_csv(F):
     sniffer = csv.Sniffer()
 
     try:
-        try:
-            dialect = sniffer.sniff(''.join([next(F) for x in xrange(550)]), delimiters=delims)
-        except StopIteration as e:
-            dialect = sniffer.sniff(F.read(), delimiters=delims)
+        dialect = sniffer.sniff(F.read(1024 * 5), delimiters=delims)
 
         if not dialect.escapechar:
             dialect.escapechar = '\\'
