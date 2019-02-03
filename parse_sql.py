@@ -32,7 +32,6 @@ import io
 import os
 import re
 import sys
-import csv
 
 import attr
 import magic
@@ -134,14 +133,13 @@ def main(args):
             print('Control-c pressed...')
             sys.exit(138)
         except Exception as error:
-            #move(filepath, args['--failed'])
+            move(filepath, args['--failed'])
             if args['--exit-on-error']:
                 raise
             else:
                 print('{} ERROR:{}'.format(filepath, error))
         else:
-            pass
-            #move(filepath, args['--completed'])
+            move(filepath, args['--completed'])
 
 
 def parse(filepath):
@@ -194,22 +192,14 @@ def parse(filepath):
                 raise_error(Exception('Unknown error has occurred'))
         elif insert:
             c_warning('Getting field names from first insert')
-            fields_search = re.search('(\(`.*`\))', insert)
-            if fields_search is not None:
-                fields_only = fields_search.group(1)
-                match = parse_sql(fields_only, INSERT_FIELDS)
-                if match and isinstance(match, ParseResults):
-                    field_names = match.asDict().get('field_names')
-                elif isinstance(match, ParseException):
-                    pass
-                else:
-                    raise (Exception('Unknown error has occurred'))
+            fields_only = re.search('(\(`.*`\))', insert).group(1)
+            match = parse_sql(fields_only, INSERT_FIELDS)
+            if match and isinstance(match, ParseResults):
+                field_names = match.asDict().get('field_names')
+            elif isinstance(match, ParseException):
+                pass
             else:
-                field_names = try_getting_field_names_from_known_tables(table_name[0].encode('UTF8'))
-                if field_names is None:
-                    raise (Exception('Table Field Name Structure Could not Found'))
-
-
+                raise (Exception('Unknown error has occurred'))
 
         with io.open(filepath + '.csv', 'w', encoding=encoding) as cf:
             if field_names:
@@ -362,14 +352,6 @@ def read_file(sqlfile):
                                     parsing = create_table
             if valid_insert:
                 yield create_table, table_name, valid_insert, byte_num
-
-
-def try_getting_field_names_from_known_tables(table_name):
-    with open('known_tables.csv') as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        for field_names_row in csv_reader:
-            if table_name == field_names_row[0]:
-                return [field_name.decode() for field_name in field_names_row[1:]]
 
 
 def rm_newlines(lines):
