@@ -192,7 +192,10 @@ def parse(filepath):
                 raise_error(Exception('Unknown error has occurred'))
         elif insert:
             c_warning('Getting field names from first insert')
-            fields_only = re.search('(\(`.*`\))', insert).group(1)
+            insert_fields = re.search('(\(`.*`\))', insert)
+            if not insert_fields:
+                raise_error(ParseException('Field names not found in insert'))
+            fields_only = insert_fields.group(1)
             match = parse_sql(fields_only, INSERT_FIELDS)
             if match and isinstance(match, ParseResults):
                 field_names = match.asDict().get('field_names')
