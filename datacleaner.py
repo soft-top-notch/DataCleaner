@@ -773,7 +773,12 @@ def parse_file(tfile):
                     final.extend(i.split(dialect.delimiter))
                 row = final
             l_count += 1
-            row = [x.replace('\n', '').replace('\r', '') for x in row]
+
+            # Removing surrounding single quotes, whitespace, and newlines
+            row = [x.strip("'").strip() for x in row]
+
+            # Escape double quotes in field
+            row = [re.sub(r'"', r'\"', x) for x in row]
 
             if len(row) == csv_column_count:
                 clean_writer.writerow(row)
