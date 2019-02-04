@@ -775,12 +775,7 @@ def parse_file(tfile):
             l_count += 1
             row = [x.replace('\n', '').replace('\r', '') for x in row]
 
-            missing_values = False
-            for value in row:
-                if not value:
-                    missing_values = True
-
-            if len(row) == csv_column_count and not missing_values:
+            if len(row) == csv_column_count:
                 clean_writer.writerow(row)
             else:
                 if args.m and csv_column_count > 1:
