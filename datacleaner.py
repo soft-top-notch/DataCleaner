@@ -775,11 +775,12 @@ def parse_file(tfile):
             l_count += 1
             row = [x.replace('\n', '').replace('\r', '') for x in row]
 
-            if len(row) == csv_column_count:
-                clean_writer.writerow(row)
+            missing_values = False
+            for value in row:
+                if not value:
+                    missing_values = True
 
-            elif len(row) == csv_column_count - 1:
-                row.append("")
+            if len(row) == csv_column_count and not missing_values:
                 clean_writer.writerow(row)
             else:
                 if args.m and csv_column_count > 1:
@@ -787,12 +788,6 @@ def parse_file(tfile):
                     lt = dialect.delimiter.join(row[csv_column_count - 1:])
                     lx.append(lt)
                     clean_writer.writerow(lx)
-                elif not args.m and len(row) > csv_column_count:
-                    left = row[:2]
-                    lt = dialect.delimiter.join(row[2:-3])
-                    left.append(lt)
-                    left.extend(row[-3:])
-                    clean_writer.writerow(left)
                 else:
                     error_writer.writerow(row)
             pbar.update_to(clean_writer.tell() + error_writer.tell())
