@@ -806,7 +806,7 @@ def parse_file(tfile):
         out_file_csv_temp, output_stats.st_size))
     c_action_info('Error file {} had {} bytes written/'.format(
         out_file_err_temp, errors_stats.st_size))
-    c_action_system('Moving {} to completed folder/'.format(tfile))
+    #c_action_system('Moving {} to completed folder/'.format(tfile))
     if headers:
         move(tfile, DIRS['headers_success'])
     else:
