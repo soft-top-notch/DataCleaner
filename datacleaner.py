@@ -717,13 +717,13 @@ def parse_file(tfile):
 
     os.system(gc_cmd)
 
-    c_action_system('   Parsing file: {}'.format(gc_file))
+    #c_action_system('   Parsing file: {}'.format(gc_file))
 
     F = open(gc_file, 'rb')
     dialect = None
 
     if guess:
-        c_action_system('   Guessing delimiter \n')
+        #c_action_system('   Guessing delimiter \n')
         dialect, csv_column_count = guess_delimeter(F)
 
     if not dialect and args.p:
@@ -828,7 +828,7 @@ def parse_file(tfile):
     if args.j:
         write_json(out_file_csv_name)
 
-    print "Removing", gc_file
+    #print "Removing", gc_file
     os.remove(gc_file)
 
 
