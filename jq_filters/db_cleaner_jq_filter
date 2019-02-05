@@ -1,4 +1,4 @@
-._source | with_entries(
+with_entries(
   if (.value | type) == "object" then
     .value = (
       .value |
@@ -27,9 +27,18 @@
       end |
       if .zip then
         if .a then
-          .a = .a + " " + .zip
+          .a = .a + " " + .zipcode
         else
-          .a = .zip
+          .a = .zipcode
+        end
+      else
+        .
+      end |
+   if .zip then
+        if .a then
+          .a = .a + " " + .country
+        else
+          .a = .country
         end
       else
         .
@@ -64,7 +73,8 @@
           .key != "address" and
           .key != "city" and
           .key != "state" and
-          .key != "zip" and
+          .key != "zipcode" and
+	  .key != "country" and
           (.value | test("^,+$") | not))) |
           if .e then
             .d = (.e | split("@")[1])

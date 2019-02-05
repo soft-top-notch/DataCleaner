@@ -860,7 +860,7 @@ def set_headers(f, dialect, csv_column_count=0):
             csv_column_count = find_column_count(f)
         f.seek(0)
         headers = get_headers(f, dialect.delimiter, csv_column_count)
-        print_lines(f, 10)
+        print_lines(f, 30)
         while True:
             # Add a new line
             print

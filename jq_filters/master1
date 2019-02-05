@@ -1,0 +1,1 @@
+with_entries(if (.value | type) == "object" then .value = (.value | .a = .address + " " + .city + " " + .state + " " + .zipcode + " " + .country | del(.address) |  del(.city) | del(.state) | del(.zipcode) | del(.x) | del(.country) ) else . end)
