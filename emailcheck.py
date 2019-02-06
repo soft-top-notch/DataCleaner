@@ -1,7 +1,3 @@
-'''
-simple script to check batches of files and determine if 
-there is an email address in the first column. output will be true/false. 
-'''
 import os
 import re
 import sys
@@ -24,6 +20,7 @@ def check_email(input_path, output_file):
                 if email_pattern.findall(first_line.split(',')[0]):
                     out_file.write('{}: True\n'.format(f))
                 else:
+		    print ('False: {}\n'.format(f))
                     out_file.write('{}: False\n'.format(f))
 
 if __name__ == '__main__':
