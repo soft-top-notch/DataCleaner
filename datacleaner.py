@@ -724,7 +724,10 @@ def parse_file(tfile):
 
     if guess:
         #c_action_system('   Guessing delimiter \n')
-        dialect, csv_column_count = guess_delimeter(F)
+        try:
+            dialect, csv_column_count = guess_delimeter(F)
+        except TypeError as e:
+            print "Guessing delimiter failed"
 
     if not dialect and args.p:
         return
