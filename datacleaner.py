@@ -993,10 +993,13 @@ def main():
             c_action_info('File {}/{}'.format(fc, nf))
             c_action('Processing {}'.format(filename))
 
-            if os.stat(filename).st_size > 0:
-                parse_file(filename)
+            if os.path.exists(filename):
+                if os.stat(filename).st_size > 0:
+                    parse_file(filename)
+                else:
+                    print "File {} is empty, passing".format(filename)
             else:
-                print "File {} is empty, passing".format(filename)
+                c_warning('Unable to find file {}'.format(filename))
 
         sql_files = [x for x in files if x.endswith('.sql')]
         if sql_files:
