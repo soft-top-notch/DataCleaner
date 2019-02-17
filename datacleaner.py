@@ -4,6 +4,7 @@ import argparse
 import cStringIO
 import codecs
 import csv
+import io
 import json
 import os
 import re
@@ -748,12 +749,11 @@ def parse_file(tfile):
 
     out_file_csv_file = open(out_file_csv_temp, 'wb')
 
-    out_file_err_file = open(out_file_err_temp, 'wb')
+    error_file = io.open(out_file_err_temp, 'w', encoding='utf-8')
 
     #c_action_system('Cleaning ... ')
 
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
-    error_writer = UnicodeWriter(out_file_err_file, dialect=dialect)
 
     l_count = 0
     headers = set_headers(F, dialect, csv_column_count)
@@ -792,13 +792,13 @@ def parse_file(tfile):
                     lx.append(lt)
                     clean_writer.writerow(lx)
                 else:
-                    error_writer.writerow(row)
-            pbar.update_to(clean_writer.tell() + error_writer.tell())
+                    error_file.write(unicode(lk))
+            pbar.update_to(clean_writer.tell() + error_file.tell())
     pbar.close()
 
     F.close()
     out_file_csv_file.close()
-    out_file_err_file.close()
+    error_file.close()
 
     output_stats = os.stat(out_file_csv_temp)
     errors_stats = os.stat(out_file_err_temp)
