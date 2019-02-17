@@ -599,8 +599,9 @@ def get_headers(csv_file, delimiter, column_count):
             tracked[track] = 0
 
         for i in lowerrow:
+            i = i.strip()
             # Match headers in double quotes on both sides or no double quotes
-            matches = re.search('(?="\w+)"(\w+)"|^(\w+)$', i)
+            matches = re.search('"(\w+)"|\'(\w+)\'|^(\w+)$', i)
             if matches:
                 # Take whichever one matched
                 field_name = matches.group(1) or matches.group(2)

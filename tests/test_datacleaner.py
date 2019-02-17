@@ -1,5 +1,7 @@
 import csv
+import StringIO
 
+import datacleaner as dc
 from datacleaner import data_prep, parse_row
 
 INPUT_DATA = {
@@ -27,7 +29,7 @@ def test_data_prep_misc():
     source = INPUT_DATA.copy()
     source['x1'] = 'unknown'
     source['x'] = 'another unknown'
-    assert data_prep(source) == VALID_RESULT
+    assert dc.data_prep(source) == VALID_RESULT
 
 
 def test_data_prep_empty():
@@ -36,31 +38,31 @@ def test_data_prep_empty():
     source['blah'] = ''
     source['other'] = 'null'
     source['empty'] = 'blank'
-    assert data_prep(source) == VALID_RESULT
+    assert dc.data_prep(source) == VALID_RESULT
 
 
 def test_data_prep_addresses():
     """Validate address fields are combined to one 'a' field."""
     source = INPUT_DATA.copy()
-    assert data_prep(source)['a'] == VALID_RESULT['a']
+    assert dc.data_prep(source)['a'] == VALID_RESULT['a']
 
 
 def test_data_prep_names():
     """Validate first and last name fields are combined to one 'n' field."""
     source = INPUT_DATA.copy()
-    assert data_prep(source)['n'] == VALID_RESULT['n']
+    assert dc.data_prep(source)['n'] == VALID_RESULT['n']
 
 
 def test_data_prep_dob():
     """Validate date of birth 'd' field is renamed to 'dob'."""
     source = INPUT_DATA.copy()
-    assert data_prep(source)['dob'] == VALID_RESULT['dob']
+    assert dc.data_prep(source)['dob'] == VALID_RESULT['dob']
 
 
 def test_data_prep_valid_email():
     """Validate domain of email address is split out to 'd' field."""
     source = INPUT_DATA.copy()
-    result = data_prep(source)
+    result = dc.data_prep(source)
     assert result.get('e') == VALID_RESULT['e']
     assert result.get('d') == VALID_RESULT['d']
 
@@ -69,7 +71,7 @@ def test_data_prep_double_at_email():
     """Validate domain of email address with @@ is split out to 'd' field."""
     source = INPUT_DATA.copy()
     source['e'] = 'wizard@@gmail.com'
-    result = data_prep(source)
+    result = dc.data_prep(source)
     assert result.get('e') == VALID_RESULT['e']
     assert result.get('d') == VALID_RESULT['d']
 
@@ -78,7 +80,7 @@ def test_data_prep_invalid_email():
     """Validate deletion of 'e' field when it has invalid email address."""
     source = INPUT_DATA.copy()
     source['e'] = 'wizard@gandalf@gmail.com'
-    result = data_prep(source)
+    result = dc.data_prep(source)
     assert not result.get('e')
 
 
@@ -86,13 +88,35 @@ def test_data_prep_missing_email():
     """Validate handling of missing 'e' field."""
     source = INPUT_DATA.copy()
     del source['e']
-    result = data_prep(source)
+    result = dc.data_prep(source)
     assert not result.get('e')
 
 
 def test_parse_row_delimiter_in_column():
-    """Validate handing of a quoted column with delimiter inside."""
+    """Validate handling of a quoted column with delimiter inside."""
     line = '"1250550","1266519","0","gnarlingtonlife@gmail.com","hi, yes"'
     dialect = csv.excel
-    clean, fail = parse_row(line, 5, dialect)
+    clean, fail = dc.parse_row(line, 5, dialect)
     assert not fail
+
+
+def test_get_headers_double_quoted():
+    """Validate handling of double quoted header columns."""
+    str_buffer = StringIO.StringIO()
+    header_row = '"email","first_name","last_name"\n'
+    shortened_headers = ['e', 'fn', 'ln']
+    str_buffer.write(header_row)
+    str_buffer.seek(0)
+    found_headers = dc.get_headers(str_buffer, ',', 3)
+    assert found_headers == shortened_headers
+
+
+def test_get_headers_single_quoted():
+    """Validate handling of single quoted header columns."""
+    str_buffer = StringIO.StringIO()
+    header_row = "'email','first_name','last_name'\n"
+    shortened_headers = ['e', 'fn', 'ln']
+    str_buffer.write(header_row)
+    str_buffer.seek(0)
+    found_headers = dc.get_headers(str_buffer, ',', 3)
+    assert found_headers == shortened_headers
