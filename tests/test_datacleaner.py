@@ -120,3 +120,11 @@ def test_get_headers_single_quoted():
     str_buffer.seek(0)
     found_headers = dc.get_headers(str_buffer, ',', 3)
     assert found_headers == shortened_headers
+
+
+def test_set_headers_sh():
+    """Validate handling of headers provided."""
+    dc.args.sh = 'e,fn,ln'
+    headers = ['e', 'fn', 'ln']
+    set_headers = dc.set_headers(None, None)
+    assert set_headers == headers
