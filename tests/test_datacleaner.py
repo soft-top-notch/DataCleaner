@@ -1,4 +1,6 @@
-from datacleaner import data_prep
+import csv
+
+from datacleaner import data_prep, parse_row
 
 INPUT_DATA = {
     'd': '01/1/2010',
@@ -79,9 +81,18 @@ def test_data_prep_invalid_email():
     result = data_prep(source)
     assert not result.get('e')
 
+
 def test_data_prep_missing_email():
     """Validate handling of missing 'e' field."""
     source = INPUT_DATA.copy()
     del source['e']
     result = data_prep(source)
     assert not result.get('e')
+
+
+def test_parse_row_delimiter_in_column():
+    """Validate handing of a quoted column with delimiter inside."""
+    line = '"1250550","1266519","0","gnarlingtonlife@gmail.com","hi, yes"'
+    dialect = csv.excel
+    clean, fail = parse_row(line, 5, dialect)
+    assert not fail

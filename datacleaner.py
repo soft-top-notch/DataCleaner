@@ -763,37 +763,17 @@ def parse_file(tfile):
 
     pbar = TqdmUpTo(
         desc='Writing ', unit=' bytes ', total=os.path.getsize(gc_file))
-    for lk in F:
-        a = StringIO.StringIO()
-        a.write(lk)
-        a.seek(0)
-        orig_reader = UnicodeReader(a, dialect=dialect)
+    for line in F:
+        l_count += 1
 
-        for row in orig_reader:
-            if any(dialect.delimiter in i for i in row):
-                final = []
-                for i in row:
-                    final.extend(i.split(dialect.delimiter))
-                row = final
-            l_count += 1
+        cleaned_row, failed_row = parse_row(line, csv_column_count, dialect)
 
-            # Removing surrounding single quotes, whitespace, and newlines
-            row = [x.strip("'").strip() for x in row]
+        if failed_row:
+            error_file.write(unicode(failed_row))
+        else:
+            clean_writer.writerow(cleaned_row)
 
-            # Escape double quotes in field
-            row = [re.sub(r'"', r'\"', x) for x in row]
-
-            if len(row) == csv_column_count:
-                clean_writer.writerow(row)
-            else:
-                if args.m and csv_column_count > 1:
-                    lx = row[:csv_column_count - 1]
-                    lt = dialect.delimiter.join(row[csv_column_count - 1:])
-                    lx.append(lt)
-                    clean_writer.writerow(lx)
-                else:
-                    error_file.write(unicode(lk))
-            pbar.update_to(clean_writer.tell() + error_file.tell())
+        pbar.update_to(clean_writer.tell() + error_file.tell())
     pbar.close()
 
     F.close()
@@ -833,6 +813,30 @@ def parse_file(tfile):
 
     #print "Removing", gc_file
     os.remove(gc_file)
+
+
+def parse_row(line, csv_column_count, dialect):
+    """Parses row and returns a cleaned or failed row."""
+    line_buffer = StringIO.StringIO()
+    line_buffer.write(line)
+    line_buffer.seek(0)
+    orig_reader = UnicodeReader(line_buffer, dialect=dialect)
+
+    row = orig_reader.next()
+    # Removing surrounding single quotes, whitespace, and newlines
+    row_stripped = [x.strip("'").strip() for x in row]
+
+    # Escape double quotes in field
+    row_escaped = [re.sub(r'"', r'\"', x) for x in row_stripped]
+
+    if len(row) == csv_column_count:
+        return row_escaped, None
+    if args.m and csv_column_count > 1:
+        lx = row_escaped[:csv_column_count - 1]
+        lt = dialect.delimiter.join(row[csv_column_count - 1:])
+        lx.append(lt)
+        return lx, None
+    return None, line
 
 
 def write_headers(f, headers):
