@@ -1,0 +1,1 @@
+with_entries(if (.value | type) == "object" then .value = (.value | .a = .a + " " + .a2 | .n = .fn + " " + .ln | del(.fn) | del(.ln) | del(.a) | del(.a2) | del(.x) | if .e then .d = (.e | split("@")[1]) else . end) else . end)

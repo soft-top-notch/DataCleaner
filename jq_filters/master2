@@ -7,38 +7,38 @@ with_entries(
       else
         .
       end |
-      if .city then
+      if .a2 then
         if .a then
-          .a = .a + " " + .city
+          .a = .a + " " + .a2
         else
-          .a = .city
+          .a = .a2
         end
       else
         .
       end |
-      if .state then
+      if .a3 then
         if .a then
-          .a = .a + " " + .state
+          .a = .a + " " + .a3
         else
-          .a = .state
+          .a = .a3
         end
       else
         .
       end |
-      if .zip then
+      if .a4 then
         if .a then
-          .a = .a + " " + .zipcode
+          .a = .a + " " + .a4
         else
-          .a = .zipcode
+          .a = .a4
         end
       else
         .
       end |
-   if .zip then
+   if .a5 then
         if .a then
-          .a = .a + " " + .country
+          .a = .a + " " + .a5
         else
-          .a = .country
+          .a = .a5
         end
       else
         .
@@ -66,15 +66,15 @@ with_entries(
         select(
           .value != "" and
           .value != "null" and
-          .value != "blank" and
+          .value != "null null" and
+	  .value != " " and
           (.key | test("x\\d+$") | not) and
           .key != "fn" and
           .key != "ln" and
-          .key != "address" and
-          .key != "city" and
-          .key != "state" and
-          .key != "zipcode" and
-	  .key != "country" and
+          .key != "a2" and
+          .key != "a3" and
+          .key != "a4" and
+          .key != "a5" and
           (.value | test("^,+$") | not))) |
           if .e then
             .d = (.e | split("@")[1])
