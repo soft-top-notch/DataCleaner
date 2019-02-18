@@ -1,0 +1,1 @@
+._source | .a = .address + " " + .city + " " + .state + " " + .zip | del(.address) | del(.city) | del(.state) | del(.zip) | del(.x) 

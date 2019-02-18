@@ -1,0 +1,1 @@
+with_entries(. as $value | ("firstName", "lastName", "title", "email", "companyName", "address1", "city", "country", "phoneNumber", "website") as $desired | if ($desired | index($value.key)) then (. | select(.value != "")) else empty end)
