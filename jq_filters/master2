@@ -2,8 +2,8 @@ with_entries(
   if (.value | type) == "object" then
     .value = (
       .value |
-      if .address then
-        .a = .address
+      if .a1 then
+        .a = .a1
       else
         .
       end |
@@ -65,12 +65,15 @@ with_entries(
         end |
         select(
           .value != "" and
+	.value != " " and
           .value != "null" and
-          .value != "null null" and
-	  .value != " " and
+	.value != null and
+          .value != "blank" and
           (.key | test("x\\d+$") | not) and
           .key != "fn" and
           .key != "ln" and
+	  .key != "x" and
+          .key != "a1" and
           .key != "a2" and
           .key != "a3" and
           .key != "a4" and

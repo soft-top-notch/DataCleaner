@@ -69,6 +69,7 @@ with_entries(
           .value != "blank" and
           (.key | test("x\\d+$") | not) and
           .key != "fn" and
+	  .key != "x" and
           .key != "ln" and
           .key != "address" and
           .key != "city" and
