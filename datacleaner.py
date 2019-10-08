@@ -565,7 +565,7 @@ def write_json(source):
                 filename = filename.replace('_', ' ')
                 source['r'] = filename
 
-            data = {'_type': 'breach', '_source': source}
+            data = {'_source': source}
 
             outfile.write(json.dumps(data))
             line_count += 1
