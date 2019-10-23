@@ -1,5 +1,5 @@
 #!/usr/bin/env python2.7
-"""Parse all tables from SQL.
+"""Parse all tables from SQL dump to CSV files.
 
 Called with filename argument for one or more sql files/dumps.  Will output
 csv file for each table and move sql source file to completed or failed
@@ -17,14 +17,14 @@ Options:
     --exit-on-error               Exit on error, do not continue
     --failed=DIR                  Directory to store sql files with errors \
 [default: failed]
-    -h, --help                    This help output
     --tables=REGEXP               RegExp for table names
+    -h, --help                    This help output
     -V, --version                 Print version and exit
 
 Examples:
     full_db.py --completed='~/success' --failed='~/error' test.sql
     full_db.py --exit-on-error ~/samples/*.sql
-    full_db.py --tables="(?:[a-z0-9]+_)?(members?|users?)" test.sql
+    full_db.py --tables='members?|users?' test.sql
 """
 from __future__ import division, print_function
 
@@ -79,7 +79,7 @@ def main(args):
         try:
             parse(filepath)
         except KeyboardInterrupt:
-            print('Control-c pressed...')
+            print('Control-C pressed...')
             sys.exit(138)
         except Exception as error:
             move(filepath, args['--failed'])
@@ -277,11 +277,9 @@ def read_file(sqlfile):
                         else:
                             parsing = value_only
                             continue
-                    # elif not create_table:
                     else:
                         create = parse_sql(line, CREATE_BEGIN)
                         if create and isinstance(create, ParseResults):
-                            # if not table_name:
                             table_name = create.asDict().get('table_name')
                             create_table = CreateTable([line])
                             if create_table.ending not in line:
