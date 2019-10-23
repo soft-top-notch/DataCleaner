@@ -159,7 +159,8 @@ def parse(filepath):
                 else:
                     raise (Exception('Unknown error has occurred'))
 
-            csv_path = '{}.{}.csv'.format(filepath, table_name[0])
+            basepath = os.path.splitext(filepath)[0]
+            csv_path = '{}.{}.csv'.format(basepath, table_name[0])
             if table_name != last_table_name:
                 with io.open(csv_path, 'w', encoding=encoding) as cf:
                     if field_names:
