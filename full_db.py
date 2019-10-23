@@ -70,7 +70,7 @@ class CreateTable(object):
 @attr.s()
 class InsertInto(object):
     statement = attr.ib()
-    ending = attr.ib(default=');')
+    ending = attr.ib(default=');\n')
 
 
 def main(args):
