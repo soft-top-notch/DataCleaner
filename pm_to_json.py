@@ -35,9 +35,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-# How many bytes to read at a time
-READ_BUFFER = 10485760
-
 date_re = re.compile(r'^(msgtime)$', re.I)
 msg_re = re.compile(r'^(body)$', re.I)
 pid_re = re.compile(r'^(id_pm_head)$', re.I)
@@ -99,7 +96,7 @@ def msg_to_json(filepath):
 
         basepath = os.path.splitext(filepath)[0]
         with open(basepath + '.json', 'wb') as outfile:
-            for line in infile.readlines(READ_BUFFER):
+            for line in infile:
                 row = parse_row(line)
                 pid = row[pid_no]
 

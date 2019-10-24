@@ -37,9 +37,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-# How many bytes to read at a time
-READ_BUFFER = 10485760
-
 id_re = re.compile(r'^((?:user|member)_?id|id_?(?:user|member))$', re.I)
 name_re = re.compile(r'^((?:user|member)_?name|name_?(?:user|member))$', re.I)
 
@@ -81,7 +78,7 @@ def read_users(filepath):
             return None, None
         name_no = fieldnames.index(names[0])
 
-        for line in csvfile.readlines():
+        for line in csvfile:
             row = parse_row(line)
             users[row[id_no]] = row[name_no]
 
@@ -110,7 +107,7 @@ def merge_users(filepath, users, column_name):
             fieldnames.insert(id_no + 1, column_name)
             outfile.write(','.join(fieldnames) + '\n')
 
-            for line in infile.readlines(READ_BUFFER):
+            for line in infile:
                 row = parse_row(line)
                 username = users.get(row[id_no])
                 if username is None:

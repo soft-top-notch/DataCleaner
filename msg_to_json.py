@@ -37,9 +37,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-# How many bytes to read at a time
-READ_BUFFER = 10485760
-
 id_re = re.compile(r'^(id)$', re.I)
 
 forum_id_re = re.compile(r'^(forum_?id|id_board)$', re.I)
@@ -95,7 +92,7 @@ def read_forums(filepath):
             return
         name_no = fieldnames.index(names[0])
 
-        for line in csvfile.readlines():
+        for line in csvfile:
             row = parse_row(line)
             forums[row[id_no]] = row[name_no]
 
@@ -127,7 +124,7 @@ def read_topics(filepath):
             return
         forum_id_no = fieldnames.index(forum_ids[0])
 
-        for line in csvfile.readlines():
+        for line in csvfile:
             row = parse_row(line)
             topics[row[id_no]] = (row[name_no], row[forum_id_no])
 
@@ -193,7 +190,7 @@ def msg_to_json(filepath, forums, topics):
 
         basepath = os.path.splitext(filepath)[0]
         with open(basepath + '.json', 'wb') as outfile:
-            for line in infile.readlines(READ_BUFFER):
+            for line in infile:
                 row = parse_row(line)
                 pid = row[pid_no]
 

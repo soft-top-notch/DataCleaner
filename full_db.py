@@ -235,57 +235,53 @@ def read_file(sqlfile):
     parsing = None
     # Estimate byte length based on line length
     byte_num = 0
-    while True:
-        lines = sqlfile.readlines(READ_BUFFER)
-        if not lines:
-            break
-        for line in lines:
-            line = line.replace('\11\12\15\40-\176', '')
-            # line = line.replace('\\11\\12\\15\\40-\\176', '')
-            byte_num += len(line)
-            valid_insert = None
-            # If not parsing a CREATE or INSERT statement, look for one
-            if parsing:
-                # Continue parsing the current statement
-                parsing.statement.append(line)
-                if parsing.ending in line:
-                    no_newlines = rm_newlines(parsing.statement)
-                    if isinstance(parsing, CreateTable):
-                        create_table.statement = ''.join(no_newlines)
-                    elif isinstance(parsing, InsertInto):
-                        valid_insert = ''.join(no_newlines)
-                    parsing = None
+    for line in sqlfile:
+        line = line.replace('\11\12\15\40-\176', '')
+        # line = line.replace('\\11\\12\\15\\40-\\176', '')
+        byte_num += len(line)
+        valid_insert = None
+        # If not parsing a CREATE or INSERT statement, look for one
+        if parsing:
+            # Continue parsing the current statement
+            parsing.statement.append(line)
+            if parsing.ending in line:
+                no_newlines = rm_newlines(parsing.statement)
+                if isinstance(parsing, CreateTable):
+                    create_table.statement = ''.join(no_newlines)
+                elif isinstance(parsing, InsertInto):
+                    valid_insert = ''.join(no_newlines)
+                parsing = None
+        else:
+            insert = parse_sql(line, INSERT_BEGIN)
+            if insert and isinstance(insert, ParseResults):
+                if not table_name:
+                    table_name = insert.asDict().get('table_name')
+                insert_into = InsertInto([line])
+                if insert_into.ending in line:
+                    no_newlines = rm_newlines([line])
+                    valid_insert = ''.join(no_newlines)
+                else:
+                    parsing = insert_into
+                    continue
             else:
-                insert = parse_sql(line, INSERT_BEGIN)
-                if insert and isinstance(insert, ParseResults):
-                    if not table_name:
-                        table_name = insert.asDict().get('table_name')
-                    insert_into = InsertInto([line])
-                    if insert_into.ending in line:
+                value = parse_sql(line, VALUES_ONLY)
+                if value and isinstance(value, ParseResults):
+                    value_only = InsertInto([line])
+                    if value_only.ending in line:
                         no_newlines = rm_newlines([line])
                         valid_insert = ''.join(no_newlines)
                     else:
-                        parsing = insert_into
+                        parsing = value_only
                         continue
                 else:
-                    value = parse_sql(line, VALUES_ONLY)
-                    if value and isinstance(value, ParseResults):
-                        value_only = InsertInto([line])
-                        if value_only.ending in line:
-                            no_newlines = rm_newlines([line])
-                            valid_insert = ''.join(no_newlines)
-                        else:
-                            parsing = value_only
-                            continue
-                    else:
-                        create = parse_sql(line, CREATE_BEGIN)
-                        if create and isinstance(create, ParseResults):
-                            table_name = create.asDict().get('table_name')
-                            create_table = CreateTable([line])
-                            if create_table.ending not in line:
-                                parsing = create_table
-            if valid_insert:
-                yield create_table, table_name, valid_insert, byte_num
+                    create = parse_sql(line, CREATE_BEGIN)
+                    if create and isinstance(create, ParseResults):
+                        table_name = create.asDict().get('table_name')
+                        create_table = CreateTable([line])
+                        if create_table.ending not in line:
+                            parsing = create_table
+        if valid_insert:
+            yield create_table, table_name, valid_insert, byte_num
 
 
 def rm_newlines(lines):
