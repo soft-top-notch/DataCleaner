@@ -40,19 +40,19 @@ THE SOFTWARE.
 # How many bytes to read at a time
 READ_BUFFER = 10485760
 
-id_re = re.compile(r'((?:user_?)?id)', re.I)
-name_re = re.compile(r'((?:user_?)?name|login)', re.I)
+id_re = re.compile(r'((?:user|member)_?id|id_?(?:user|member))', re.I)
+name_re = re.compile(r'((?:user|member)_?name|name_?(?:user|member))', re.I)
 
 
 def main(args):
     """Executes main code."""
-    users = read_users(args['USERFILE'])
+    users, column_name = read_users(args['USERFILE'])
     if not users:
         sys.exit(1)
 
     for filepath in args['CSVFILE']:
         try:
-            merge_users(filepath, users)
+            merge_users(filepath, users, column_name)
         except KeyboardInterrupt:
             print('Control-C pressed...')
             sys.exit(138)
@@ -64,7 +64,7 @@ def main(args):
 
 
 def read_users(filepath):
-    """Read userid and username from CSV file, returns dict."""
+    """Read userid and username from CSV file."""
     users = {}
     with open(filepath, 'rb') as csvfile:
         fieldnames = parse_row(csvfile.readline())
@@ -72,23 +72,23 @@ def read_users(filepath):
         ids = filter(id_re.match, fieldnames)
         if not ids:
             c_error('Column userid not found in file {}'.format(filepath))
-            return
+            return None, None
         id_no = fieldnames.index(ids[0])
 
         names = filter(name_re.match, fieldnames)
         if not names:
             c_error('Column username not found in file {}'.format(filepath))
-            return
+            return None, None
         name_no = fieldnames.index(names[0])
 
         for line in csvfile.readlines():
             row = parse_row(line)
             users[row[id_no]] = row[name_no]
 
-    return users
+    return users, names[0]
 
 
-def merge_users(filepath, users):
+def merge_users(filepath, users, column_name):
     """Add username column after userid in new CSV file."""
     with open(filepath, 'rb') as infile:
         fieldnames = parse_row(infile.readline())
@@ -107,7 +107,7 @@ def merge_users(filepath, users):
 
         basepath = os.path.splitext(filepath)[0]
         with open(basepath + '.merged.csv', 'wb') as outfile:
-            fieldnames.insert(id_no + 1, 'username')
+            fieldnames.insert(id_no + 1, column_name)
             outfile.write(','.join(fieldnames) + '\n')
 
             for line in infile.readlines(READ_BUFFER):
