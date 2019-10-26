@@ -236,9 +236,8 @@ def read_file(sqlfile):
     # Estimate byte length based on line length
     byte_num = 0
     for line in sqlfile:
-        line = line.replace('\11\12\15\40-\176', '')
-        # line = line.replace('\\11\\12\\15\\40-\\176', '')
         byte_num += len(line)
+        line = rm_special_chars(line)
         valid_insert = None
         # If not parsing a CREATE or INSERT statement, look for one
         if parsing:
@@ -286,6 +285,11 @@ def read_file(sqlfile):
 
 def rm_newlines(lines):
     return [x.replace('\n', '').replace('\r', '') for x in lines]
+
+
+def rm_special_chars(line):
+    return filter(lambda c: c in ['\11', '\12', '\15'] or
+                            (c >= '\40' and c <= '\176'), line)
 
 
 def write_bad(filepath, insert_num, error, insert):
