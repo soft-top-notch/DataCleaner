@@ -16,15 +16,15 @@ Examples:
     msg_to_json.py --forums=forums.csv --topics=topics.csv posts.csv
     msg_to_json.py --forums=boards.csv messages.csv
 """
+from __future__ import division, print_function
+
+import csv
 import os
 import re
-import shlex
 import sys
 from collections import Counter
 
 from docopt import docopt
-
-from dc import c_error, c_warning
 
 __version__ = '0.5.0'
 __license__ = """
@@ -70,30 +70,33 @@ def main(args):
             if args['--exit-on-error']:
                 raise
             else:
-                c_error('{} ERROR:{}'.format(filepath, error))
+                print('{} ERROR:{}'.format(filepath, error))
 
 
 def read_forums(filepath):
     """Read forum id and name from CSV file."""
     forums = {}
     with open(filepath, 'rb') as csvfile:
-        fieldnames = parse_row(csvfile.readline())
+        reader = csv.reader(csvfile, quotechar='\\')
+        fieldnames = next(reader)
 
         ids = (filter(id_re.match, fieldnames) or
             filter(forum_id_re.match, fieldnames))
         if not ids:
-            c_error('Column forum_id not found in file {}'.format(filepath))
+            print('ERROR: Column forum_id not found in file {}'
+                  .format(filepath))
             return
         id_no = fieldnames.index(ids[0])
 
         names = filter(forum_name_re.match, fieldnames)
         if not names:
-            c_error('Column forum_name not found in file {}'.format(filepath))
+            print('ERROR: Column forum_name not found in file {}'
+                  .format(filepath))
             return
         name_no = fieldnames.index(names[0])
 
-        for line in csvfile:
-            row = parse_row(line)
+        for row in reader:
+            row = fix_comma(row)
             forums[row[id_no]] = row[name_no]
 
     return forums
@@ -103,29 +106,33 @@ def read_topics(filepath):
     """Read topic id and name from CSV file."""
     topics = {}
     with open(filepath, 'rb') as csvfile:
-        fieldnames = parse_row(csvfile.readline())
+        reader = csv.reader(csvfile, quotechar='\\')
+        fieldnames = next(reader)
 
         ids = (filter(id_re.match, fieldnames) or
             filter(topic_id_re.match, fieldnames))
         if not ids:
-            c_error('Column topic_id not found in file {}'.format(filepath))
+            print('ERROR: Column topic_id not found in file {}'
+                  .format(filepath))
             return
         id_no = fieldnames.index(ids[0])
 
         names = filter(topic_name_re.match, fieldnames)
         if not names:
-            c_error('Column topic_name not found in file {}'.format(filepath))
+            print('ERROR: Column topic_name not found in file {}'
+                  .format(filepath))
             return
         name_no = fieldnames.index(names[0])
 
         forum_ids = filter(forum_id_re.match, fieldnames)
         if not forum_ids:
-            c_error('Column forum_id not found in file {}'.format(filepath))
+            print('ERROR: Column forum_id not found in file {}'
+                  .format(filepath))
             return
         forum_id_no = fieldnames.index(forum_ids[0])
 
-        for line in csvfile:
-            row = parse_row(line)
+        for row in reader:
+            row = fix_comma(row)
             topics[row[id_no]] = (row[name_no], row[forum_id_no])
 
     return topics
@@ -136,62 +143,68 @@ def msg_to_json(filepath, forums, topics):
     post_comments = Counter()
 
     with open(filepath, 'rb') as infile:
-        fieldnames = parse_row(infile.readline())
+        reader = csv.reader(infile, quotechar='\\')
+        fieldnames = next(reader)
 
         if topics:
             topic_ids = filter(topic_id_re.match, fieldnames)
             if not topic_ids:
-                c_error('Column topic_id not found in file {}'.format(filepath))
+                print('ERROR: Column topic_id not found in file {}'
+                      .format(filepath))
                 return
             topic_id_no = fieldnames.index(topic_ids[0])
         else:
             topic_names = filter(topic_name_re.match, fieldnames)
             if not topic_names:
-                c_error('Column topic_name not found in file {}'.format(filepath))
+                print('ERROR: Column topic_name not found in file {}'
+                      .format(filepath))
                 return
             topic_name_no = fieldnames.index(topic_names[0])
 
             if forums:
                 forum_ids = filter(forum_id_re.match, fieldnames)
                 if not forum_ids:
-                    c_error('Column forum_id not found in file {}'.format(filepath))
+                    print('ERROR: Column forum_id not found in file {}'
+                          .format(filepath))
                     return
                 forum_id_no = fieldnames.index(forum_ids[0])
             else:
                 forum_names = filter(forum_name_re.match, fieldnames)
                 if not forum_names:
-                    c_error('Column forum_name not found in file {}'.format(filepath))
+                    print('ERROR: Column forum_name not found in file {}'
+                          .format(filepath))
                     return
                 forum_name_no = fieldnames.index(forum_names[0])
 
         dates = filter(date_re.match, fieldnames)
         if not dates:
-            c_error('Column date not found in file {}'.format(filepath))
+            print('ERROR: Column date not found in file {}'.format(filepath))
             return
         date_no = fieldnames.index(dates[0])
 
         msgs = filter(msg_re.match, fieldnames)
         if not msgs:
-            c_error('Column msg not found in file {}'.format(filepath))
+            print('ERROR: Column msg not found in file {}'.format(filepath))
             return
         msg_no = fieldnames.index(msgs[0])
 
         pids = filter(pid_re.match, fieldnames)
         if not pids:
-            c_error('Column pid not found in file {}'.format(filepath))
+            print('ERROR: Column pid not found in file {}'.format(filepath))
             return
         pid_no = fieldnames.index(pids[0])
 
         users = filter(user_re.match, fieldnames)
         if not users:
-            c_error('Column user not found in file {}'.format(filepath))
+            print('ERROR: Column user not found in file {}'.format(filepath))
             return
         user_no = fieldnames.index(users[0])
 
         basepath = os.path.splitext(filepath)[0]
         with open(basepath + '.json', 'wb') as outfile:
-            for line in infile:
-                row = parse_row(line)
+            for row in reader:
+                row = fix_comma(row)
+                row = map(remove_quotes, row)
                 pid = row[pid_no]
 
                 if topics:
@@ -227,16 +240,34 @@ def msg_to_json(filepath, forums, topics):
                 post_comments[pid] += 1
 
 
-def parse_row(line):
-    """Correct parsing CSV row with binary data, returns list."""
-    lex = shlex.shlex(line.rstrip(), posix=True)
-    lex.whitespace = ','
-    return list(lex)
-
-
 def esc(s):
     """Escape special characters."""
-    return s.replace('\\"', '"').replace('"', '\\"').replace('\n', '\\n')
+    return s.replace('\\"', '"').replace('"', '\\"')
+
+
+def fix_comma(row):
+    result = []
+    quote = None
+    for value in row:
+        if quote:
+            result[-1] += value
+            if len(value) and value[-1] == quote:
+                quote = None
+        else:
+            result.append(value)
+            if len(value) and value[0] in ("'", '"'):
+                quote = value[0]
+                if value[-1] == quote:
+                    quote = None
+                else:
+                    result[-1] += ','
+    return result
+
+
+def remove_quotes(s):
+    if s[0] in ('`', '"', "'") and s[0] == s[-1]:
+        s = s[1:-1]
+    return s
 
 
 if __name__ == '__main__':
