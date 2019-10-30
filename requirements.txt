@@ -6,4 +6,5 @@ python-magic
 validate_email
 python-dateutil
 colored
+sqlparse
 tqdm
