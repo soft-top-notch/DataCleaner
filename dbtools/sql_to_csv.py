@@ -74,6 +74,8 @@ class CreateTable():
         table = ''
         columns = []
 
+        bracket_level = 0
+        skip_to_comma = False
         waiting = CreateTable.table
         tokener = tokenize(sql, encoding)
         for t in tokener:
@@ -85,14 +87,18 @@ class CreateTable():
                     skip_to_comma = True
                 elif t[0] == tokens.Punctuation:
                     if t[1] == ',':
-                        skip_to_comma = False
+                        if bracket_level == 1:
+                            skip_to_comma = False
+                    elif t[1] == '(':
+                        bracket_level += 1
+                    elif t[1] == ')':
+                        bracket_level -= 1
                     elif t[1] == ';':
                         return table, columns
             elif waiting == CreateTable.table:
                 if t[0] == tokens.Name:
                     table = remove_quotes(t[1])
                     waiting += 1
-                    skip_to_comma = False
 
 
 
