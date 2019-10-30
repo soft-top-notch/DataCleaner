@@ -3,4 +3,7 @@
 .idea
 .vscode
 .pytest_cache
+completed
+data
+failed
 venv
