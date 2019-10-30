@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python2
 """Add username column after userid in CSV files.
 
 Called with CSV filename argument with users and one or more CSV files.
@@ -15,7 +15,7 @@ Options:
     -V, --version                 Print version and exit
 
 Examples:
-    full_db.py users.csv posts.csv
+    merge_user.py users.csv posts.csv
 """
 import os
 import re
@@ -24,9 +24,7 @@ import sys
 
 from docopt import docopt
 
-from dc import c_error, c_warning
-
-__version__ = '0.5.0'
+__version__ = '0.1.0'
 __license__ = """
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -57,7 +55,7 @@ def main(args):
             if args['--exit-on-error']:
                 raise
             else:
-                c_error('{} ERROR:{}'.format(filepath, error))
+                print('{} ERROR:{}'.format(filepath, error))
 
 
 def read_users(filepath):
@@ -68,13 +66,14 @@ def read_users(filepath):
 
         ids = filter(id_re.match, fieldnames)
         if not ids:
-            c_error('Column userid not found in file {}'.format(filepath))
+            print('ERROR: Column userid not found in file {}'.format(filepath))
             return None, None
         id_no = fieldnames.index(ids[0])
 
         names = filter(name_re.match, fieldnames)
         if not names:
-            c_error('Column username not found in file {}'.format(filepath))
+            print('ERROR: Column username not found in file {}'
+                  .format(filepath))
             return None, None
         name_no = fieldnames.index(names[0])
 
@@ -92,13 +91,13 @@ def merge_users(filepath, users, column_name):
 
         names = filter(name_re.match, fieldnames)
         if names:
-            c_warning('Column username already exists in file {}'
-                .format(filepath))
+            print('WARN: Column username already exists in file {}'
+                  .format(filepath))
             return
 
         ids = filter(id_re.match, fieldnames)
         if not ids:
-            c_warning('Column userid not found in file {}'.format(filepath))
+            print('WARN: Column userid not found in file {}'.format(filepath))
             return
         id_no = fieldnames.index(ids[0])
 
@@ -113,8 +112,8 @@ def merge_users(filepath, users, column_name):
                 if username is None:
                     username = ''
                     users[row[id_no]] = username
-                    c_warning('Username not found for userid={}'
-                        .format(row[id_no]))
+                    print('WARN: Username not found for userid={}'
+                          .format(row[id_no]))
                 row.insert(id_no + 1, username)
                 outfile.write('"' + '","'.join(row) + '"\n')
 
