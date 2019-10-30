@@ -7,7 +7,7 @@ Will output new CSV file for each file.
 CSV filename argument can be a list of files or wildcard (*).
 
 Usage:
-    merge_user.py [-hV] [--exit-on-error] USERFILE CSVFILE...
+    merge_user.py [-hV] [--exit-on-error] USERFILE CSVFILES...
 
 Options:
     --exit-on-error               Exit on error, do not continue
@@ -17,9 +17,11 @@ Options:
 Examples:
     merge_user.py users.csv posts.csv
 """
+from __future__ import division, print_function
+
+import csv
 import os
 import re
-import shlex
 import sys
 
 from docopt import docopt
@@ -45,7 +47,7 @@ def main(args):
     if not users:
         sys.exit(1)
 
-    for filepath in args['CSVFILE']:
+    for filepath in args['CSVFILES']:
         try:
             merge_users(filepath, users, column_name)
         except KeyboardInterrupt:
@@ -62,7 +64,8 @@ def read_users(filepath):
     """Read userid and username from CSV file."""
     users = {}
     with open(filepath, 'rb') as csvfile:
-        fieldnames = parse_row(csvfile.readline())
+        reader = csv.reader(csvfile, quotechar='\\')
+        fieldnames = next(reader)
 
         ids = filter(id_re.match, fieldnames)
         if not ids:
@@ -77,8 +80,8 @@ def read_users(filepath):
             return None, None
         name_no = fieldnames.index(names[0])
 
-        for line in csvfile:
-            row = parse_row(line)
+        for row in reader:
+            row = fix_comma(row)
             users[row[id_no]] = row[name_no]
 
     return users, names[0]
@@ -87,7 +90,8 @@ def read_users(filepath):
 def merge_users(filepath, users, column_name):
     """Add username column after userid in new CSV file."""
     with open(filepath, 'rb') as infile:
-        fieldnames = parse_row(infile.readline())
+        reader = csv.reader(infile, quotechar='\\')
+        fieldnames = next(reader)
 
         names = filter(name_re.match, fieldnames)
         if names:
@@ -106,8 +110,8 @@ def merge_users(filepath, users, column_name):
             fieldnames.insert(id_no + 1, column_name)
             outfile.write(','.join(fieldnames) + '\n')
 
-            for line in infile:
-                row = parse_row(line)
+            for row in reader:
+                row = fix_comma(row)
                 username = users.get(row[id_no])
                 if username is None:
                     username = ''
@@ -115,14 +119,26 @@ def merge_users(filepath, users, column_name):
                     print('WARN: Username not found for userid={}'
                           .format(row[id_no]))
                 row.insert(id_no + 1, username)
-                outfile.write('"' + '","'.join(row) + '"\n')
+                outfile.write(','.join(row) + '\n')
 
 
-def parse_row(line):
-    """Correct parsing CSV row with binary data, returns list."""
-    lex = shlex.shlex(line.rstrip(), posix=True)
-    lex.whitespace = ','
-    return list(lex)
+def fix_comma(row):
+    result = []
+    quote = None
+    for value in row:
+        if quote:
+            result[-1] += value
+            if len(value) and value[-1] == quote:
+                quote = None
+        else:
+            result.append(value)
+            if len(value) and value[0] in ("'", '"'):
+                quote = value[0]
+                if value[-1] == quote:
+                    quote = None
+                else:
+                    result[-1] += ','
+    return result
 
 
 if __name__ == '__main__':
