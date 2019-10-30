@@ -61,6 +61,10 @@ def remove_quotes(s):
     return s
 
 
+def escape_newlines(text):
+    return text.replace('\r', '\\r').replace('\n', '\\n')
+
+
 class CreateTable():
     table = 0
     columns = 1
@@ -149,7 +153,7 @@ def write_csv(sqlpath, table, columns, values, encoding='utf-8'):
     if values:
         with io.open(filepath, 'a', encoding=encoding) as f:
             for row in values:
-                f.write(','.join(row) + '\n')
+                f.write(escape_newlines(','.join(row)) + '\n')
                 lines += 1
     return lines
 
