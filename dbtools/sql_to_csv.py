@@ -55,14 +55,12 @@ def pair_quotes(text, prev=None):
     return prev
 
 
-def remove_quotes(s):
-    if s[0] in ('`', '"', "'") and s[0] == s[-1]:
-        s = s[1:-1]
-    return s
-
-
-def escape_newlines(text):
-    return text.replace('\r', '\\r').replace('\n', '\\n')
+def replace_quotes(text, quote=None):
+    if text and text[0] in ('`', "'", '"') and text[-1] == text[0]:
+        text = text[1:-1]
+        if quote:
+            text = quote + text + quote
+    return text
 
 
 class CreateTable():
@@ -81,7 +79,7 @@ class CreateTable():
         for t in tokener:
             if waiting == CreateTable.columns:
                 if t[0] == tokens.Name and not skip_to_comma:
-                    columns.append(remove_quotes(t[1]))
+                    columns.append(replace_quotes(t[1]))
                     skip_to_comma = True
                 elif t[0] == tokens.Keyword and not skip_to_comma:
                     skip_to_comma = True
@@ -97,7 +95,7 @@ class CreateTable():
                         return table, columns
             elif waiting == CreateTable.table:
                 if t[0] == tokens.Name:
-                    table = remove_quotes(t[1])
+                    table = replace_quotes(t[1])
                     waiting += 1
 
 
@@ -137,14 +135,20 @@ class InsertInto():
                         values.append(t[1])
             elif waiting == InsertInto.columns:
                 if t[0] == tokens.Name:
-                    columns.append(remove_quotes(t[1]))
+                    columns.append(replace_quotes(t[1]))
                 elif t[0] == tokens.Keyword and t[1] == 'VALUES':
                     yield table, columns
                     waiting += 1
             elif waiting == InsertInto.table:
                 if t[0] == tokens.Name:
-                    table = remove_quotes(t[1])
+                    table = replace_quotes(t[1])
                     waiting += 1
+
+
+def csv_line(row):
+    row = map(lambda s: replace_quotes(s, '"'), row)
+    line = ','.join(row).replace("\\'", "'")
+    return line.replace('\r', '\\r').replace('\n', '\\n') + '\n'
 
 
 def write_csv(sqlpath, table, columns, values, encoding='utf-8'):
@@ -153,13 +157,13 @@ def write_csv(sqlpath, table, columns, values, encoding='utf-8'):
 
     if columns:
         with io.open(filepath, 'w', encoding=encoding) as f:
-            f.write(','.join(columns) + '\n')
+            f.write(csv_line(columns))
 
     lines = 0
     if values:
         with io.open(filepath, 'a', encoding=encoding) as f:
             for row in values:
-                f.write(escape_newlines(','.join(row)) + '\n')
+                f.write(csv_line(row))
                 lines += 1
     return lines
 
