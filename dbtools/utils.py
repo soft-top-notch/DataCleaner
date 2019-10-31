@@ -3,26 +3,6 @@ import re
 quotes_re = re.compile(r'\'|"|\\\'|\\\"')
 
 
-def pair_quotes(text, prev=None):
-    for m in quotes_re.finditer(text):
-        quote = m.group(0)
-        if quote[0] != '\\':
-            if prev:
-                if prev == quote:
-                    prev = None
-            else:
-                prev = quote
-    return prev
-
-
-def replace_quotes(text, quote=None):
-    if text and text[0] in ('`', "'", '"') and text[-1] == text[0]:
-        text = text[1:-1]
-        if quote:
-            text = quote + text + quote
-    return text
-
-
 def csv_reader(file):
     """Keeps original quotes in row."""
     for line in file:
@@ -48,3 +28,32 @@ def _join_common_columns(row):
                 else:
                     result[-1] += ','
     return result
+
+
+def pair_quotes(text, prev=None):
+    for m in quotes_re.finditer(text):
+        quote = m.group(0)
+        if quote[0] != '\\':
+            if prev:
+                if prev == quote:
+                    prev = None
+            else:
+                prev = quote
+    return prev
+
+
+def replace_quotes(text, quote=None):
+    if text and text[0] in ('`', "'", '"') and text[-1] == text[0]:
+        text = text[1:-1]
+        if quote:
+            text = quote + text + quote
+    return text
+
+
+def splitlines(text):
+    start = 0
+    for m in re.finditer(r'\r?\n', text):
+        yield text[start:m.start()]
+        start = m.end()
+
+    raise StopIteration

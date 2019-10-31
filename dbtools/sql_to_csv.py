@@ -29,7 +29,7 @@ from sqlparse import tokens
 from sqlparse.lexer import tokenize
 from tqdm import tqdm
 
-from utils import pair_quotes, replace_quotes
+from utils import pair_quotes, replace_quotes, splitlines
 
 __version__ = '0.1.0'
 __license__ = """
@@ -57,11 +57,13 @@ class CreateTable():
         tokener = tokenize(sql, encoding)
         for t in tokener:
             if waiting == CreateTable.columns:
-                if t[0] == tokens.Name and not skip_to_comma:
-                    columns.append(replace_quotes(t[1]))
-                    skip_to_comma = True
-                elif t[0] == tokens.Keyword and not skip_to_comma:
-                    skip_to_comma = True
+                if t[0] not in (tokens.Punctuation, tokens.Whitespace,
+                                tokens.Newline):
+                    if t[1] in ('PRIMARY', 'KEY'):
+                        skip_to_comma = True
+                    if not skip_to_comma:
+                        columns.append(replace_quotes(t[1]))
+                        skip_to_comma = True
                 elif t[0] == tokens.Punctuation:
                     if t[1] == ',':
                         if bracket_level == 1:
@@ -73,10 +75,10 @@ class CreateTable():
                     elif t[1] == ';':
                         return table, columns
             elif waiting == CreateTable.table:
-                if t[0] == tokens.Name:
-                    table = replace_quotes(t[1])
-                    waiting += 1
-
+                if t[0] in (tokens.Name, tokens.String.Symbol):
+                    if replace_quotes(t[1]) != 'public':
+                        table = replace_quotes(t[1])
+                        waiting += 1
 
 
 class InsertInto():
@@ -113,15 +115,61 @@ class InsertInto():
                     else:
                         values.append(t[1])
             elif waiting == InsertInto.columns:
-                if t[0] == tokens.Name:
-                    columns.append(replace_quotes(t[1]))
-                elif t[0] == tokens.Keyword and t[1] == 'VALUES':
-                    yield table, columns
-                    waiting += 1
+                if t[0] not in (tokens.Punctuation, tokens.Whitespace,
+                                tokens.Newline):
+                    if t[1] == 'VALUES':
+                        yield table, columns
+                        waiting += 1
+                    else:
+                        columns.append(replace_quotes(t[1]))
             elif waiting == InsertInto.table:
-                if t[0] == tokens.Name:
-                    table = replace_quotes(t[1])
-                    waiting += 1
+                if t[0] in (tokens.Name, tokens.String.Symbol):
+                    if replace_quotes(t[1]) != 'public':
+                        table = replace_quotes(t[1])
+                        waiting += 1
+
+
+class Copy():
+    table = 1
+    columns = 2
+    values = 3
+
+    @staticmethod
+    def parse(sql, encoding=None):
+        table = ''
+        columns = []
+        values = []
+
+        waiting = Copy.table
+        tokener = tokenize(sql, encoding)
+        for t in tokener:
+            if waiting == Copy.columns:
+                if t[0] not in (tokens.Punctuation, tokens.Whitespace,
+                                tokens.Newline):
+                    if t[1] == 'FROM':
+                        yield table, columns
+                        waiting += 1
+                        break
+                    else:
+                        columns.append(replace_quotes(t[1]))
+            elif waiting == Copy.table:
+                if t[0] in (tokens.Name, tokens.String.Symbol):
+                    if replace_quotes(t[1]) != 'public':
+                        table = replace_quotes(t[1])
+                        waiting += 1
+
+        sql = sql[sql.index(';') + 1:sql.rindex('\\.')]\
+            .lstrip().decode(encoding)
+        for line in splitlines(sql):
+            values = line.split('\t')
+            if len(columns) != len(values) and columns:
+                raise Exception(
+                    'ERORR: Wrong length of columns in table "%s",'
+                    ' should be %d for data: %s' %
+                    (table, len(columns), values))
+
+            values = map(lambda x: '"' + x + '"', values)
+            yield map(lambda x: x if x != '"\\N"' else '', values)
 
 
 def csv_line(row):
@@ -166,29 +214,44 @@ def parse(filepath, tables, encoding):
             if statement is None:
                 if line.startswith('INSERT INTO'):
                     statement = InsertInto
+                elif line.startswith('COPY'):
+                    statement = Copy
                 elif line.startswith('CREATE TABLE'):
                     statement = CreateTable
                 else:
                     continue
 
             lines += line
-            prev_quote = pair_quotes(line, prev_quote)
 
-            if prev_quote is None and line.endswith((';\n', ';\r\n')):
-                if statement == InsertInto:
-                    parser = InsertInto.parse(lines, encoding)
-                    table, columns = next(parser)
-                    if not tables or tables_re.match(table):
-                        total_lines += write_csv(filepath, table, None, parser)
+            if statement == InsertInto:
+                if not line.endswith((');\n', ');\r\n')):
+                    continue
+                prev_quote = pair_quotes(line, prev_quote)
+                if prev_quote:
+                    continue
+                parser = InsertInto.parse(lines, encoding)
+                table, columns = next(parser)
+                if not tables or tables_re.match(table):
+                    total_lines += write_csv(filepath, table, None, parser)
 
-                elif statement == CreateTable:
-                    table, columns = CreateTable.parse(lines, encoding)
-                    if not tables or tables_re.match(table):
-                        write_csv(filepath, table, columns, None)
-                        total_tables += 1
+            elif statement == Copy:
+                if not line.startswith('\\.'):
+                    continue
+                parser = Copy.parse(lines, encoding)
+                table, columns = next(parser)
+                if not tables or tables_re.match(table):
+                    total_lines += write_csv(filepath, table, None, parser)
 
-                lines = ''
-                statement = None
+            elif statement == CreateTable:
+                if not line.endswith((';\n', ';\r\n')):
+                    continue
+                table, columns = CreateTable.parse(lines, encoding)
+                if not tables or tables_re.match(table):
+                    write_csv(filepath, table, columns, None)
+                    total_tables += 1
+
+            lines = ''
+            statement = None
 
     pbar.close()
     print('  Found %d table(s), %d value line(s).' %
