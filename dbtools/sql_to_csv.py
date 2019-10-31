@@ -29,6 +29,8 @@ from sqlparse import tokens
 from sqlparse.lexer import tokenize
 from tqdm import tqdm
 
+from utils import pair_quotes, replace_quotes
+
 __version__ = '0.1.0'
 __license__ = """
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -39,29 +41,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
-quotes_re = re.compile(r'\'|"|\\\'|\\\"')
-
-
-def pair_quotes(text, prev=None):
-    for m in quotes_re.finditer(text):
-        quote = m.group(0)
-        if quote[0] != '\\':
-            if prev:
-                if prev == quote:
-                    prev = None
-            else:
-                prev = quote
-    return prev
-
-
-def replace_quotes(text, quote=None):
-    if text and text[0] in ('`', "'", '"') and text[-1] == text[0]:
-        text = text[1:-1]
-        if quote:
-            text = quote + text + quote
-    return text
-
 
 class CreateTable():
     table = 0

@@ -16,13 +16,14 @@ Examples:
 """
 from __future__ import division, print_function
 
-import csv
 import os
 import re
 import sys
 from collections import Counter
 
 from docopt import docopt
+
+from utils import csv_reader, replace_quotes
 
 __version__ = '0.1.0'
 __license__ = """
@@ -62,7 +63,7 @@ def msg_to_json(filepath):
     post_comments = Counter()
 
     with open(filepath, 'rb') as infile:
-        reader = csv.reader(infile, quotechar='\\')
+        reader = csv_reader(infile)
         fieldnames = next(reader)
 
         dates = filter(date_re.match, fieldnames)
@@ -98,8 +99,7 @@ def msg_to_json(filepath):
         basepath = os.path.splitext(filepath)[0]
         with open(basepath + '.json', 'wb') as outfile:
             for row in reader:
-                row = fix_comma(row)
-                row = map(remove_quotes, row)
+                row = map(replace_quotes, row)
                 pid = row[pid_no]
 
                 outfile.write('{'
@@ -113,44 +113,14 @@ def msg_to_json(filepath):
                         '"cid":"%s"'
                     '}'
                 '}\n' % (
-                    esc(row[subj_no]),
-                    esc(row[user_no]),
+                    row[subj_no],
+                    row[user_no],
                     row[date_no],
-                    esc(row[msg_no]),
-                    pid,
+                    row[msg_no],
+                    replace_quotes(pid),
                     post_comments[pid]
                 ))
                 post_comments[pid] += 1
-
-
-def esc(s):
-    """Escape special characters."""
-    return s.replace('\\"', '"').replace('"', '\\"')
-
-
-def fix_comma(row):
-    result = []
-    quote = None
-    for value in row:
-        if quote:
-            result[-1] += value
-            if len(value) and value[-1] == quote:
-                quote = None
-        else:
-            result.append(value)
-            if len(value) and value[0] in ("'", '"'):
-                quote = value[0]
-                if value[-1] == quote:
-                    quote = None
-                else:
-                    result[-1] += ','
-    return result
-
-
-def remove_quotes(s):
-    if s[0] in ('`', '"', "'") and s[0] == s[-1]:
-        s = s[1:-1]
-    return s
 
 
 if __name__ == '__main__':

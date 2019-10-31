@@ -19,12 +19,13 @@ Examples:
 """
 from __future__ import division, print_function
 
-import csv
 import os
 import re
 import sys
 
 from docopt import docopt
+
+from utils import csv_reader
 
 __version__ = '0.1.0'
 __license__ = """
@@ -64,7 +65,7 @@ def read_users(filepath):
     """Read userid and username from CSV file."""
     users = {}
     with open(filepath, 'rb') as csvfile:
-        reader = csv.reader(csvfile, quotechar='\\')
+        reader = csv_reader(csvfile)
         fieldnames = next(reader)
 
         ids = filter(id_re.match, fieldnames)
@@ -81,7 +82,6 @@ def read_users(filepath):
         name_no = fieldnames.index(names[0])
 
         for row in reader:
-            row = fix_comma(row)
             users[row[id_no]] = row[name_no]
 
     return users, names[0]
@@ -90,7 +90,7 @@ def read_users(filepath):
 def merge_users(filepath, users, column_name):
     """Add username column after userid in new CSV file."""
     with open(filepath, 'rb') as infile:
-        reader = csv.reader(infile, quotechar='\\')
+        reader = csv_reader(infile)
         fieldnames = next(reader)
 
         names = filter(name_re.match, fieldnames)
@@ -111,7 +111,6 @@ def merge_users(filepath, users, column_name):
             outfile.write(','.join(fieldnames) + '\n')
 
             for row in reader:
-                row = fix_comma(row)
                 username = users.get(row[id_no])
                 if username is None:
                     username = ''
@@ -120,25 +119,6 @@ def merge_users(filepath, users, column_name):
                           .format(row[id_no]))
                 row.insert(id_no + 1, username)
                 outfile.write(','.join(row) + '\n')
-
-
-def fix_comma(row):
-    result = []
-    quote = None
-    for value in row:
-        if quote:
-            result[-1] += value
-            if len(value) and value[-1] == quote:
-                quote = None
-        else:
-            result.append(value)
-            if len(value) and value[0] in ("'", '"'):
-                quote = value[0]
-                if value[-1] == quote:
-                    quote = None
-                else:
-                    result[-1] += ','
-    return result
 
 
 if __name__ == '__main__':
