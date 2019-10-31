@@ -8,3 +8,5 @@ python-dateutil
 colored
 sqlparse
 tqdm
+docopt
+sqlparse
