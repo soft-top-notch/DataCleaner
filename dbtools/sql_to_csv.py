@@ -5,16 +5,17 @@ Will output CSV file for each found table in utf-8 encoding with comma
 separator. File names argument can be a list of files or wildcard.
 
 Usage:
-    sql_to_csv.py [-hV] [--encoding=ENC] [--tables=TABLES] SQLFILES...
+    sql_to_csv.py [-hV] [--encoding=ENC] [--tables=RE] SQLFILES...
 
 Options:
     -h, --help                    This help output
     -V, --version                 Print version and exit
     --encoding=ENC                Encoding [default: latin1]
-    --tables=TABLES               RegExp for matching table names
+    --tables=RE                   RegExp for matching table names
 
 Examples:
-    sql_to_csv.py dump.sql
+    sql_to_csv.py mysql.sql
+    sql_to_csv.py --encoding=utf-8 postgres.sql
     sql_to_csv.py --tables='members?|users?' *.sql
 """
 from __future__ import division, print_function
