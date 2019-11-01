@@ -1,10 +1,11 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python2
 """Convert personal messages from CSV to JSON format.
 
+The recipients CSV file should have merged user names.
 Will output new JSON file for each file.
 
 Usage:
-    msg_to_json.py [-hV] [--exit-on-error] CSVFILE...
+    msg_to_json.py [-hV] [--exit-on-error] [--recipients=CSV] PM_CSV...
 
 Options:
     --exit-on-error               Exit on error, do not continue
@@ -36,18 +37,27 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-date_re = re.compile(r'^(msgtime)$', re.I)
-msg_re = re.compile(r'^(body)$', re.I)
-pid_re = re.compile(r'^(id_pm_head)$', re.I)
-subj_re = re.compile(r'^(subject)$', re.I)
-user_re = re.compile(r'^(from_name)$', re.I)
+id_re = re.compile(r'^(id)$', re.I)
+
+pm_id_re = re.compile(r'^(id_?pm|pm_?id)$', re.I)
+to_re = re.compile(r'^(member_?name|user_?name)$', re.I)
+
+date_re = re.compile(r'^(msgtime|dateline)$', re.I)
+msg_re = re.compile(r'^(body|message)$', re.I)
+pid_re = re.compile(r'^(id_pm_head|pm_?text_?id)$', re.I)
+subj_re = re.compile(r'^(subject|title)$', re.I)
+from_re = re.compile(r'^(from_?name|from_?user_?name)$', re.I)
 
 
 def main(args):
     """Executes main code."""
-    for filepath in args['CSVFILE']:
+    pm_recipients = None
+    if args['--recipients']:
+        pm_recipients = read_pm_recipients(args['--recipients'])
+
+    for filepath in args['PM_CSV']:
         try:
-            msg_to_json(filepath)
+            msg_to_json(filepath, pm_recipients)
         except KeyboardInterrupt:
             print('Control-C pressed...')
             sys.exit(138)
@@ -58,7 +68,39 @@ def main(args):
                 print('{} ERROR:{}'.format(filepath, error))
 
 
-def msg_to_json(filepath):
+def read_pm_recipients(filepath):
+    """Read msg id and user name from CSV file."""
+    pm_recipients = {}
+    with open(filepath, 'rb') as csvfile:
+        reader = csv_reader(csvfile)
+        fieldnames = next(reader)
+
+        ids = (filter(id_re.match, fieldnames) or
+            filter(pm_id_re.match, fieldnames))
+        if not ids:
+            print('ERROR: Column pm_id not found in file {}'
+                  .format(filepath))
+            return
+        id_no = fieldnames.index(ids[0])
+
+        names = filter(to_re.match, fieldnames)
+        if not names:
+            print('ERROR: Column member_name not found in file {}'
+                  .format(filepath))
+            return
+        name_no = fieldnames.index(names[0])
+
+        for row in reader:
+            name = replace_quotes(row[name_no])
+            if row[id_no] in pm_recipients:
+                pm_recipients[row[id_no]] += ',' + name
+            else:
+                pm_recipients[row[id_no]] = name
+
+    return pm_recipients
+
+
+def msg_to_json(filepath, pm_recipients):
     """Convert personal messages from CSV to JSON format."""
     post_comments = Counter()
 
@@ -90,7 +132,7 @@ def msg_to_json(filepath):
             return
         subj_no = fieldnames.index(subjs[0])
 
-        users = filter(user_re.match, fieldnames)
+        users = filter(from_re.match, fieldnames)
         if not users:
             print('ERROR: Column user not found in file {}'.format(filepath))
             return
@@ -107,6 +149,7 @@ def msg_to_json(filepath):
                         '"type":"pm",'
                         '"subject":"%s",'
                         '"author":"%s",'
+                        '"recipient":"%s",'
                         '"date":"%s",'
                         '"message":"%s",'
                         '"pid":"%s",'
@@ -115,6 +158,7 @@ def msg_to_json(filepath):
                 '}\n' % (
                     row[subj_no],
                     row[user_no],
+                    pm_recipients.get(pid, ''),
                     row[date_no],
                     row[msg_no],
                     replace_quotes(pid),

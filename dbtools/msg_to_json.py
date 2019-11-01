@@ -1,11 +1,11 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python2
 """Convert forum messages from CSV to JSON format.
 
 Will output new JSON file.
 
 Usage:
-    msg_to_json.py [-hV] [--exit-on-error] [--forums=FORUMS_CSV] \
-        [--topics=TOPICS_CSV] POSTS_CSV...
+    msg_to_json.py [-hV] [--exit-on-error] [--forums=CSV] \
+        [--topics=CSV] POSTS_CSV...
 
 Options:
     --exit-on-error               Exit on error, do not continue
@@ -27,7 +27,7 @@ from docopt import docopt
 
 from utils import csv_reader, replace_quotes
 
-__version__ = '0.5.0'
+__version__ = '0.1.0'
 __license__ = """
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
