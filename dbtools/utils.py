@@ -16,7 +16,8 @@ def _join_common_columns(row):
     for value in row:
         if quote:
             result[-1] += value
-            if len(value) and value[-1] == quote:
+            if len(value) and value[-1] == quote and (len(value) <= 2 or
+                                                      value[-2] != '\\'):
                 quote = None
         else:
             result.append(value)

@@ -60,7 +60,7 @@ class CreateTable():
             if waiting == CreateTable.columns:
                 if t[0] not in (tokens.Punctuation, tokens.Whitespace,
                                 tokens.Newline):
-                    if t[1] in ('PRIMARY', 'KEY'):
+                    if t[1] in ('PRIMARY', 'KEY', 'UNIQUE'):
                         skip_to_comma = True
                     if not skip_to_comma:
                         columns.append(replace_quotes(t[1]))

@@ -15,7 +15,8 @@ Options:
     -V, --version                 Print version and exit
 
 Examples:
-    merge_user.py users.csv posts.csv
+    merge_user.py members.csv pm_recipients.csv
+    merge_user.py user.csv pm.csv
 """
 from __future__ import division, print_function
 

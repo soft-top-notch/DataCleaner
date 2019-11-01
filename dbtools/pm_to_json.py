@@ -5,7 +5,8 @@ The recipients CSV file should have merged user names.
 Will output new JSON file for each file.
 
 Usage:
-    msg_to_json.py [-hV] [--exit-on-error] [--recipients=CSV] PM_CSV...
+    msg_to_json.py [-hV] [--exit-on-error] [--recipients=CSV] [--pm=CSV] \
+PMTEXT_CSV...
 
 Options:
     --exit-on-error               Exit on error, do not continue
@@ -13,7 +14,8 @@ Options:
     -V, --version                 Print version and exit
 
 Examples:
-    pm_to_json.py personal_messages.csv
+    pm_to_json.py --recipients=pm_recipients.merged.csv personal_messages.csv
+    pm_to_json.py --recipients=pmreceipt.csv --pm=pm.merged.csv pmtext.csv
 """
 from __future__ import division, print_function
 
@@ -40,7 +42,8 @@ THE SOFTWARE.
 id_re = re.compile(r'^(id)$', re.I)
 
 pm_id_re = re.compile(r'^(id_?pm|pm_?id)$', re.I)
-to_re = re.compile(r'^(member_?name|user_?name)$', re.I)
+pmtext_id_re = re.compile(r'^(id_?pm_?text|pm_?text_?id)$', re.I)
+to_re = re.compile(r'^(member_?name|user_?name|to_?user_?name)$', re.I)
 
 date_re = re.compile(r'^(msgtime|dateline)$', re.I)
 msg_re = re.compile(r'^(body|message)$', re.I)
@@ -55,9 +58,14 @@ def main(args):
     if args['--recipients']:
         pm_recipients = read_pm_recipients(args['--recipients'])
 
-    for filepath in args['PM_CSV']:
+    pmtext_pms = None
+    pm_users = None
+    if args['--pm']:
+        pmtext_pms, pm_users = read_pm(args['--pm'])
+
+    for filepath in args['PMTEXT_CSV']:
         try:
-            msg_to_json(filepath, pm_recipients)
+            msg_to_json(filepath, pm_recipients, pmtext_pms, pm_users)
         except KeyboardInterrupt:
             print('Control-C pressed...')
             sys.exit(138)
@@ -100,7 +108,44 @@ def read_pm_recipients(filepath):
     return pm_recipients
 
 
-def msg_to_json(filepath, pm_recipients):
+def read_pm(filepath):
+    """Read pm_id, pmtext_id and user_name from CSV file."""
+    pmtext_pms = {}
+    pm_users = {}
+    with open(filepath, 'rb') as csvfile:
+        reader = csv_reader(csvfile)
+        fieldnames = next(reader)
+
+        ids = (filter(id_re.match, fieldnames) or
+            filter(pm_id_re.match, fieldnames))
+        if not ids:
+            print('ERROR: Column pm_id not found in file {}'
+                  .format(filepath))
+            return
+        id_no = fieldnames.index(ids[0])
+
+        ptext_ids = filter(pmtext_id_re.match, fieldnames)
+        if not ptext_ids:
+            print('ERROR: Column pmtext_id not found in file {}'
+                  .format(filepath))
+            return
+        pmtext_id_no = fieldnames.index(ptext_ids[0])
+
+        names = filter(to_re.match, fieldnames)
+        if not names:
+            print('ERROR: Column user_name not found in file {}'
+                  .format(filepath))
+            return
+        name_no = fieldnames.index(names[0])
+
+        for row in reader:
+            pmtext_pms[row[pmtext_id_no]] = row[id_no]
+            pm_users[row[id_no]] = replace_quotes(row[name_no])
+
+    return pmtext_pms, pm_users
+
+
+def msg_to_json(filepath, pm_recipients, pmtext_pms, pm_users):
     """Convert personal messages from CSV to JSON format."""
     post_comments = Counter()
 
@@ -144,6 +189,15 @@ def msg_to_json(filepath, pm_recipients):
                 row = map(replace_quotes, row)
                 pid = row[pid_no]
 
+                if pmtext_pms:
+                    pm_id = pmtext_pms.get(pid)
+                    recipients = pm_users.get(pm_id, '')
+                    pm_users[pm_id] = ''
+                else:
+                    recipients = pm_recipients.get(pid, '')
+                # if not recipients:
+                #     print('WARN: Recipient not found for pm_id {}'.format(pid))
+
                 outfile.write('{'
                     '"_type":"forums","_source":{'
                         '"type":"pm",'
@@ -158,7 +212,7 @@ def msg_to_json(filepath, pm_recipients):
                 '}\n' % (
                     row[subj_no],
                     row[user_no],
-                    pm_recipients.get(pid, ''),
+                    recipients,
                     row[date_no],
                     row[msg_no],
                     replace_quotes(pid),
