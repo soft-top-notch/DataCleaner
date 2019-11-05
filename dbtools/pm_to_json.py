@@ -1,7 +1,8 @@
 #!/usr/bin/env python2
 """Convert personal messages from CSV to JSON format.
 
-The recipients CSV file should have merged user names.
+The recipients CSV file should have merged user names. Sometimes need
+additional parameter "--pm" for matching "pm_id" and "pmtext_id".
 Will output new JSON file for each file.
 
 Usage:
@@ -59,13 +60,12 @@ def main(args):
         pm_recipients = read_pm_recipients(args['--recipients'])
 
     pmtext_pms = None
-    pm_users = None
     if args['--pm']:
-        pmtext_pms, pm_users = read_pm(args['--pm'])
+        pmtext_pms = read_pm(args['--pm'])
 
     for filepath in args['PMTEXT_CSV']:
         try:
-            msg_to_json(filepath, pm_recipients, pmtext_pms, pm_users)
+            msg_to_json(filepath, pm_recipients, pmtext_pms)
         except KeyboardInterrupt:
             print('Control-C pressed...')
             sys.exit(138)
@@ -93,17 +93,18 @@ def read_pm_recipients(filepath):
 
         names = filter(to_re.match, fieldnames)
         if not names:
-            print('ERROR: Column member_name not found in file {}'
+            print('ERROR: Column to_user_name not found in file {}'
                   .format(filepath))
             return
         name_no = fieldnames.index(names[0])
 
         for row in reader:
+            pm_id = replace_quotes(row[id_no])
             name = replace_quotes(row[name_no])
-            if row[id_no] in pm_recipients:
-                pm_recipients[row[id_no]] += ',' + name
+            if pm_id in pm_recipients:
+                pm_recipients[pm_id] += ',' + name
             else:
-                pm_recipients[row[id_no]] = name
+                pm_recipients[pm_id] = name
 
     return pm_recipients
 
@@ -111,7 +112,6 @@ def read_pm_recipients(filepath):
 def read_pm(filepath):
     """Read pm_id, pmtext_id and user_name from CSV file."""
     pmtext_pms = {}
-    pm_users = {}
     with open(filepath, 'rb') as csvfile:
         reader = csv_reader(csvfile)
         fieldnames = next(reader)
@@ -131,21 +131,15 @@ def read_pm(filepath):
             return
         pmtext_id_no = fieldnames.index(ptext_ids[0])
 
-        names = filter(to_re.match, fieldnames)
-        if not names:
-            print('ERROR: Column user_name not found in file {}'
-                  .format(filepath))
-            return
-        name_no = fieldnames.index(names[0])
-
         for row in reader:
-            pmtext_pms[row[pmtext_id_no]] = row[id_no]
-            pm_users[row[id_no]] = replace_quotes(row[name_no])
+            pm_id = replace_quotes(row[id_no])
+            pmtext_id = replace_quotes(row[pmtext_id_no])
+            pmtext_pms[pmtext_id] = pm_id
 
-    return pmtext_pms, pm_users
+    return pmtext_pms
 
 
-def msg_to_json(filepath, pm_recipients, pmtext_pms, pm_users):
+def msg_to_json(filepath, pm_recipients, pmtext_pms):
     """Convert personal messages from CSV to JSON format."""
     post_comments = Counter()
 
@@ -191,8 +185,7 @@ def msg_to_json(filepath, pm_recipients, pmtext_pms, pm_users):
 
                 if pmtext_pms:
                     pm_id = pmtext_pms.get(pid)
-                    recipients = pm_users.get(pm_id, '')
-                    pm_users[pm_id] = ''
+                    recipients = pm_recipients.get(pm_id, '')
                 else:
                     recipients = pm_recipients.get(pid, '')
                 # if not recipients:
