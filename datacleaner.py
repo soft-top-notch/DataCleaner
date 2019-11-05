@@ -306,8 +306,9 @@ def guess_delimeter_by_csv(F):
     try:
         dialect = sniffer.sniff(F.read(1024 * 5), delimiters=delims)
 
-        if not dialect.escapechar:
-            dialect.escapechar = '\\'
+        # if not dialect.escapechar:
+        #     dialect.escapechar = '\\'
+        dialect.doublequote = True
 
         F.seek(0)
 
