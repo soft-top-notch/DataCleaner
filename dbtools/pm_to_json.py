@@ -20,6 +20,8 @@ Examples:
 """
 from __future__ import division, print_function
 
+import io
+import json
 import os
 import re
 import sys
@@ -79,7 +81,7 @@ def main(args):
 def read_pm_recipients(filepath):
     """Read msg id and user name from CSV file."""
     pm_recipients = {}
-    with open(filepath, 'rb') as csvfile:
+    with io.open(filepath, 'r', encoding='utf-8') as csvfile:
         reader = csv_reader(csvfile)
         fieldnames = next(reader)
 
@@ -112,7 +114,7 @@ def read_pm_recipients(filepath):
 def read_pm(filepath):
     """Read pm_id, pmtext_id and user_name from CSV file."""
     pmtext_pms = {}
-    with open(filepath, 'rb') as csvfile:
+    with io.open(filepath, 'r', encoding='utf-8') as csvfile:
         reader = csv_reader(csvfile)
         fieldnames = next(reader)
 
@@ -143,7 +145,7 @@ def msg_to_json(filepath, pm_recipients, pmtext_pms):
     """Convert personal messages from CSV to JSON format."""
     post_comments = Counter()
 
-    with open(filepath, 'rb') as infile:
+    with io.open(filepath, 'r', encoding='utf-8') as infile:
         reader = csv_reader(infile)
         fieldnames = next(reader)
 
@@ -191,26 +193,19 @@ def msg_to_json(filepath, pm_recipients, pmtext_pms):
                 # if not recipients:
                 #     print('WARN: Recipient not found for pm_id {}'.format(pid))
 
-                outfile.write('{'
-                    '"_type":"forums","_source":{'
-                        '"type":"pm",'
-                        '"subject":"%s",'
-                        '"author":"%s",'
-                        '"recipient":"%s",'
-                        '"date":"%s",'
-                        '"message":"%s",'
-                        '"pid":"%s",'
-                        '"cid":"%s"'
-                    '}'
-                '}\n' % (
-                    row[subj_no],
-                    row[user_no],
-                    recipients,
-                    row[date_no],
-                    row[msg_no],
-                    replace_quotes(pid),
-                    post_comments[pid]
-                ))
+                outfile.write(json.dumps({
+                    "_type": "forums",
+                    "_source": {
+                        "type":"pm",
+                        "subject": row[subj_no],
+                        "author": row[user_no],
+                        "recipient": recipients,
+                        "date": row[date_no],
+                        "message": row[msg_no],
+                        "pid": replace_quotes(pid),
+                        "cid": post_comments[pid]
+                    }
+                }, separators=(',', ':')) + '\n')
                 post_comments[pid] += 1
 
 

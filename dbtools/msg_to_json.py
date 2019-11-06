@@ -18,6 +18,8 @@ Examples:
 """
 from __future__ import division, print_function
 
+import io
+import json
 import os
 import re
 import sys
@@ -77,7 +79,7 @@ def main(args):
 def read_forums(filepath):
     """Read forum id and name from CSV file."""
     forums = {}
-    with open(filepath, 'rb') as csvfile:
+    with io.open(filepath, 'r', encoding='utf-8') as csvfile:
         reader = csv_reader(csvfile)
         fieldnames = next(reader)
 
@@ -106,7 +108,7 @@ def read_forums(filepath):
 def read_topics(filepath):
     """Read topic id and name from CSV file."""
     topics = {}
-    with open(filepath, 'rb') as csvfile:
+    with io.open(filepath, 'r', encoding='utf-8') as csvfile:
         reader = csv_reader(csvfile)
         fieldnames = next(reader)
 
@@ -142,7 +144,7 @@ def msg_to_json(filepath, forums, topics):
     """Convert forum messages from CSV to JSON format."""
     post_comments = Counter()
 
-    with open(filepath, 'rb') as infile:
+    with io.open(filepath, 'r', encoding='utf-8') as infile:
         reader = csv_reader(infile)
         fieldnames = next(reader)
 
@@ -217,26 +219,19 @@ def msg_to_json(filepath, forums, topics):
                     else:
                         forum = row[forum_name_no]
 
-                outfile.write('{'
-                    '"_type":"forums","_source":{'
-                        '"type":"post",'
-                        '"forum":"%s",'
-                        '"subject":"%s",'
-                        '"author":"%s",'
-                        '"date":"%s",'
-                        '"message":"%s",'
-                        '"pid":"%s",'
-                        '"cid":"%s"'
-                    '}'
-                '}\n' % (
-                    replace_quotes(forum),
-                    replace_quotes(topic),
-                    row[user_no],
-                    row[date_no],
-                    row[msg_no],
-                    replace_quotes(pid),
-                    post_comments[pid]
-                ))
+                outfile.write(json.dumps({
+                    "_type":"forums",
+                    "_source": {
+                        "type":"post",
+                        "forum": replace_quotes(forum),
+                        "subject": replace_quotes(topic),
+                        "author": row[user_no],
+                        "date": row[date_no],
+                        "message": row[msg_no],
+                        "pid": replace_quotes(pid),
+                        "cid": post_comments[pid]
+                    }
+                }, separators=(',', ':')) + '\n')
                 post_comments[pid] += 1
 
 
