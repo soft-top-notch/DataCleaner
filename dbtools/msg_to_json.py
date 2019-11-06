@@ -97,7 +97,8 @@ def read_forums(filepath):
         name_no = fieldnames.index(names[0])
 
         for row in reader:
-            forums[row[id_no]] = row[name_no]
+            forum_id = replace_quotes(row[id_no])
+            forums[forum_id] = row[name_no]
 
     return forums
 
@@ -211,7 +212,8 @@ def msg_to_json(filepath, forums, topics):
                 else:
                     topic = row[topic_name_no]
                     if forums:
-                        forum = forums.get(row[forum_id_no], '')
+                        forum_id = replace_quotes(row[forum_id_no])
+                        forum = forums.get(forum_id, '')
                     else:
                         forum = row[forum_name_no]
 
