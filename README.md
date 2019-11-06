@@ -12,12 +12,19 @@ $ ./venv/bin/pip install -r requirements.txt
 
 ## Using
 
-
 Move SQL dump file to data directory and use short name:
 
 ```sh
 $ mkdir -p data
 $ mv DUMP_NAME.sql data/dump.sql
+```
+
+### Fix dump encoding
+
+Sometimes SQL dump has wrong encoding and need convert it. For example for Russian encoding.
+
+```sh
+$ iconv -c -t latin1 data/cc_forum_fulldump.sql | iconv -c -f cp1251 -t utf-8 -o data/cc_forum_fulldump_utf8.sql
 ```
 
 ### Convert SQL dump to CSV files
@@ -26,6 +33,23 @@ $ mv DUMP_NAME.sql data/dump.sql
 $ ./venv/bin/python dbtools/sql_to_csv.py data/dump.sql
 ```
 It created many CSV files in data directory (one file for table).
+
+### Convert big SQL dump to CSV files
+
+Sometimes SQL dump is too big and better convert only selected tables.
+
+```sh
+$ grep "^CREATE" data/big-dump.sql
+$ ./venv/bin/python dbtools/sql_to_csv.py --tables='forum|pm|pmreceipt|pmtext|user' data/big-dump.sql
+```
+
+### Convert PostgreSQL dump to CSV files
+
+PostgreSQL dump usually uses utf-8 encoding.
+
+```sh
+$ ./venv/bin/python dbtools/sql_to_csv.py --encoding=utf-8 data/postgres-dump.sql
+```
 
 ### Merge user names to recipients
 
