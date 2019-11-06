@@ -4,7 +4,7 @@
 Will output new JSON file.
 
 Usage:
-    msg_to_json.py [-hV] [--exit-on-error] [--forums=CSV] \
+    msg_to_json.py [-hV] [--exit-on-error] [--forum=NAME] \
         [--topics=CSV] POSTS_CSV...
 
 Options:
@@ -13,8 +13,8 @@ Options:
     -V, --version                 Print version and exit
 
 Examples:
-    msg_to_json.py --forums=forums.csv --topics=topics.csv posts.csv
-    msg_to_json.py --forums=boards.csv messages.csv
+    msg_to_json.py --forum='Name' messages.csv
+    msg_to_json.py --forum='Name' --topics=topics.csv posts.csv
 """
 from __future__ import division, print_function
 
@@ -55,17 +55,13 @@ user_re = re.compile(r'^(poster|poster_?name|user_?name)$', re.I)
 
 def main(args):
     """Executes main code."""
-    forums = None
-    if args['--forums']:
-        forums = read_forums(args['--forums'])
-
     topics = None
     if args['--topics']:
         topics = read_topics(args['--topics'])
 
     for filepath in args['POSTS_CSV']:
         try:
-            msg_to_json(filepath, forums, topics)
+            msg_to_json(filepath, args['--forum'], topics)
         except KeyboardInterrupt:
             print('Control-C pressed...')
             sys.exit(138)
@@ -74,35 +70,6 @@ def main(args):
                 raise
             else:
                 print('{} ERROR:{}'.format(filepath, error))
-
-
-def read_forums(filepath):
-    """Read forum id and name from CSV file."""
-    forums = {}
-    with io.open(filepath, 'r', encoding='utf-8') as csvfile:
-        reader = csv_reader(csvfile)
-        fieldnames = next(reader)
-
-        ids = (filter(id_re.match, fieldnames) or
-            filter(forum_id_re.match, fieldnames))
-        if not ids:
-            print('ERROR: Column forum_id not found in file {}'
-                  .format(filepath))
-            return
-        id_no = fieldnames.index(ids[0])
-
-        names = filter(forum_name_re.match, fieldnames)
-        if not names:
-            print('ERROR: Column forum_name not found in file {}'
-                  .format(filepath))
-            return
-        name_no = fieldnames.index(names[0])
-
-        for row in reader:
-            forum_id = replace_quotes(row[id_no])
-            forums[forum_id] = row[name_no]
-
-    return forums
 
 
 def read_topics(filepath):
@@ -127,20 +94,13 @@ def read_topics(filepath):
             return
         name_no = fieldnames.index(names[0])
 
-        forum_ids = filter(forum_id_re.match, fieldnames)
-        if not forum_ids:
-            print('ERROR: Column forum_id not found in file {}'
-                  .format(filepath))
-            return
-        forum_id_no = fieldnames.index(forum_ids[0])
-
         for row in reader:
-            topics[row[id_no]] = (row[name_no], row[forum_id_no])
+            topics[row[id_no]] = row[name_no]
 
     return topics
 
 
-def msg_to_json(filepath, forums, topics):
+def msg_to_json(filepath, forum, topics):
     """Convert forum messages from CSV to JSON format."""
     post_comments = Counter()
 
@@ -162,21 +122,6 @@ def msg_to_json(filepath, forums, topics):
                       .format(filepath))
                 return
             topic_name_no = fieldnames.index(topic_names[0])
-
-            if forums:
-                forum_ids = filter(forum_id_re.match, fieldnames)
-                if not forum_ids:
-                    print('ERROR: Column forum_id not found in file {}'
-                          .format(filepath))
-                    return
-                forum_id_no = fieldnames.index(forum_ids[0])
-            else:
-                forum_names = filter(forum_name_re.match, fieldnames)
-                if not forum_names:
-                    print('ERROR: Column forum_name not found in file {}'
-                          .format(filepath))
-                    return
-                forum_name_no = fieldnames.index(forum_names[0])
 
         dates = filter(date_re.match, fieldnames)
         if not dates:
@@ -209,21 +154,15 @@ def msg_to_json(filepath, forums, topics):
                 pid = row[pid_no]
 
                 if topics:
-                    topic, forum_id = topics.get(row[topic_id_no], ('', ''))
-                    forum = forums.get(forum_id, '')
+                    topic = topics.get(row[topic_id_no], '')
                 else:
                     topic = row[topic_name_no]
-                    if forums:
-                        forum_id = replace_quotes(row[forum_id_no])
-                        forum = forums.get(forum_id, '')
-                    else:
-                        forum = row[forum_name_no]
 
                 outfile.write(json.dumps({
                     "_type":"forums",
                     "_source": {
                         "type":"post",
-                        "forum": replace_quotes(forum),
+                        "forum": forum,
                         "subject": replace_quotes(topic),
                         "author": row[user_no],
                         "date": row[date_no],

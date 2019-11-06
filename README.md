@@ -70,7 +70,7 @@ It created the new file data/dump.hell_personal_messages.json.
 ### Convert forum messages to JSON
 
 ```sh
-$ ./venv/bin/python dbtools/msg_to_json.py --forums=data/dump.hell_boards.csv data/dump.hell_messages.csv
+$ ./venv/bin/python dbtools/msg_to_json.py --forum='Hell' data/dump.hell_messages.csv
 ```
 
 It created the new file data/dump.hell_messages.json.
