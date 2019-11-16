@@ -17,6 +17,7 @@ from dc import gather_files, move, c_failure, c_success, c_action, c_action_info
     c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
     TqdmUpTo
 from dc.sampling import create_sample
+from headers import read_header_file
 
 # Full path to directories used
 DIRS = {
@@ -57,71 +58,7 @@ UNWANTED_RELEASE.update({
 })
 
 # Headers matched
-HEADERS = [
-    ('misc', 'x'),
-    ('address', 'a'),
-    ('dob', 'd'),
-    ('birthday', 'd'),
-    ('birthdate', 'd'),
-    ('email', 'e'),
-    ('first_name', 'fn'),
-    ('first', 'fn'),
-    ('firstname', 'fn'),
-    ('hash', 'h'),
-    ('members_display_name', 'n'),
-    ('members_l_username', 'u'),
-    ('members_pass_hash', 'h'),
-    ('members_pass_salt', 's'),
-    ('pass_salt', 's'),
-    ('pass_hash', 'h'),
-    ('members_username', 'u'),
-    ('display_name', 'n'),
-    ('ip', 'i'),
-    ('ipaddress', 'i'),
-    ('ip_address', 'i'),
-    ('ip', 'i'),
-    ('ipaddress', 'i'),
-    ('mobile', 't'),
-    ('phone', 't'),
-    ('mail', 'e'),
-    ('pass', 'p'),
-    ('real_name', 'n'),
-    ('last_name', 'ln'),
-    ('last', 'ln'),
-    ('lastname', 'ln'),
-    ('name', 'n'),
-    ('password', 'p'),
-    ('token', 'p'),
-    ('phone', 't'),
-    ('salt', 's'),
-    ('secret', 's'),
-    ('username', 'u'),
-    ('lname', 'ln'),
-    ('fname', 'fn'),
-    ('street', 'a1'),
-    ('street_address', 'a1'),
-    ('streetaddress', 'a1'),
-    ('city', 'a2'),
-    ('state', 'a3'),
-    ('zip', 'a4'),
-    ('zip_code', 'a4'),
-    ('zipcode', 'a4'),
-    ('postalcode', 'a4'),
-    ('postal_code', 'a4'),
-    ('country', 'a5'),
-    ('sourceip', 'i'),
-    ('source_ip', 'i'),
-    ('jabber', 'o'),
-    ('xmpp', 'o'),
-    ('device', 'de'),
-    ('deviceid', 'did'),
-    ('lastname', 'ln'),
-    ('reg_ip', 'i'),
-    ('regip', 'i'),
-    ('lastip', 'i'),
-    ('last_ip', 'i'),
-    ('uuid', 'did')
-]  # yapf: disable
+HEADERS = read_header_file()
 
 # Abbreviated headers that are enumerated
 ENUMERATED = ('x', 'a', 'i')
