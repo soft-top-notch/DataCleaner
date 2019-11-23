@@ -58,14 +58,151 @@ UNWANTED_RELEASE.update({
 })
 
 # Headers matched
-HEADERS = read_header_file()
+HEADERS = {
+    'x': [
+        'misc'
+    ],
+    'a': [
+        'address'
+    ],
+    'd': [
+        'dob', 'birthday', 'birthdate'
+    ],
+    'e': [
+        'email', 'mail'
+    ],
+    'fn': [
+        'first_name', 'first', 'firstname', 'fname'
+    ],
+    'h': [
+        'hash', 'members_pass_hash', 'pass_hash'
+    ],
+    'n': [
+        'members_display_name', 'display_name', 'real_name', 'name'
+    ],
+    'u': [
+        'members_l_username', 'members_username', 'username'
+    ],
+    's': [
+        'members_pass_salt', 'pass_salt', 'salt', 'secret'
+    ],
+    'i': [
+        'ip', 'ipaddress', 'ip_address', 'ip', 'ipaddress', 'sourceip',
+        'source_ip', 'reg_ip', 'regip', 'lastip', 'last_ip'
+    ],
+    't': [
+        'mobile', 'phone', 'phone'
+    ],
+    'p': [
+        'pass', 'password', 'token'
+    ],
+    'ln': [
+        'last_name', 'last', 'lastname', 'lname', 'lastname'
+    ],
+    'a1': [
+        'street', 'street_address', 'streetaddress'
+    ],
+    'a2': [
+        'city'
+    ],
+    'a3': [
+        'state'
+    ],
+    'a4': [
+        'zip', 'zip_code', 'zipcode', 'postalcode', 'postal_code'
+    ],
+    'a5': [
+        'country'
+    ],
+    'o': [
+        'jabber', 'xmpp'
+    ],
+    'de': [
+        'device'
+    ],
+    'did': [
+        'deviceid', 'uuid'
+    ]
+}
+# HEADERS = [
+#     ('misc', 'x'),
+#     ('address', 'a'),
+#     ('dob', 'd'),
+#     ('birthday', 'd'),
+#     ('birthdate', 'd'),
+#     ('email', 'e'),
+#     ('first_name', 'fn'),
+#     ('first', 'fn'),
+#     ('firstname', 'fn'),
+#     ('hash', 'h'),
+#     ('members_display_name', 'n'),
+#     ('members_l_username', 'u'),
+#     ('members_pass_hash', 'h'),
+#     ('members_pass_salt', 's'),
+#     ('pass_salt', 's'),
+#     ('pass_hash', 'h'),
+#     ('members_username', 'u'),
+#     ('display_name', 'n'),
+#     ('ip', 'i'),
+#     ('ipaddress', 'i'),
+#     ('ip_address', 'i'),
+#     ('ip', 'i'),
+#     ('ipaddress', 'i'),
+#     ('mobile', 't'),
+#     ('phone', 't'),
+#     ('mail', 'e'),
+#     ('pass', 'p'),
+#     ('real_name', 'n'),
+#     ('last_name', 'ln'),
+#     ('last', 'ln'),
+#     ('lastname', 'ln'),
+#     ('name', 'n'),
+#     ('password', 'p'),
+#     ('token', 'p'),
+#     ('phone', 't'),
+#     ('salt', 's'),
+#     ('secret', 's'),
+#     ('username', 'u'),
+#     ('lname', 'ln'),
+#     ('fname', 'fn'),
+#     ('street', 'a1'),
+#     ('street_address', 'a1'),
+#     ('streetaddress', 'a1'),
+#     ('city', 'a2'),
+#     ('state', 'a3'),
+#     ('zip', 'a4'),
+#     ('zip_code', 'a4'),
+#     ('zipcode', 'a4'),
+#     ('postalcode', 'a4'),
+#     ('postal_code', 'a4'),
+#     ('country', 'a5'),
+#     ('sourceip', 'i'),
+#     ('source_ip', 'i'),
+#     ('jabber', 'o'),
+#     ('xmpp', 'o'),
+#     ('device', 'de'),
+#     ('deviceid', 'did'),
+#     ('lastname', 'ln'),
+#     ('reg_ip', 'i'),
+#     ('regip', 'i'),
+#     ('lastip', 'i'),
+#     ('last_ip', 'i'),
+#     ('uuid', 'did')
+# ]  # yapf: disable
 
 # Abbreviated headers that are enumerated
 ENUMERATED = ('x', 'a', 'i')
 # Abbreviations to headers
-ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
+# ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
+ABBR2HEADER = {
+    abbr: header[0] for abbr, header in HEADERS.items()
+}
 # Headers to abbreviations
-HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
+# HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
+HEADER2ABBR = {
+    header: abbr for abbr, headers in HEADERS.items()
+    for header in headers
+}
 
 csv.field_size_limit(sys.maxsize)
 

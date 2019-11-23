@@ -74,3 +74,19 @@ $ ./venv/bin/python dbtools/msg_to_json.py --forum='Hell' data/dump.hell_message
 ```
 
 It created the new file data/dump.hell_messages.json.
+
+### Show all tables
+
+```sh
+$ ./venv/bin/python dbtool.py --showtables data/mysql.sql
+```
+
+It print all tables of target sql dump.
+
+### Convert sql dump table to csv file
+```sh
+$ ./venv/bin/python dbtool.py --extract data/mysql.sql --tables=table_1,table_2,table_3
+```
+
+It export selected tables into csv file
+
