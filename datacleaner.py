@@ -124,81 +124,16 @@ HEADERS = {
         'deviceid', 'uuid'
     ]
 }
-# HEADERS = [
-#     ('misc', 'x'),
-#     ('address', 'a'),
-#     ('dob', 'd'),
-#     ('birthday', 'd'),
-#     ('birthdate', 'd'),
-#     ('email', 'e'),
-#     ('first_name', 'fn'),
-#     ('first', 'fn'),
-#     ('firstname', 'fn'),
-#     ('hash', 'h'),
-#     ('members_display_name', 'n'),
-#     ('members_l_username', 'u'),
-#     ('members_pass_hash', 'h'),
-#     ('members_pass_salt', 's'),
-#     ('pass_salt', 's'),
-#     ('pass_hash', 'h'),
-#     ('members_username', 'u'),
-#     ('display_name', 'n'),
-#     ('ip', 'i'),
-#     ('ipaddress', 'i'),
-#     ('ip_address', 'i'),
-#     ('ip', 'i'),
-#     ('ipaddress', 'i'),
-#     ('mobile', 't'),
-#     ('phone', 't'),
-#     ('mail', 'e'),
-#     ('pass', 'p'),
-#     ('real_name', 'n'),
-#     ('last_name', 'ln'),
-#     ('last', 'ln'),
-#     ('lastname', 'ln'),
-#     ('name', 'n'),
-#     ('password', 'p'),
-#     ('token', 'p'),
-#     ('phone', 't'),
-#     ('salt', 's'),
-#     ('secret', 's'),
-#     ('username', 'u'),
-#     ('lname', 'ln'),
-#     ('fname', 'fn'),
-#     ('street', 'a1'),
-#     ('street_address', 'a1'),
-#     ('streetaddress', 'a1'),
-#     ('city', 'a2'),
-#     ('state', 'a3'),
-#     ('zip', 'a4'),
-#     ('zip_code', 'a4'),
-#     ('zipcode', 'a4'),
-#     ('postalcode', 'a4'),
-#     ('postal_code', 'a4'),
-#     ('country', 'a5'),
-#     ('sourceip', 'i'),
-#     ('source_ip', 'i'),
-#     ('jabber', 'o'),
-#     ('xmpp', 'o'),
-#     ('device', 'de'),
-#     ('deviceid', 'did'),
-#     ('lastname', 'ln'),
-#     ('reg_ip', 'i'),
-#     ('regip', 'i'),
-#     ('lastip', 'i'),
-#     ('last_ip', 'i'),
-#     ('uuid', 'did')
-# ]  # yapf: disable
 
 # Abbreviated headers that are enumerated
 ENUMERATED = ('x', 'a', 'i')
+
 # Abbreviations to headers
-# ABBR2HEADER = {abbr: header for header, abbr in HEADERS}
 ABBR2HEADER = {
     abbr: header[0] for abbr, header in HEADERS.items()
 }
+
 # Headers to abbreviations
-# HEADER2ABBR = {header: abbr for header, abbr in HEADERS}
 HEADER2ABBR = {
     header: abbr for abbr, headers in HEADERS.items()
     for header in headers
@@ -906,8 +841,19 @@ def parse_row(line, csv_column_count, dialect):
 
     # Escape double quotes in field
     row_escaped = [re.sub(r'"', r'\"', x) for x in row_stripped]
+    initial_len = len(row_escaped)
 
-    if len(row) == csv_column_count:
+    # Handle missing or excessive column
+    if initial_len < csv_column_count:
+        row_escaped += [""] * (csv_column_count - initial_len)
+    elif initial_len > csv_column_count:
+        last_index = csv_column_count - 1
+        last_column = "".join(
+            row_escaped[last_index:]
+        )
+        row_escaped = row_escaped[:last_index] + [last_column]
+
+    if len(row_escaped) == csv_column_count:
         return row_escaped, None
     if args.m and csv_column_count > 1:
         lx = row_escaped[:csv_column_count - 1]
