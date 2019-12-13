@@ -198,7 +198,10 @@ def write_csv(sqlpath, table, columns, values, encoding='utf-8'):
 
 def parse(filepath, tables, encoding):
     if tables:
-        tables_re = re.compile(r'^(?:[a-z0-9]+_)?(%s)$' % tables, flags=re.I)
+        tables_re = re.compile(
+            r'.*?(%s).*?' % tables.replace(",", "|"),
+            flags=re.I
+        )
 
     lines = ''
     prev_quote = None
