@@ -659,7 +659,7 @@ def ask_headers(column_count):
     while True:
         print "Please provide the headers below:"
         seen = []
-        for full_header, shortened in HEADERS:
+        for shortened, full_header in HEADERS.items():
             if shortened not in seen:
                 print '{}:{}'.format(shortened, full_header)
                 seen.append(shortened)
