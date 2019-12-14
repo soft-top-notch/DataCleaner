@@ -57,73 +57,21 @@ UNWANTED_RELEASE.update({
     '-vb-2016', '_vb___17', '_vb___16', '_p2', '_p3', '_p4', '-2016', '-2017'
 })
 
+# Path to headers
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+HEADER_PATH = os.path.join(
+    BASE_DIR,
+    "headers/headers.json"
+)
+
+
 # Headers matched
-HEADERS = {
-    'x': [
-        'misc'
-    ],
-    'a': [
-        'address'
-    ],
-    'd': [
-        'dob', 'birthday', 'birthdate'
-    ],
-    'e': [
-        'email', 'mail'
-    ],
-    'fn': [
-        'first_name', 'first', 'firstname', 'fname'
-    ],
-    'h': [
-        'hash', 'members_pass_hash', 'pass_hash'
-    ],
-    'n': [
-        'members_display_name', 'display_name', 'real_name', 'name'
-    ],
-    'u': [
-        'members_l_username', 'members_username', 'username'
-    ],
-    's': [
-        'members_pass_salt', 'pass_salt', 'salt', 'secret'
-    ],
-    'i': [
-        'ip', 'ipaddress', 'ip_address', 'ip', 'ipaddress', 'sourceip',
-        'source_ip', 'reg_ip', 'regip', 'lastip', 'last_ip'
-    ],
-    't': [
-        'mobile', 'phone', 'phone'
-    ],
-    'p': [
-        'pass', 'password', 'token'
-    ],
-    'ln': [
-        'last_name', 'last', 'lastname', 'lname', 'lastname'
-    ],
-    'a1': [
-        'street', 'street_address', 'streetaddress'
-    ],
-    'a2': [
-        'city'
-    ],
-    'a3': [
-        'state'
-    ],
-    'a4': [
-        'zip', 'zip_code', 'zipcode', 'postalcode', 'postal_code'
-    ],
-    'a5': [
-        'country'
-    ],
-    'o': [
-        'jabber', 'xmpp'
-    ],
-    'de': [
-        'device'
-    ],
-    'did': [
-        'deviceid', 'uuid'
-    ]
-}
+with open(HEADER_PATH, "r") as file:
+    HEADERS = json.loads(
+        file.read()
+    )
 
 # Abbreviated headers that are enumerated
 ENUMERATED = ('x', 'a', 'i')
@@ -661,7 +609,10 @@ def ask_headers(column_count):
         seen = []
         for shortened, full_header in HEADERS.items():
             if shortened not in seen:
-                print '{}:{}'.format(shortened, full_header)
+                print '{}:{}'.format(
+                    shortened,
+                    ", ".join(full_header)
+                )
                 seen.append(shortened)
 
         user_headers = raw_input(
