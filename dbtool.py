@@ -264,7 +264,7 @@ def main(args):
     if args.get("--mergeuser"):
         mergeuser(
             user_file_path=args.get("<user_file_path>"),
-            csv_files_path=args.get("<csv_files_path>"),
+            csv_files_path=args.get("<csv_file_path>"),
             exit_on_error=args.get("--exit-on-error")
         )
 
