@@ -4,7 +4,7 @@
 Usage:
   dbtool.py --showtables <file_path>
   dbtool.py --extract <file_path> --tables=tables [--encoding=enc]
-  dbtool.py --mergeuser [--exit-on-error] <user_file_path> <csv_file_path>
+  dbtool.py --mergeuser [--exit-on-error] [--user_id=user_id] <user_file_path> <csv_file_path>
   dbtool.py --json --type=type [--exit-on-error] [--forum=forum] \
     [--topic=topic] [--recipient=recipient] [--pm=pm] \
      --input=input
@@ -167,6 +167,9 @@ def mergeuser(**kwargs):
     exit_on_error = kwargs.get(
         "exit_on_error"
     )
+    user_id = kwargs.get(
+        "user_id"
+    )
     users, column_name = read_users(user_file_path)
     if not users:
         sys.exit(1)
@@ -176,7 +179,8 @@ def mergeuser(**kwargs):
             merge_users(
                 csv_file,
                 users,
-                column_name
+                column_name,
+                user_id
             )
         except KeyboardInterrupt:
             logger.info("Control-C pressed...")
@@ -265,7 +269,8 @@ def main(args):
         mergeuser(
             user_file_path=args.get("<user_file_path>"),
             csv_files_path=args.get("<csv_file_path>"),
-            exit_on_error=args.get("--exit-on-error")
+            exit_on_error=args.get("--exit-on-error"),
+            user_id=args.get("--user_id")
         )
 
     # Handle csv to json

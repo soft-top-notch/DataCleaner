@@ -88,7 +88,7 @@ def read_users(filepath):
     return users, names[0]
 
 
-def merge_users(filepath, users, column_name):
+def merge_users(filepath, users, column_name, user_id=None):
     """Add username column after userid in new CSV file."""
     with open(filepath, 'rb') as infile:
         reader = csv_reader(infile)
@@ -100,7 +100,12 @@ def merge_users(filepath, users, column_name):
                   .format(filepath))
             return
 
-        ids = filter(id_re.match, fieldnames)
+        if not user_id:
+            id_regex = id_re.match
+        else:
+            id_regex = lambda x: x == user_id
+
+        ids = filter(id_regex, fieldnames)
         if not ids:
             print('WARN: Column userid not found in file {}'.format(filepath))
             return
