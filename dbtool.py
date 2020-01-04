@@ -4,7 +4,7 @@
 Usage:
   dbtool.py --showtables <file_path>
   dbtool.py --extract <file_path> --tables=tables [--encoding=enc]
-  dbtool.py --mergeuser [--exit-on-error] [--user_id=user_id] <user_file_path> <csv_file_path>
+  dbtool.py --mergeuser [--exit-on-error] [--user_id=user_id] [--pm_id=pm_id] [--pm_file_path=pm_file_path] <user_file_path> <csv_file_path>
   dbtool.py --json --type=type [--exit-on-error] [--forum=forum] \
     [--topic=topic] [--recipient=recipient] [--pm=pm] \
      --input=input
@@ -30,7 +30,9 @@ from tqdm import tqdm
 from dbtools.sql_to_csv import parse
 from dbtools.merge_user import (
     read_users,
-    merge_users
+    read_pm_user_ids,
+    merge_users,
+    merge_users_from_pm
 )
 
 __version__ = '0.1.0'
@@ -158,11 +160,16 @@ def mergeuser(**kwargs):
     :param kwargs:
     :return:
     """
+
+    # Load param
     user_file_path = kwargs.get(
         "user_file_path"
     )
     csv_files_path = kwargs.get(
         "csv_files_path"
+    )
+    pm_file_path = kwargs.get(
+        "pm_file_path"
     )
     exit_on_error = kwargs.get(
         "exit_on_error"
@@ -170,18 +177,36 @@ def mergeuser(**kwargs):
     user_id = kwargs.get(
         "user_id"
     )
-    users, column_name = read_users(user_file_path)
+    pm_id = kwargs.get(
+        "pm_id"
+    )
+
+    # Load users
+    users, username_column = read_users(user_file_path)
     if not users:
         sys.exit(1)
 
+    # Load pm ids if exist
+    if pm_file_path:
+        pm_user_ids = read_pm_user_ids(pm_file_path)
+
     for csv_file in csv_files_path.split(","):
         try:
-            merge_users(
-                csv_file,
-                users,
-                column_name,
-                user_id
-            )
+            if not pm_file_path:
+                merge_users(
+                    csv_file,
+                    users,
+                    username_column,
+                    user_id
+                )
+            else:
+                merge_users_from_pm(
+                    filepath=csv_file,
+                    pm_user_ids=pm_user_ids,
+                    users=users,
+                    username_column=username_column,
+                    pm_id=pm_id
+                )
         except KeyboardInterrupt:
             logger.info("Control-C pressed...")
             sys.exit(138)
@@ -269,8 +294,10 @@ def main(args):
         mergeuser(
             user_file_path=args.get("<user_file_path>"),
             csv_files_path=args.get("<csv_file_path>"),
+            pm_file_path=args.get("--pm_file_path"),
             exit_on_error=args.get("--exit-on-error"),
-            user_id=args.get("--user_id")
+            user_id=args.get("--user_id"),
+            pm_id=args.get("--pm_id")
         )
 
     # Handle csv to json
