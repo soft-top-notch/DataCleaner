@@ -78,12 +78,12 @@ ENUMERATED = ('x', 'a', 'i')
 
 # Abbreviations to headers
 ABBR2HEADER = {
-    abbr: header[0] for abbr, header in HEADERS.items()
+    abbr: header[0].lower() for abbr, header in HEADERS.items()
 }
 
 # Headers to abbreviations
 HEADER2ABBR = {
-    header: abbr for abbr, headers in HEADERS.items()
+    header.lower(): abbr for abbr, headers in HEADERS.items()
     for header in headers
 }
 
@@ -562,6 +562,7 @@ def get_headers(csv_file, delimiter, column_count):
             i = i.strip()
             # Match headers in double quotes on both sides or no double quotes
             matches = re.search('"(\w+)"|\'(\w+)\'|^(\w+)$', i)
+
             if matches:
                 # Take whichever one matched
                 field_name = matches.group(1) or matches.group(2)
