@@ -92,7 +92,7 @@ INSERT_FIELDS = Suppress('(') + Group(
 USER_NAME = Regex(r'((?:[a-z0-9]+_?)?users?)', flags=re.IGNORECASE)
 MEMBER_NAME = Regex(r'((?:[a-z0-9]+_?)?members?)', flags=re.IGNORECASE)
 TABLE_NAME = (USER_NAME | MEMBER_NAME)
-USER_TABLE = Combine(BACKTICK + TABLE_NAME + BACKTICK) + WordEnd()
+USER_TABLE = Combine(BACKTICK + TABLE_NAME + BACKTICK) + (WordEnd() | Suppress(" ("))
 CREATE = CaselessKeyword('CREATE TABLE')
 CREATE_EXISTS = CaselessKeyword('IF NOT EXISTS')
 CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE('table_name')
@@ -158,6 +158,7 @@ def parse(filepath):
     # Not sure what the encoding is, will try iso-8859-1
     encoding = 'iso-8859-1'
     retry = False
+
     # Determine encoding
     print('{}: Determining encoding'.format(filepath))
     try:
@@ -165,6 +166,7 @@ def parse(filepath):
             sqlfile.read(READ_BUFFER)
     except UnicodeDecodeError:
         retry = True
+
     if retry:
         # Try detecting encoding
         m = magic.Magic(mime_encoding=True)
@@ -175,6 +177,7 @@ def parse(filepath):
         except UnicodeDecodeError:
             print('{}: Unable to determine encoding of file'.format(filepath))
             raise
+
     print('{}: Using {} encoding'.format(filepath, encoding))
 
     # Extract data from statements and write to csv file
@@ -287,7 +290,6 @@ def process_values(values):
 def raise_error(exception, encoding=None):
     """Combine Exception error msg with last line processed."""
     line = getattr(exception, 'line', None)
-    print()
     if line:
         if len(line) > 5000:
             line = line[0:5000] + '...OUTPUT CUT DUE TO LENGTH...'
@@ -311,9 +313,9 @@ def read_file(sqlfile):
             break
         for line in lines:
             line = line.replace('\11\12\15\40-\176', '')
-            # line = line.replace('\\11\\12\\15\\40-\\176', '')
             byte_num += len(line)
             valid_insert = None
+
             # If not parsing a CREATE or INSERT statement, look for one
             if parsing:
                 # Continue parsing the current statement
@@ -355,6 +357,7 @@ def read_file(sqlfile):
                                 create_table = CreateTable([line])
                                 if create_table.ending not in line:
                                     parsing = create_table
+
             if valid_insert:
                 yield create_table, table_name, valid_insert, byte_num
 
