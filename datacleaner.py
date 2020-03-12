@@ -553,7 +553,7 @@ def get_headers(csv_file, delimiter, column_count):
         lowerrow = [
             cc.lower().replace('\n', '') for cc in line.split(delimiter)
         ]
-        
+
         # Set them enumerated headers to zero
         tracked = {}
         for track in ENUMERATED:
@@ -566,7 +566,7 @@ def get_headers(csv_file, delimiter, column_count):
 
             if matches:
                 # Take whichever one matched
-                field_name = matches.group(1) or matches.group(2)
+                field_name = matches.group(1) or matches.group(2) or matches.group(3)
                 # match if this is an enumerated field
                 enumerated = re.search('^([a-z])\d+', field_name)
                 if enumerated:
