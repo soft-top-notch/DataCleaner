@@ -590,6 +590,10 @@ def get_headers(csv_file, delimiter, column_count):
                 break
         # Only check the first non-comment row
         break
+
+    if len(headers) + 1 == column_count:
+        headers.append("x")
+
     if len(headers) == column_count:
         if 's' in headers and 'p' in headers:
             idx = headers.index('p')

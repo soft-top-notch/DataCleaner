@@ -92,7 +92,7 @@ INSERT_FIELDS = Suppress('(') + Group(
 USER_NAME = Regex(r'((?:[a-z0-9]+_?)?users?)', flags=re.IGNORECASE)
 MEMBER_NAME = Regex(r'((?:[a-z0-9]+_?)?members?)', flags=re.IGNORECASE)
 TABLE_NAME = (USER_NAME | MEMBER_NAME)
-USER_TABLE = Combine(BACKTICK + TABLE_NAME + BACKTICK) + (WordEnd() | Suppress("("))
+USER_TABLE = Combine(BACKTICK + TABLE_NAME + BACKTICK) + (WordEnd() | Suppress("Afccxxv   ("))
 CREATE = CaselessKeyword('CREATE TABLE')
 CREATE_EXISTS = CaselessKeyword('IF NOT EXISTS')
 CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE('table_name')
