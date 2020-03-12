@@ -553,7 +553,7 @@ def get_headers(csv_file, delimiter, column_count):
         lowerrow = [
             cc.lower().replace('\n', '') for cc in line.split(delimiter)
         ]
-
+        
         # Set them enumerated headers to zero
         tracked = {}
         for track in ENUMERATED:
@@ -562,7 +562,7 @@ def get_headers(csv_file, delimiter, column_count):
         for i in lowerrow:
             i = i.strip()
             # Match headers in double quotes on both sides or no double quotes
-            matches = re.search('\'(\w+)\'|^(\w+)$', i)
+            matches = re.search('"(\w+)"|\'(\w+)\'|^(\w+)$', i)
 
             if matches:
                 # Take whichever one matched
