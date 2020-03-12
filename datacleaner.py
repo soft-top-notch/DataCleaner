@@ -748,24 +748,19 @@ def parse_file(tfile):
     output_stats = os.stat(out_file_csv_temp)
     errors_stats = os.stat(out_file_err_temp)
 
-    print
-
     c_action_info('Output file {} had {} bytes written/'.format(
         out_file_csv_temp, output_stats.st_size))
     c_action_info('Error file {} had {} bytes written/'.format(
         out_file_err_temp, errors_stats.st_size))
-    #c_action_system('Moving {} to completed folder/'.format(tfile))
+
     if headers:
         move(tfile, DIRS['headers_success'])
     else:
         move(tfile, DIRS['clean_success'])
 
     if errors_stats.st_size > 0:
-        # print "\033[38;5;241m Moving {} to error folder".format(
-        #     out_file_err_temp)
         move(out_file_err_temp, DIRS['clean_fail'])
     else:
-        # print "Removing", out_file_err_temp
         os.remove(out_file_err_temp)
 
     if os.path.exists(out_file_csv_temp):
@@ -794,16 +789,6 @@ def parse_row(line, csv_column_count, dialect):
     # Escape double quotes in field
     row_escaped = [re.sub(r'"', r'\"', x) for x in row_stripped]
     initial_len = len(row_escaped)
-
-    # Handle missing or excessive column
-    if initial_len < csv_column_count:
-        row_escaped += [""] * (csv_column_count - initial_len)
-    elif initial_len > csv_column_count:
-        last_index = csv_column_count - 1
-        last_column = "".join(
-            row_escaped[last_index:]
-        )
-        row_escaped = row_escaped[:last_index] + [last_column]
 
     if len(row_escaped) == csv_column_count:
         return row_escaped, None
