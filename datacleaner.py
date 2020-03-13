@@ -243,13 +243,21 @@ class myDialect(csv.Dialect):
 def find_column_count(f, dialect=csv.excel):
     """Find the column count with the most occurences in 1000 lines."""
     row_lengths = []
-    reader = UnicodeReader(f, dialect=dialect)
-    for _ in range(1000):
+
+    index = 0
+    while index < 1000:
         try:
+            line = f.readline()
+            line_buffer = StringIO.StringIO()
+            line_buffer.write(line)
+            line_buffer.seek(0)
+            reader = UnicodeReader(line_buffer, dialect=dialect)
             row = reader.next()
-        except StopIteration:
+            row_lengths.append(len(row))
+            index += 1
+        except Exception as err:
             break
-        row_lengths.append(len(row))
+
     counts = Counter(row_lengths)
     column_count = counts.most_common(1)[0]
     return column_count[0]
@@ -263,8 +271,6 @@ def guess_delimeter_by_csv(F):
     try:
         dialect = sniffer.sniff(F.read(1024 * 5), delimiters=delims)
 
-        # if not dialect.escapechar:
-        #     dialect.escapechar = '\\'
         dialect.doublequote = True
 
         F.seek(0)
@@ -309,76 +315,68 @@ def strip_delimeter(ls, csv_delimeter):
 
 def guess_delimeter(F):
 
-    csv_guess = guess_delimeter_by_csv(F)
+    delim_counts_list = {}
+    delim_freq = {}
+    for d in delims:
+        delim_counts_list[d] = []
+        delim_freq[d] = {}
 
-    if csv_guess:
-        rdialect, csv_column_count = csv_guess
-        csv_delimeter = rdialect.delimiter
-        c_action('Guessed CSV delimeter -> {}'.format(csv_delimeter))
+    x = 0
+
+    F.seek(0)
+
+    for l in F:
+        if x >= 1000:
+            break
+        for d in delims:
+            ls = l.strip()
+            ls = strip_delimeter(ls, d)
+            cnt = ls.count(d)
+            delim_counts_list[d].append(cnt)
+            x += 1
+
+    most_frequent = (None, 0, 0)
+
+    for d in delims:
+        for c in delim_counts_list[d]:
+            if c:
+                if c in delim_freq[d]:
+                    delim_freq[d][c] += 1
+                else:
+                    delim_freq[d][c] = 1
+
+    for d in delim_freq:
+        for c in delim_freq[d]:
+
+            if delim_freq[d][c] > most_frequent[1]:
+                most_frequent = (d, delim_freq[d][c], c)
+
+    csv_delimeter = most_frequent[0]
+
+    rdialect = csv.excel
+    rdialect.delimiter = csv_delimeter
+
+    F.seek(0)
+    csv_column_count = find_column_count(F, rdialect)
+
+    if csv_delimeter:
+
+        print "\033[38;5;244mGuess method: Custom delimiter -> {}\n".format(
+            csv_delimeter)
 
     else:
-        delim_counts_list = {}
-        delim_freq = {}
-        for d in delims:
-            delim_counts_list[d] = []
-            delim_freq[d] = {}
 
-        x = 0
+        if not args.p:
 
-        F.seek(0)
+            print "\033[38;5;203m Delimiter could not determined"
+            csv_delimeter, csv_column_count = ask_user_for_delimeter()
+            rdialect = csv.excel
+            rdialect.delimiter = csv_delimeter
 
-        for l in F:
-            if x >= 1000:
-                break
-            for d in delims:
-                ls = l.strip()
-                ls = strip_delimeter(ls, d)
-                cnt = ls.count(d)
-                delim_counts_list[d].append(cnt)
-                x += 1
-
-        most_frequent = (None, 0, 0)
-
-        for d in delims:
-            for c in delim_counts_list[d]:
-                if c:
-                    if c in delim_freq[d]:
-                        delim_freq[d][c] += 1
-                    else:
-                        delim_freq[d][c] = 1
-
-        for d in delim_freq:
-            for c in delim_freq[d]:
-
-                if delim_freq[d][c] > most_frequent[1]:
-                    most_frequent = (d, delim_freq[d][c], c)
-
-        csv_delimeter = most_frequent[0]
-
-        rdialect = csv.excel
-        rdialect.delimiter = csv_delimeter
-
-        F.seek(0)
-        csv_column_count = find_column_count(F, rdialect)
-
-        if csv_delimeter:
-
-            print "\033[38;5;244mGuess method: Custom delimiter -> {}\n".format(
-                csv_delimeter)
-
+            return rdialect, csv_column_count
         else:
-
-            if not args.p:
-
-                print "\033[38;5;203m Delimiter could not determined"
-                csv_delimeter, csv_column_count = ask_user_for_delimeter()
-                rdialect = csv.excel
-                rdialect.delimiter = csv_delimeter
-
-                return rdialect, csv_column_count
-            else:
-                print "\033[38;5;203m Delimiter could not determined, passing"
-                return False, False
+            print "\033[38;5;203m Delimiter could not determined, passing"
+            return False, False
 
     if args.a:
         return rdialect, csv_column_count
@@ -793,7 +791,6 @@ def parse_row(line, csv_column_count, dialect):
 
     # Escape double quotes in field
     row_escaped = [re.sub(r'"', r'\"', x) for x in row_stripped]
-    initial_len = len(row_escaped)
 
     if len(row_escaped) == csv_column_count:
         return row_escaped, None
