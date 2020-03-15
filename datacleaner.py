@@ -347,8 +347,9 @@ def guess_delimeter(F):
 
     for d in delim_freq:
         for c in delim_freq[d]:
-
-            if delim_freq[d][c] > most_frequent[1]:
+            delim_average = (c + delim_freq[d][c]) / 2
+            freq_average = (most_frequent[1] + most_frequent[2]) / 2
+            if delim_average > freq_average:
                 most_frequent = (d, delim_freq[d][c], c)
 
     csv_delimeter = most_frequent[0]
@@ -360,6 +361,8 @@ def guess_delimeter(F):
     csv_column_count = find_column_count(F, rdialect)
 
     if csv_delimeter:
+        print delim_freq
+        print most_frequent
 
         print "\033[38;5;244mGuess method: Custom delimiter -> {}\n".format(
             csv_delimeter)
