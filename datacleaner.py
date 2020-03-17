@@ -867,14 +867,25 @@ def confirm():
             c_failure('Please answer y or n')
 
 
-def is_sqldump(f):
-    return
+def is_sqldump(file_path):
+    sql_pattern = re.compile(
+        "create table \`.*?\`",
+        re.IGNORECASE
+    )
+
+    try:
+        with open(file_path, 'rb') as file:
+            text = file.read(10000)
+    except IOError:
+        return
+
+    return sql_pattern.search(text)
 
 
 def main():
     dialect = myDialect()
     files = gather_files(args.path, DIRS['skipped'])
-    nonsql_files = [x for x in files if not x.endswith('.sql')]
+    nonsql_files = [x for x in files if not is_sqldump(x)]
     if args.cl:
         print 'Cleaning filenames...'
         for file in files:
@@ -975,7 +986,7 @@ def main():
             else:
                 c_warning('Unable to find file {}'.format(filename))
 
-        sql_files = [x for x in files if x.endswith('.sql')]
+        sql_files = [x for x in files if is_sqldump(x)]
         if sql_files:
             print
             c_action('PARSING SQL FILES')
