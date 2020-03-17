@@ -233,11 +233,17 @@ class UnicodeWriter:
 class myDialect(csv.Dialect):
     delimiter = ','
     quotechar = '"'
-    doublequote = True
+    doublequote = False
     skipinitialspace = False
     lineterminator = '\n'
     quoting = csv.QUOTE_ALL
     escapechar = '\\'
+
+
+class excelDialect(csv.excel):
+    quoting = csv.QUOTE_NONE
+    quotechar = ''
+    escapechar = "\\"
 
 
 def find_column_count(f, dialect=csv.excel):
@@ -354,15 +360,13 @@ def guess_delimeter(F):
 
     csv_delimeter = most_frequent[0]
 
-    rdialect = csv.excel
+    rdialect = excelDialect()
     rdialect.delimiter = csv_delimeter
 
     F.seek(0)
     csv_column_count = find_column_count(F, rdialect)
 
     if csv_delimeter:
-        print delim_freq
-        print most_frequent
 
         print "\033[38;5;244mGuess method: Custom delimiter -> {}\n".format(
             csv_delimeter)
@@ -373,7 +377,7 @@ def guess_delimeter(F):
 
             print "\033[38;5;203m Delimiter could not determined"
             csv_delimeter, csv_column_count = ask_user_for_delimeter()
-            rdialect = csv.excel
+            rdialect = excelDialect()
             rdialect.delimiter = csv_delimeter
 
             return rdialect, csv_column_count
@@ -396,7 +400,7 @@ def guess_delimeter(F):
     else:
         csv_delimeter, csv_column_count = ask_user_for_delimeter()
 
-        rdialect = csv.excel
+        rdialect = excelDialect()
         rdialect.delimiter = csv_delimeter
 
         return rdialect, csv_column_count
@@ -734,6 +738,7 @@ def parse_file(tfile):
 
     pbar = TqdmUpTo(
         desc='Writing ', unit=' bytes ', total=os.path.getsize(gc_file))
+
     for line in F:
         l_count += 1
 
@@ -786,14 +791,10 @@ def parse_row(line, csv_column_count, dialect):
     line_buffer = StringIO.StringIO()
     line_buffer.write(line)
     line_buffer.seek(0)
+
     orig_reader = UnicodeReader(line_buffer, dialect=dialect)
 
-    row = orig_reader.next()
-    # Removing surrounding single quotes, whitespace, and newlines
-    row_stripped = [x.strip("'").strip() for x in row]
-
-    # Escape double quotes in field
-    row_escaped = [re.sub(r'"', r'\"', x) for x in row_stripped]
+    row_escaped = orig_reader.next()
 
     if len(row_escaped) == csv_column_count:
         return row_escaped, None
@@ -864,6 +865,10 @@ def confirm():
             return False
         else:
             c_failure('Please answer y or n')
+
+
+def is_sqldump(f):
+    return
 
 
 def main():
