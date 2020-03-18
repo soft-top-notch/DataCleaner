@@ -89,10 +89,10 @@ INSERT_FIELDS = Suppress('(') + Group(
     OneOrMore(FIELD_NAME)).setResultsName('field_names') + Suppress(')')
 
 # CREATE TABLE
-USER_NAME = Regex(r'((?:[a-z0-9]+_?)?users?)', flags=re.IGNORECASE)
-MEMBER_NAME = Regex(r'((?:[a-z0-9]+_?)?members?)', flags=re.IGNORECASE)
+USER_NAME = Regex(r'((?:[a-z0-9]+_?)*?users?)', flags=re.IGNORECASE)
+MEMBER_NAME = Regex(r'((?:[a-z0-9]+_?)*?members?)', flags=re.IGNORECASE)
 TABLE_NAME = (USER_NAME | MEMBER_NAME)
-USER_TABLE = Combine(BACKTICK + TABLE_NAME + BACKTICK) + (WordEnd() | Suppress("Afccxxv   ("))
+USER_TABLE = Combine(BACKTICK + TABLE_NAME + BACKTICK) + (WordEnd() | Suppress("("))
 CREATE = CaselessKeyword('CREATE TABLE')
 CREATE_EXISTS = CaselessKeyword('IF NOT EXISTS')
 CREATE_BEGIN = CREATE + Optional(CREATE_EXISTS) + USER_TABLE('table_name')
@@ -329,6 +329,7 @@ def read_file(sqlfile):
                     parsing = None
             else:
                 insert = parse_sql(line, INSERT_BEGIN)
+
                 if insert and isinstance(insert, ParseResults):
                     if not table_name:
                         table_name = insert.asDict().get('table_name')

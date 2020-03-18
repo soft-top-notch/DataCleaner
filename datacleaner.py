@@ -869,7 +869,7 @@ def confirm():
 
 def is_sqldump(file_path):
     sql_pattern = re.compile(
-        "create table \`.*?\`",
+        "insert into \`.*?\`",
         re.IGNORECASE
     )
 
