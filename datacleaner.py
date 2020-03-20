@@ -246,7 +246,7 @@ class excelDialect(csv.excel):
     escapechar = "\\"
 
 
-def find_column_count(f, dialect=csv.excel):
+def find_column_count(f, dialect=csv.excel, show_freq=False):
     """Find the column count with the most occurences in 1000 lines."""
     row_lengths = []
 
@@ -265,8 +265,13 @@ def find_column_count(f, dialect=csv.excel):
             break
 
     counts = Counter(row_lengths)
-    column_count = counts.most_common(1)[0]
-    return column_count[0]
+    column_count = counts.most_common()[0][0]
+    column_freq = counts.most_common()[0][1]
+
+    if show_freq:
+        return column_count, column_freq
+
+    return column_count
 
 
 def guess_delimeter_by_csv(F):
@@ -281,9 +286,9 @@ def guess_delimeter_by_csv(F):
 
         F.seek(0)
 
-        column_count = find_column_count(F, dialect)
+        column_count, column_freq = find_column_count(F, dialect, show_freq=True)
 
-        return dialect, column_count
+        return dialect, column_count, column_freq
     except:
         return None
 
@@ -321,6 +326,10 @@ def strip_delimeter(ls, csv_delimeter):
 
 def guess_delimeter(F):
 
+    # Load sniff guess for compare
+    sniff_guess = guess_delimeter_by_csv(F)
+
+    # Load normal algorithm delimiter check for compare
     delim_counts_list = {}
     delim_freq = {}
     for d in delims:
@@ -359,9 +368,13 @@ def guess_delimeter(F):
                 most_frequent = (d, delim_freq[d][c], c)
 
     csv_delimeter = most_frequent[0]
-
     rdialect = excelDialect()
     rdialect.delimiter = csv_delimeter
+
+    if (sniff_guess
+            and (sniff_guess[1] + sniff_guess[2])/2 > (most_frequent[1] + most_frequent[2])/2):
+        csv_delimeter = sniff_guess[0].delimiter
+        rdialect = sniff_guess[0]
 
     F.seek(0)
     csv_column_count = find_column_count(F, rdialect)
@@ -370,26 +383,18 @@ def guess_delimeter(F):
 
         print "\033[38;5;244mGuess method: Custom delimiter -> {}\n".format(
             csv_delimeter)
-
+    elif not args.p:
+        print "\033[38;5;203m Delimiter could not determined"
+        csv_delimeter, csv_column_count = ask_user_for_delimeter()
+        rdialect = excelDialect()
+        rdialect.delimiter = csv_delimeter
+        return rdialect, csv_column_count
     else:
-
-        if not args.p:
-
-            print "\033[38;5;203m Delimiter could not determined"
-            csv_delimeter, csv_column_count = ask_user_for_delimeter()
-            rdialect = excelDialect()
-            rdialect.delimiter = csv_delimeter
-
-            return rdialect, csv_column_count
-        else:
-            print "\033[38;5;203m Delimiter could not determined, passing"
-            return False, False
+        print "\033[38;5;203m Delimiter could not determined, passing"
+        return False, False
 
     if args.a:
         return rdialect, csv_column_count
-
-    # print first 20 lines
-    print_lines(F, 20)
 
     print "\033[38;5;147m Guessed delimeter -> {}".format(repr(csv_delimeter))
     print "\033[38;5;147m Guessed column number", csv_column_count
