@@ -9,15 +9,16 @@ import json
 import os
 import re
 import sys
+
 from collections import Counter
 from validate_email import validate_email
+from copy import deepcopy
 
 import parse_sql
 from dc import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
     c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
     TqdmUpTo
 from dc.sampling import create_sample
-from headers import read_header_file
 
 # Full path to directories used
 DIRS = {
@@ -233,8 +234,6 @@ class UnicodeWriter:
 class myDialect(csv.Dialect):
     delimiter = ','
     quotechar = '"'
-    doublequote = False
-    skipinitialspace = False
     lineterminator = '\n'
     quoting = csv.QUOTE_ALL
     escapechar = '\\'
@@ -244,6 +243,10 @@ class excelDialect(csv.excel):
     quoting = csv.QUOTE_NONE
     quotechar = ''
     escapechar = "\\"
+
+
+def process_dialect_row(row):
+    pass
 
 
 def find_column_count(f, dialect=csv.excel, show_freq=False):
@@ -275,22 +278,39 @@ def find_column_count(f, dialect=csv.excel, show_freq=False):
 
 
 def guess_delimeter_by_csv(F):
+    # Init stuffs
     F.seek(0)
-
     sniffer = csv.Sniffer()
+    sample_text = F.read(1024 * 5)
 
+    # Try sniff quote all
+    all_dialect_variables = [None, 0, 0]
     try:
-        dialect = sniffer.sniff(F.read(1024 * 5), delimiters=delims)
-
-        dialect.doublequote = True
-
+        all_dialect = sniffer.sniff(sample_text, delimiters=delims)
         F.seek(0)
+        all_column_count, all_column_freq = find_column_count(F, all_dialect, show_freq=True)
+        all_dialect_variables = [all_dialect, all_column_count, all_column_freq]
+    except Exception as err:
+        pass
 
-        column_count, column_freq = find_column_count(F, dialect, show_freq=True)
+    # Try sniff quote all
+    none_dialect_variables = [None, 0, 0]
+    try:
+        none_dialect = sniffer.sniff(sample_text, delimiters=delims)
+        none_dialect.quoting = csv.QUOTE_NONE
+        F.seek(0)
+        none_column_count, none_column_freq = find_column_count(F, none_dialect, show_freq=True)
+        none_dialect_variables = [none_dialect, none_column_count, none_column_freq]
+    except Exception as err:
+        pass
 
-        return dialect, column_count, column_freq
-    except:
-        return None
+    if all_dialect_variables[0] is None and none_dialect_variables[0] is None:
+        return
+
+    if float(all_column_freq + all_column_count)/2 >= float(none_column_count + none_column_freq)/2:
+        return all_dialect_variables
+
+    return none_dialect_variables
 
 
 def ask_user_for_delimeter():
@@ -373,6 +393,7 @@ def guess_delimeter(F):
 
     if (sniff_guess
             and (sniff_guess[1] + sniff_guess[2])/2 > (most_frequent[1] + most_frequent[2])/2):
+
         csv_delimeter = sniff_guess[0].delimiter
         rdialect = sniff_guess[0]
 
@@ -729,12 +750,6 @@ def parse_file(tfile):
 
     out_file_csv_file = open(out_file_csv_temp, 'wb')
 
-    error_file = io.open(out_file_err_temp, 'w', encoding='utf-8')
-
-    #c_action_system('Cleaning ... ')
-
-    clean_writer = UnicodeWriter(out_file_csv_file, dialect=myDialect)
-
     l_count = 0
     headers = set_headers(F, dialect, csv_column_count)
     if headers:
@@ -744,6 +759,18 @@ def parse_file(tfile):
     pbar = TqdmUpTo(
         desc='Writing ', unit=' bytes ', total=os.path.getsize(gc_file))
 
+    # Load result files
+    error_file = io.open(out_file_err_temp, 'w', encoding='utf-8')
+
+    # Load clean dialect
+    clean_dialect = myDialect()
+    clean_dialect.quoting = dialect.quoting
+    clean_dialect.doublequote = dialect.doublequote
+
+    # Load clean file
+    clean_writer = UnicodeWriter(out_file_csv_file, dialect=clean_dialect)
+
+    # Loop line
     for line in F:
         l_count += 1
 
