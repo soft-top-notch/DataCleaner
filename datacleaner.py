@@ -235,6 +235,7 @@ class myDialect(csv.Dialect):
     delimiter = ','
     quotechar = '"'
     lineterminator = '\n'
+    skipinitialspace = False
     quoting = csv.QUOTE_ALL
     escapechar = '\\'
 
@@ -764,8 +765,9 @@ def parse_file(tfile):
 
     # Load clean dialect
     clean_dialect = myDialect()
-    clean_dialect.quoting = dialect.quoting
+    clean_dialect.quoting = csv.QUOTE_ALL
     clean_dialect.doublequote = dialect.doublequote
+    clean_dialect.skipinitialspace = dialect.skipinitialspace
 
     # Load clean file
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=clean_dialect)
