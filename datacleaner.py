@@ -254,6 +254,7 @@ def find_column_count(f, dialect=csv.excel, show_freq=False):
     """Find the column count with the most occurences in 1000 lines."""
     row_lengths = []
 
+    # Test 1000 first row
     index = 0
     while index < 1000:
         try:
@@ -271,6 +272,31 @@ def find_column_count(f, dialect=csv.excel, show_freq=False):
     counts = Counter(row_lengths)
     column_count = counts.most_common()[0][0]
     column_freq = counts.most_common()[0][1]
+    if column_count == 0:
+        try:
+            column_count = counts.most_common(2)[1][0]
+            column_freq = counts.most_common(2)[1][1]
+        except (ValueError, AttributeError, TypeError, IndexError):
+
+            # If not found test the whole file
+            while True:
+                try:
+                    line = f.readline()
+                    line_buffer = StringIO.StringIO()
+                    line_buffer.write(line)
+                    line_buffer.seek(0)
+                    reader = UnicodeReader(line_buffer, dialect=dialect)
+                    row = reader.next()
+                    row_lengths.append(len(row))
+                except Exception as err:
+                    break
+
+            counts = Counter(row_lengths)
+            column_count = counts.most_common()[0][0]
+            column_freq = counts.most_common()[0][1]
+            if column_count == 0:
+                column_count = counts.most_common(2)[-1][0]
+                column_freq = counts.most_common(2)[-1][1]
 
     if show_freq:
         return column_count, column_freq
@@ -280,30 +306,41 @@ def find_column_count(f, dialect=csv.excel, show_freq=False):
 
 def guess_delimeter_by_csv(F):
     # Init stuffs
-    F.seek(0)
     sniffer = csv.Sniffer()
-    sample_text = F.read(1024 * 5)
 
-    # Try sniff quote all
-    all_dialect_variables = [None, 0, 0]
-    try:
-        all_dialect = sniffer.sniff(sample_text, delimiters=delims)
+    first_read = True
+    while True:
         F.seek(0)
-        all_column_count, all_column_freq = find_column_count(F, all_dialect, show_freq=True)
-        all_dialect_variables = [all_dialect, all_column_count, all_column_freq]
-    except Exception as err:
-        pass
+        if first_read:
+            sample_text = F.read(1024 * 10)
+        else:
+            sample_text = F.read()
 
-    # Try sniff quote all
-    none_dialect_variables = [None, 0, 0]
-    try:
-        none_dialect = sniffer.sniff(sample_text, delimiters=delims)
-        none_dialect.quoting = csv.QUOTE_NONE
-        F.seek(0)
-        none_column_count, none_column_freq = find_column_count(F, none_dialect, show_freq=True)
-        none_dialect_variables = [none_dialect, none_column_count, none_column_freq]
-    except Exception as err:
-        pass
+        # Try sniff quote all
+        all_dialect_variables = [None, 0, 0]
+        try:
+            all_dialect = sniffer.sniff(sample_text, delimiters=delims)
+            F.seek(0)
+            all_column_count, all_column_freq = find_column_count(F, all_dialect, show_freq=True)
+            all_dialect_variables = [all_dialect, all_column_count, all_column_freq]
+        except Exception as err:
+            pass
+
+        # Try sniff quote all
+        none_dialect_variables = [None, 0, 0]
+        try:
+            none_dialect = sniffer.sniff(sample_text, delimiters=delims)
+            none_dialect.quoting = csv.QUOTE_NONE
+            F.seek(0)
+            none_column_count, none_column_freq = find_column_count(F, none_dialect, show_freq=True)
+            none_dialect_variables = [none_dialect, none_column_count, none_column_freq]
+        except Exception as err:
+            pass
+
+        if none_dialect_variables[1] > 0 or all_dialect_variables[1] > 0 or not first_read:
+            break
+
+        first_read = False
 
     if all_dialect_variables[0] is None and none_dialect_variables[0] is None:
         return
@@ -399,7 +436,11 @@ def guess_delimeter(F):
         rdialect = sniff_guess[0]
 
     F.seek(0)
-    csv_column_count = find_column_count(F, rdialect)
+
+    try:
+        csv_column_count = find_column_count(F, rdialect)
+    except IndexError:
+        raise ValueError("Blank file, ignoring.")
 
     if csv_delimeter:
 
@@ -730,7 +771,9 @@ def parse_file(tfile):
         try:
             dialect, csv_column_count = guess_delimeter(F)
         except TypeError as e:
-            print "Guessing delimiter failed"
+            print "Guessing delimiter failed, aborting."
+        except ValueError as e:
+            print "Blank file, aborting."
 
     if not dialect and args.p:
         return
