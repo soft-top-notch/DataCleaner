@@ -952,7 +952,7 @@ def is_sqldump(file_path):
 
     try:
         with open(file_path, 'rb') as file:
-            text = file.read(10000)
+            text = file.read(100000)
     except IOError:
         return
 
