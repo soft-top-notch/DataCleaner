@@ -945,18 +945,22 @@ def confirm():
 
 
 def is_sqldump(file_path):
-    sql_pattern = re.compile(
-        "insert into \`.*?\`",
-        re.IGNORECASE
-    )
-
-    try:
-        with open(file_path, 'rb') as file:
-            text = file.read(100000)
-    except IOError:
-        return
-
-    return sql_pattern.search(text)
+    # sql_pattern = re.compile(
+    #     "insert into \`.*?\`",
+    #     re.IGNORECASE
+    # )
+    #
+    # try:
+    #     with open(file_path, 'rb') as file:
+    #         text = file.read(100000)
+    # except IOError:
+    #     return
+    #
+    # return sql_pattern.search(text)
+    if ".sql" in file_path.lower()[-4:]:
+        return True
+    else:
+        return False
 
 
 def main():
