@@ -98,10 +98,17 @@ class InsertInto():
         for t in tokener:
             if waiting == InsertInto.values:
                 if t[0] == tokens.Punctuation:
-                    if t[1] == ')':
+                    if t[1] == '(' and values:
+                        while True:
+                            values[-1] = values[-1] + t[1]
+                            t = next(tokener)
+                            if t[1] == ')':
+                                values[-1] = values[-1] + t[1]
+                                break
+                    elif t[1] == ')':
                         if len(columns) != len(values) and columns:
                             raise Exception(
-                                'ERORR: Wrong length of columns in table "%s",'
+                                'ERROR: Wrong length of columns in table "%s",'
                                 ' should be %d for data: %s' %
                                 (table, len(columns), values))
                         yield values
@@ -116,8 +123,7 @@ class InsertInto():
                     else:
                         values.append(t[1])
             elif waiting == InsertInto.columns:
-                if t[0] not in (tokens.Punctuation, tokens.Whitespace,
-                                tokens.Newline):
+                if t[0] not in (tokens.Punctuation, tokens.Whitespace, tokens.Newline):
                     if t[1] == 'VALUES':
                         yield table, columns
                         waiting += 1
