@@ -429,8 +429,11 @@ def guess_delimeter(F):
     rdialect = excelDialect()
     rdialect.delimiter = csv_delimeter
 
+    print most_frequent
+
     if (sniff_guess
-            and (sniff_guess[1] + sniff_guess[2])/2 > (most_frequent[1] + most_frequent[2])/2):
+            and ((((sniff_guess[1] + sniff_guess[2])/2) > ((most_frequent[1] + most_frequent[2])/2))
+                 or (most_frequent[1] == 1))):
 
         csv_delimeter = sniff_guess[0].delimiter
         rdialect = sniff_guess[0]
@@ -740,6 +743,29 @@ def ask_headers(column_count):
     return headers
 
 
+def is_already_quoted(values):
+    # All possible quote chars
+    possible_quote_chars = ["'", "\""]
+
+    # Loop valid count
+    valid_count = 0
+    for value in values:
+        # Not check value with less than 2 chars
+        if len(value) < 2:
+            continue
+
+        # Check double quote
+        if value[0] in possible_quote_chars and value[-1] == value[0]:
+            valid_count += 1
+        
+
+    # Check if valid
+    if valid_count == len(values):
+        return True
+
+    return False
+
+
 def parse_file(tfile):
 
     org_tfile = tfile
@@ -812,7 +838,7 @@ def parse_file(tfile):
     clean_dialect.doublequote = dialect.doublequote
     clean_dialect.skipinitialspace = dialect.skipinitialspace
 
-    # Load clean file
+    # Init clean write
     clean_writer = UnicodeWriter(out_file_csv_file, dialect=clean_dialect)
 
     # Loop line
@@ -824,9 +850,21 @@ def parse_file(tfile):
         if failed_row:
             error_file.write(unicode(failed_row))
         else:
+
+            # Check for quote
+            if is_already_quoted(cleaned_row):
+                clean_dialect.quoting = csv.QUOTE_NONE
+            else:
+                clean_dialect.quoting = csv.QUOTE_ALL
+
+            # Reload clean writer
+            clean_writer = UnicodeWriter(out_file_csv_file, dialect=clean_dialect)
+
+            # Write clean row
             clean_writer.writerow(cleaned_row)
 
         pbar.update_to(clean_writer.tell() + error_file.tell())
+
     pbar.close()
 
     F.close()
