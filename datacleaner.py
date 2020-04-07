@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+import glob
 
 from collections import Counter
 from validate_email import validate_email
@@ -113,6 +114,8 @@ parser.add_argument(
     "-o", help="Organize CSVs by column number", action="store_true")
 parser.add_argument(
     "-p", help="Pass if delimiter can't guessed", action="store_true")
+parser.add_argument(
+    "-jm", help="Merge similar csv into list json", action="store_true")
 parser.add_argument(
     "path",
     type=str,
@@ -757,7 +760,7 @@ def is_already_quoted(values):
         # Check double quote
         if value[0] in possible_quote_chars and value[-1] == value[0]:
             valid_count += 1
-        
+
 
     # Check if valid
     if valid_count == len(values):
@@ -997,6 +1000,93 @@ def is_sqldump(file_path):
     return sql_pattern.search(text)
 
 
+def execute_json_merge(**kwargs):
+
+    # Load variable
+    cluster_list = kwargs.get("cluster_list")
+    cluster_name = kwargs.get("cluster_name")
+    dest_folder = kwargs.get("dest_folder")
+
+    # Change cluster name to json
+    if cluster_name[-4:].lower() != ".json":
+        cluster_name = cluster_name[:-4] + ".json"
+
+    # Init item list
+    item_list = []
+
+    # Loop file in cluster
+    for file in cluster_list:
+        with open(file, "r") as stream:
+            item_list += [
+                item for item in csv.DictReader(stream)
+            ]
+
+    # Write file
+    file_name = os.path.join(
+        dest_folder,
+        cluster_name
+    )
+    with open(file_name, mode="w+") as stream:
+        stream.write(
+            json.dumps(item_list)
+        )
+
+
+def cluster_files(all_files):
+
+    # Init cluster
+    all_cluster = {}
+
+    # Loop files
+    for file in all_files:
+        cluster_name = os.path.basename(
+            file.replace(
+                "_cleaned", ""
+            ).replace(
+                "_error", ""
+            )
+        )
+
+        # Create or append cluster
+        if all_cluster.get(cluster_name):
+            all_cluster[cluster_name].append(file)
+        else:
+            all_cluster[cluster_name] = [file]
+
+    return all_cluster
+
+
+def scan_json_merge(source_folder, dest_folder):
+
+    # Check if correct folder
+    if not os.path.isdir(source_folder) or not os.path.isdir(dest_folder):
+        raise ValueError(
+            "Provided source folder %s or destination folder %s is incorrect" % (
+                source_folder,
+                dest_folder
+            )
+        )
+
+    # Load and cluster all files
+    all_files = glob.glob(
+        os.path.join(
+            source_folder,
+            "*.*"
+        )
+    )
+    all_clusters = cluster_files(all_files)
+
+    # Start merging
+    for cluster_name, cluster_list in all_clusters.items():
+        execute_json_merge(
+            cluster_list=cluster_list,
+            cluster_name=cluster_name,
+            dest_folder=dest_folder
+        )
+        print(
+            "Succesfully merge %s, moving on." % cluster_name
+        )
+
 def main():
     dialect = myDialect()
     files = gather_files(args.path, DIRS['skipped'])
@@ -1005,6 +1095,21 @@ def main():
         print 'Cleaning filenames...'
         for file in files:
             clean_filename(file)
+    elif args.jm:
+        if len(args.path) > 2:
+            raise ValueError(
+                "Only accept source and destination folder."
+            )
+        else:
+            try:
+                source_folder, dest_folder = args.path
+            except ValueError:
+                try:
+                    source_folder = dest_folder = args.path[0]
+                except ValueError:
+                    source_folder = dest_folder = os.getcwd()
+
+        scan_json_merge(source_folder, dest_folder)
     elif args.sh or args.ah:
         for filepath in nonsql_files:
             headers = []
