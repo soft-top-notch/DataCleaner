@@ -433,6 +433,7 @@ def guess_delimeter(F):
     rdialect.delimiter = csv_delimeter
 
     print most_frequent
+    print delim_freq
 
     if (sniff_guess
             and ((((sniff_guess[1] + sniff_guess[2])/2) > ((most_frequent[1] + most_frequent[2])/2))
@@ -918,7 +919,7 @@ def parse_row(line, csv_column_count, dialect):
         return row_escaped, None
     if args.m and csv_column_count > 1:
         lx = row_escaped[:csv_column_count - 1]
-        lt = dialect.delimiter.join(row[csv_column_count - 1:])
+        lt = dialect.delimiter.join(row_escaped[csv_column_count - 1:])
         lx.append(lt)
         return lx, None
     return None, line
