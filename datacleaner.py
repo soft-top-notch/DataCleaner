@@ -150,7 +150,7 @@ guess = True
 if args.c and args.d:
     guess = False
 
-delims = ('\t', ' ', ';', ':', ',', '|', '~')
+delims = ('\t', ' ', ';', ':', ',', '|')
 
 
 def valid_ip(address):
@@ -431,9 +431,6 @@ def guess_delimeter(F):
     csv_delimeter = most_frequent[0]
     rdialect = excelDialect()
     rdialect.delimiter = csv_delimeter
-
-    print most_frequent
-    print delim_freq
 
     if (sniff_guess
             and ((((sniff_guess[1] + sniff_guess[2])/2) > ((most_frequent[1] + most_frequent[2])/2))
