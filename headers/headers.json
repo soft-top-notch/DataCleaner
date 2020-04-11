@@ -1,16 +1,16 @@
 {
     "x": ["misc"], 
-    "a": ["address"], 
-    "d": ["dob", "birthday", "birthdate", "DATE_OF_BIRTH"], 
-    "e": ["email", "mail", "usr_email", "email_address", "emailaddress", "user_email"], 
+    "a": ["address", "user_address"], 
+    "dob": ["dob", "dateofbirth", "user_birthday", "birthday", "birthdate", "DATE_OF_BIRTH"], 
+    "e": ["email", "mail", "usr_email", "email_address", "user_email", "emailaddress", "user_email"], 
     "fn": ["first_name", "first", "firstname", "fname"], 
     "h": ["hash", "members_pass_hash", "pass_hash"], 
-    "n": ["members_display_name", "display_name", "real_name", "name"], 
-    "u": ["members_l_username", "members_username", "username"], 
+    "n": ["members_display_name", "display_name", "user_name", "real_name", "name", "display_name"], 
+    "u": ["members_l_username", "members_username", "username", "user_login"], 
     "s": ["members_pass_salt", "pass_salt", "salt", "secret"], 
     "i": ["ip", "ipaddress", "ip_address", "ip", "ipaddress", "sourceip", "source_ip", "reg_ip", "regip", "lastip", "last_ip"], 
     "t": ["mobile", "phone", "phone", "PHONE_NUM", "phone_num"], 
-    "p": ["pass", "password", "token", "usr_pass", "user_password", "userpassword"], 
+    "p": ["pass", "password", "token", "usr_pass", "user_password", "userpassword", "user_pass"], 
     "ln": ["last_name", "last", "lastname", "lname", "lastname"], 
     "a1": ["street", "street_address", "streetaddress", "RESIDENTIAL_ADDRESS"], 
     "a2": ["city", "RESIDENTIAL_CITY"], 
@@ -19,5 +19,7 @@
     "a5": ["country"], 
     "o": ["jabber", "xmpp"], 
     "de": ["device"], 
-    "did": ["deviceid", "uuid"]
+    "did": ["deviceid", "uuid"],
+    "fbid": ["facebookid", "fbid", "fbuserid", "facebook_id", "fb_id", "facebook", "face_book", "face_book_id"],
+    "fb": ["facebookuser", "fbname", "facebook_url", "face_book_url", "fburl", "fb_url"]
 }
