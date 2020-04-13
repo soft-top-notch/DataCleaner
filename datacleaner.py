@@ -313,17 +313,18 @@ def guess_delimeter_by_csv(F):
     sniffer = csv.Sniffer()
 
     first_read = True
+    sample_delims = deepcopy(delims)
     while True:
         F.seek(0)
         if first_read:
-            sample_text = F.read(1024 * 10)
+            sample_text = F.read(1024 * 100)
         else:
             sample_text = F.read()
 
         # Try sniff quote all
         all_dialect_variables = [None, 0, 0]
         try:
-            all_dialect = sniffer.sniff(sample_text, delimiters=delims)
+            all_dialect = sniffer.sniff(sample_text, delimiters=sample_delims)
             F.seek(0)
             all_column_count, all_column_freq = find_column_count(F, all_dialect, show_freq=True)
             all_dialect_variables = [all_dialect, all_column_count, all_column_freq]
@@ -333,7 +334,7 @@ def guess_delimeter_by_csv(F):
         # Try sniff quote all
         none_dialect_variables = [None, 0, 0]
         try:
-            none_dialect = sniffer.sniff(sample_text, delimiters=delims)
+            none_dialect = sniffer.sniff(sample_text, delimiters=sample_delims)
             none_dialect.quoting = csv.QUOTE_NONE
             F.seek(0)
             none_column_count, none_column_freq = find_column_count(F, none_dialect, show_freq=True)
@@ -341,10 +342,28 @@ def guess_delimeter_by_csv(F):
         except Exception as err:
             pass
 
-        if none_dialect_variables[1] > 0 or all_dialect_variables[1] > 0 or not first_read:
-            break
+        if none_dialect_variables[1] <=1 and all_dialect_variables[1] <=1:
+            # Total ignore delims pool
+            ignore_delims = []
+            if all_dialect_variables[0]:
+                ignore_delims.append(all_dialect_variables[0].delimiter)
+            if none_dialect_variables[0]:
+                ignore_delims.append(none_dialect_variables[0].delimiter)
 
-        first_read = False
+            # Reload sample delims
+            sample_delims = [
+                delim for delim in sample_delims
+                if delim not in ignore_delims
+            ]
+
+            if not sample_delims:
+                return
+
+            first_read = False
+
+            continue
+
+        break
 
     if all_dialect_variables[0] is None and none_dialect_variables[0] is None:
         return
@@ -435,7 +454,7 @@ def guess_delimeter(F):
 
     if (sniff_guess
             and ((((sniff_guess[1] + sniff_guess[2])/2) > ((most_frequent[1] + most_frequent[2])/2))
-                 or (most_frequent[1] == 1))):
+                 or (most_frequent[1] == 0))):
 
         csv_delimeter = sniff_guess[0].delimiter
         rdialect = sniff_guess[0]
