@@ -150,7 +150,7 @@ guess = True
 if args.c and args.d:
     guess = False
 
-delims = ('\t', ' ', ';', ':', ',', '|')
+delims = ('\t', ' ', ';', ',', '|')
 
 
 def valid_ip(address):
@@ -744,27 +744,26 @@ def ask_headers(column_count):
     return headers
 
 
-def is_already_quoted(values):
+def remove_quote(values):
     # All possible quote chars
     possible_quote_chars = ["'", "\""]
 
     # Loop valid count
     valid_count = 0
-    for value in values:
+    final_values = []
+    for index, value in enumerate(values):
         # Not check value with less than 2 chars
         if len(value) < 2:
+            final_values.append(value)
             continue
 
         # Check double quote
         if value[0] in possible_quote_chars and value[-1] == value[0]:
-            valid_count += 1
+            value = value[1:-1]
 
+        final_values.append(value)
 
-    # Check if valid
-    if valid_count == len(values):
-        return True
-
-    return False
+    return final_values
 
 
 def parse_file(tfile):
@@ -851,18 +850,9 @@ def parse_file(tfile):
         if failed_row:
             error_file.write(unicode(failed_row))
         else:
-
-            # Check for quote
-            if is_already_quoted(cleaned_row):
-                clean_dialect.quoting = csv.QUOTE_NONE
-            else:
-                clean_dialect.quoting = csv.QUOTE_ALL
-
-            # Reload clean writer
-            clean_writer = UnicodeWriter(out_file_csv_file, dialect=clean_dialect)
-
-            # Write clean row
-            clean_writer.writerow(cleaned_row)
+            clean_writer.writerow(
+                remove_quote(cleaned_row)
+            )
 
         pbar.update_to(clean_writer.tell() + error_file.tell())
 
