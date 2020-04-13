@@ -150,7 +150,7 @@ guess = True
 if args.c and args.d:
     guess = False
 
-delims = ('\t', ' ', ';', ',', '|')
+delims = ('\t', ' ', ';', ',', '|', ':')
 
 
 def valid_ip(address):
