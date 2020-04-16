@@ -1005,62 +1005,6 @@ def is_sqldump(file_path):
     return sql_pattern.search(text)
 
 
-def execute_json_merge(**kwargs):
-
-    # Load variable
-    cluster_list = kwargs.get("cluster_list")
-    cluster_name = kwargs.get("cluster_name")
-    dest_folder = kwargs.get("dest_folder")
-
-    # Change cluster name to json
-    if cluster_name[-4:].lower() != ".json":
-        cluster_name = cluster_name[:-4] + ".json"
-
-    # Init item list
-    item_list = []
-
-    # Loop file in cluster
-    for file in cluster_list:
-        with open(file, "r") as stream:
-            item_list += [
-                item for item in csv.DictReader(stream)
-            ]
-
-    # Write file
-    file_name = os.path.join(
-        dest_folder,
-        cluster_name
-    )
-    with open(file_name, mode="w+") as stream:
-        stream.write(
-            json.dumps(item_list)
-        )
-
-
-def cluster_files(all_files):
-
-    # Init cluster
-    all_cluster = {}
-
-    # Loop files
-    for file in all_files:
-        cluster_name = os.path.basename(
-            file.replace(
-                "_cleaned", ""
-            ).replace(
-                "_error", ""
-            )
-        )
-
-        # Create or append cluster
-        if all_cluster.get(cluster_name):
-            all_cluster[cluster_name].append(file)
-        else:
-            all_cluster[cluster_name] = [file]
-
-    return all_cluster
-
-
 def scan_json_merge(source_folder, dest_folder):
 
     # Check if correct folder
@@ -1076,21 +1020,30 @@ def scan_json_merge(source_folder, dest_folder):
     all_files = glob.glob(
         os.path.join(
             source_folder,
-            "*.*"
+            "*.json"
         )
     )
-    all_clusters = cluster_files(all_files)
 
     # Start merging
-    for cluster_name, cluster_list in all_clusters.items():
-        execute_json_merge(
-            cluster_list=cluster_list,
-            cluster_name=cluster_name,
-            dest_folder=dest_folder
-        )
-        print(
-            "Succesfully merge %s, moving on." % cluster_name
-        )
+    for file_path in all_files:
+        with open(file_path, "rb") as file:
+            item = json.loads(file.readline())
+
+            # Load release path
+            release_name = item.get("_source").get("r")
+            release_path = os.path.join(
+                dest_folder,
+                "%s.json" % release_name
+            )
+
+            # Write to release file
+            with open(release_path, "a+") as release_file:
+                file.seek(0)
+                for line in file.readlines():
+                    release_file.write(line)
+
+            print("Finish merge %s into %s" % (file_path, release_name))
+
 
 def main():
     dialect = myDialect()
