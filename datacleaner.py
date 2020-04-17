@@ -11,6 +11,7 @@ import re
 import sys
 import glob
 
+from shutil import copyfile
 from collections import Counter
 from validate_email import validate_email
 from copy import deepcopy
@@ -1030,25 +1031,55 @@ def scan_json_merge(source_folder, dest_folder):
         )
     )
 
-    # Start merging
+    # Init release pool
+    release_pool = {}
     for file_path in all_files:
         with open(file_path, "rb") as file:
             item = json.loads(file.readline())
 
-            # Load release path
+            # Load release name
             release_name = item.get("_source").get("r").replace(" ", "_")
+
+            # Add to release pool
+            if release_pool.get(release_name):
+                release_pool[release_name].append(file_path)
+            else:
+                release_pool[release_name] = [file_path]
+
+    # Start merging or copy
+    for release_name, list_file in release_pool.items():
+        if len(list_file) == 1:
+            # Load copy path
+            copy_path = os.path.join(
+                dest_folder,
+                os.path.basename(list_file[0])
+            )
+            # Do copy
+            copyfile(list_file[0],copy_path)
+            print("Finish copy %s into %s" % (list_file[0], copy_path))
+        else:
+            # Load release path
             release_path = os.path.join(
                 dest_folder,
                 "%s.json" % release_name
             )
 
-            # Write to release file
-            with open(release_path, "a+") as release_file:
-                file.seek(0)
-                for line in file.readlines():
-                    release_file.write(line)
+            # If release path exist than remove
+            if os.path.exists(release_path):
+                os.remove(release_path)
 
-            print("Finish merge %s into %s" % (file_path, release_name))
+            # Start merging
+            for file_path in list_file:
+                with open(file_path, "rb") as file:
+                    with open(release_path, "a+") as release_file:
+                        file.seek(0)
+                        while True:
+                            line = file.readline()
+                            if not line:
+                                break
+                            release_file.write(line)
+
+                print("Finish merge %s into %s" % (file_path, release_name))
 
 
 def main():
@@ -1082,7 +1113,7 @@ def main():
                 # Init dest folder
                 dest_folder = os.path.join(
                     source_folder,
-                    "merged"
+                    "processed"
                 )
 
         scan_json_merge(source_folder, dest_folder)
