@@ -119,8 +119,9 @@ parser.add_argument(
 parser.add_argument(
     "path",
     type=str,
-    nargs='+',
-    help="Path to one or more csv file(s) or folder(s)")
+    nargs='*',
+    help="Path to one or more csv file(s) or folder(s)",
+)
 parser.add_argument("-r", type=str, help="Release Name")
 exclusive_args.add_argument(
     "-s",
@@ -1008,13 +1009,18 @@ def is_sqldump(file_path):
 def scan_json_merge(source_folder, dest_folder):
 
     # Check if correct folder
-    if not os.path.isdir(source_folder) or not os.path.isdir(dest_folder):
+    if not os.path.isdir(source_folder):
         raise ValueError(
-            "Provided source folder %s or destination folder %s is incorrect" % (
+            "Provided source folder %s is incorrect" % (
                 source_folder,
                 dest_folder
             )
         )
+
+    # Check exist dest folder
+    if not os.path.exists(dest_folder):
+        os.makedirs(dest_folder)
+        print("%s not existing, created." % dest_folder)
 
     # Load and cluster all files
     all_files = glob.glob(
@@ -1030,7 +1036,7 @@ def scan_json_merge(source_folder, dest_folder):
             item = json.loads(file.readline())
 
             # Load release path
-            release_name = item.get("_source").get("r")
+            release_name = item.get("_source").get("r").replace(" ", "_")
             release_path = os.path.join(
                 dest_folder,
                 "%s.json" % release_name
@@ -1047,8 +1053,13 @@ def scan_json_merge(source_folder, dest_folder):
 
 def main():
     dialect = myDialect()
+
+    if len(args.path) == 0 and not args.jm:
+        raise ValueError("Please input path.")
+
     files = gather_files(args.path, DIRS['skipped'])
     nonsql_files = [x for x in files if not is_sqldump(x)]
+
     if args.cl:
         print 'Cleaning filenames...'
         for file in files:
@@ -1062,10 +1073,17 @@ def main():
             try:
                 source_folder, dest_folder = args.path
             except ValueError:
+                # Init source folder in case not enough path arguments
                 try:
-                    source_folder = dest_folder = args.path[0]
-                except ValueError:
-                    source_folder = dest_folder = os.getcwd()
+                    source_folder = args.path[0]
+                except (ValueError, IndexError):
+                    source_folder = os.getcwd()
+
+                # Init dest folder
+                dest_folder = os.path.join(
+                    source_folder,
+                    "merged"
+                )
 
         scan_json_merge(source_folder, dest_folder)
     elif args.sh or args.ah:

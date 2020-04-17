@@ -90,3 +90,12 @@ $ ./venv/bin/python dbtool.py --extract data/mysql.sql --tables=table_1,table_2,
 
 It export selected tables into csv file
 
+### Merge json after -j into big json
+```sh
+$ ./venv/bin/python datacleaner.py -jm [/path/to/source_folder] [/path/to/destination_folder]
+```
+
+- It scan for all json in source folder and merge json with same release into destination folder
+- If only source folder provided, desitnation folder would be source_folder/merged_json
+- If nothing provided, source folder is current running directory and destination folder is source_folder/merged_json
+
