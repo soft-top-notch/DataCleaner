@@ -311,6 +311,7 @@ def find_column_count(f, dialect=csv.excel, show_freq=False):
 
 
 def guess_delimeter_by_csv(F):
+
     # Init stuffs
     sniffer = csv.Sniffer()
 
@@ -318,6 +319,7 @@ def guess_delimeter_by_csv(F):
     sample_delims = deepcopy(delims)
     while True:
         F.seek(0)
+
         if first_read:
             sample_text = F.read(1024 * 100)
         else:
@@ -343,6 +345,11 @@ def guess_delimeter_by_csv(F):
             none_dialect_variables = [none_dialect, none_column_count, none_column_freq]
         except Exception as err:
             pass
+
+        if (not first_read
+                and all_dialect_variables[0] is None
+                and none_dialect_variables[0] is None):
+            return
 
         if none_dialect_variables[1] <=1 and all_dialect_variables[1] <=1:
             # Total ignore delims pool
