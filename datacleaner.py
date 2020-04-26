@@ -907,14 +907,20 @@ def parse_file(tfile):
         os.remove(out_file_err_temp)
 
     if os.path.exists(out_file_csv_temp):
+        # Remove old existing file
         if os.path.exists(out_file_csv_name):
             os.remove(out_file_csv_temp)
-        else:
-            os.rename(out_file_csv_temp, out_file_csv_name)
+
+        # Rename temp file
+        os.rename(out_file_csv_temp, out_file_csv_name)
+
+        # Move cleaned file to success
+        move(out_file_csv_name, DIRS['json_success'])
+
     if args.j:
         write_json(out_file_csv_name)
 
-    #print "Removing", gc_file
+    # Print "Removing", gc_file
     os.remove(gc_file)
 
 
