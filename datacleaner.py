@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import glob
+import subprocess
 
 from shutil import copyfile
 from collections import Counter
@@ -812,11 +813,33 @@ def parse_file(tfile):
 
     gc_file = "{0}_gc~".format(tfile)
 
-    gc_cmd = "tr -cd '\11\12\15\40-\176' < {} > {}".format(tfile, gc_file)
+    # Load ascii clean bash script
+    clean_ascii_path = os.path.join(
+        os.path.dirname(
+            os.path.realpath(__file__)
+        ),
+        "clean_ascii.sh"
+    )
 
-    os.system(gc_cmd)
+    # Provide permission for bash script
+    subprocess.call(
+        ["chmod", "+x", clean_ascii_path],
+    )
 
-    #c_action_system('   Parsing file: {}'.format(gc_file))
+    print(
+        "Provided permission."
+    )
+
+    # Clean ascii
+    subprocess.call(
+        [clean_ascii_path, tfile, gc_file],
+    )
+
+    print(
+        "Cleaned ascii done."
+    )
+
+    # Load gc file
 
     F = open(gc_file, 'rb')
     dialect = None
@@ -909,7 +932,7 @@ def parse_file(tfile):
     if os.path.exists(out_file_csv_temp):
         # Remove old existing file
         if os.path.exists(out_file_csv_name):
-            os.remove(out_file_csv_temp)
+            os.remove(out_file_csv_name)
 
         # Rename temp file
         os.rename(out_file_csv_temp, out_file_csv_name)
