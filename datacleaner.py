@@ -796,6 +796,32 @@ def remove_quote(values):
     return final_values
 
 
+def clean_ascii(source, target):
+    # Load ascii clean bash script
+    clean_ascii_path = os.path.join(
+        os.path.dirname(
+            os.path.realpath(__file__)
+        ),
+        "clean_ascii.sh"
+    )
+
+    # Provide permission for bash script
+    subprocess.call(
+        ["chmod", "+x", clean_ascii_path],
+    )
+
+    # Clean ascii
+    subprocess.call(
+        [clean_ascii_path, source, target],
+    )
+
+    print(
+        "Done remove ascii char on file %s, new file %s generated." % (
+            source, target
+        )
+    )
+
+
 def parse_file(tfile):
 
     org_tfile = tfile
@@ -813,31 +839,11 @@ def parse_file(tfile):
 
     gc_file = "{0}_gc~".format(tfile)
 
-    # Load ascii clean bash script
-    clean_ascii_path = os.path.join(
-        os.path.dirname(
-            os.path.realpath(__file__)
-        ),
-        "clean_ascii.sh"
-    )
+    # Convert gc file without none ascii chars
+    clean_ascii(tfile, gc_file)
 
-    # Provide permission for bash script
-    subprocess.call(
-        ["chmod", "+x", clean_ascii_path],
-    )
-
-    print(
-        "Provided permission."
-    )
-
-    # Clean ascii
-    subprocess.call(
-        [clean_ascii_path, tfile, gc_file],
-    )
-
-    print(
-        "Cleaned ascii done."
-    )
+    if not os.path.exists(gc_file):
+        raise ValueError("Not finish clean file.")
 
     # Load gc file
 
@@ -1256,6 +1262,20 @@ def main():
             c_darkgray('------------------------------------------\n')
 
         for sf in sql_files:
+
+            # Load file cleaned of ascii
+            gf = os.path.join(
+                os.path.dirname(sf),
+                "~%s" % os.path.basename(sf)
+            )
+            clean_ascii(sf, gf)
+
+            # Clean old ascii file
+            os.remove(sf)
+
+            # Rename gf to sf
+            os.rename(gf, sf)
+
             try:
                 parse_sql.parse(sf)
             except KeyboardInterrupt:
