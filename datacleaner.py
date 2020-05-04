@@ -944,7 +944,7 @@ def parse_file(tfile):
         os.rename(out_file_csv_temp, out_file_csv_name)
 
         # Move cleaned file to success
-        move(out_file_csv_name, DIRS['json_success'])
+        #move(out_file_csv_name, DIRS['json_success'])
 
     if args.j:
         write_json(out_file_csv_name)
