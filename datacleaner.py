@@ -671,9 +671,13 @@ def get_headers(csv_file, delimiter, column_count):
             # Match headers in double quotes on both sides or no double quotes
             matches = re.search('"(\w+)"|\'(\w+)\'|^(\w+)$', i)
 
-            if matches:
+            if matches or i in ["", "\"\"", "''"]:
                 # Take whichever one matched
-                field_name = matches.group(1) or matches.group(2) or matches.group(3)
+                try:
+                    field_name = matches.group(1) or matches.group(2) or matches.group(3)
+                except Exception as err:
+                    field_name = "x"
+
                 # match if this is an enumerated field
                 enumerated = re.search('^([a-z])\d+', field_name)
                 if enumerated:
@@ -684,6 +688,7 @@ def get_headers(csv_file, delimiter, column_count):
                 else:
                     # Make it the header abbreviation or make it misc (x)
                     header = HEADER2ABBR.get(field_name, 'x')
+                
                 if header in ENUMERATED:
                     if tracked[header]:
                         header_format = '{}{}'.format(header, tracked[header])
@@ -691,13 +696,17 @@ def get_headers(csv_file, delimiter, column_count):
                         header = header_format
                     else:
                         tracked[header] += 1
+                
                 headers.append(header)
             else:
                 csv_file.seek(starting_location)
                 break
         # Only check the first non-comment row
         break
-
+    
+    print(headers)
+    print(len(headers))
+    print(column_count)
     if len(headers) + 1 == column_count:
         headers.append("x")
 
