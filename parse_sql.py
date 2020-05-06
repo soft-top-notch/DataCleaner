@@ -79,7 +79,7 @@ KEYS = (CaselessKeyword('PRIMARY') | CaselessKeyword('UNIQUE')
         | CaselessKeyword('KEY'))
 FIELD_META = ZeroOrMore((Word('(' + alphanums + '_' + ',' + ')')
                          | quotedString) + NotAny(KEYS))
-FIELD_NAME = BACKTICK + Word(alphanums + '_') + BACKTICK + Suppress(
+FIELD_NAME = BACKTICK + Word(alphanums + '_', excludeChars="NULL") + BACKTICK + Suppress(
     Optional(','))
 FIELD_NAME_META = NotAny(KEYS) + FIELD_NAME + Suppress(Optional(FIELD_META))
 CREATE_FIELDS = Suppress('(') + Group(
