@@ -704,9 +704,6 @@ def get_headers(csv_file, delimiter, column_count):
         # Only check the first non-comment row
         break
     
-    print(headers)
-    print(len(headers))
-    print(column_count)
     if len(headers) + 1 == column_count:
         headers.append("x")
 
@@ -1130,6 +1127,8 @@ def scan_json_merge(source_folder, dest_folder):
                                 break
                             release_file.write(line)
 
+                print(file_path)
+                print(release_name)
                 print("Finish merge %s into %s" % (file_path, release_name))
 
 
