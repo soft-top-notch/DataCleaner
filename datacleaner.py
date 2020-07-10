@@ -11,6 +11,8 @@ import re
 import sys
 import glob
 import subprocess
+import socket
+import struct
 
 from shutil import copyfile
 from collections import Counter
@@ -53,6 +55,9 @@ JSON_ENTRIES_SKIP = ('null', 'blank', 'xxx')
 
 # Parts of filename to be removed when cleaned
 UNWANTED = ('_cleaned', '_dump')
+
+# Detect encoded ip address like UNHEX('B960D2C0') and convert to ip address
+HEX_IP_PATTERN = re.compile(r'UNHEX\(\'(.*?)\'\)')
 
 # Parts of filename not to include in release name
 UNWANTED_RELEASE = set(UNWANTED)
@@ -198,7 +203,16 @@ class UnicodeReader:
 
     def next(self):
         row = self.reader.next()
-        return [unicode(s, "utf-8") for s in row]
+        unicode_row = list()
+        for r in row:
+            match = HEX_IP_PATTERN.findall(r)
+            if not match:
+                unicode_row.append(unicode(r, "utf-8"))
+            else:
+                addr_long = int(match[0], 16)
+                ip_addrress = socket.inet_ntoa(struct.pack("<L", addr_long))
+                unicode_row.append(unicode(ip_addrress, "utf-8"))
+        return unicode_row
 
     def __iter__(self):
         return self
