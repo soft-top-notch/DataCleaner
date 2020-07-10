@@ -206,7 +206,7 @@ class UnicodeReader:
         unicode_row = list()
         for r in row:
             match = HEX_IP_PATTERN.findall(r)
-            if not match:
+            if not match or not match[0]:
                 unicode_row.append(unicode(r, "utf-8"))
             else:
                 addr_long = int(match[0], 16)
