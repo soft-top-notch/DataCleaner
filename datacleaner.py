@@ -212,7 +212,7 @@ class UnicodeReader:
                 try:
                     addr_long = int(match[0], 16)
                     ip_addrress = socket.inet_ntoa(
-                        struct.pack("<L", addr_long))
+                        struct.pack("!L", addr_long))
                     unicode_row.append(unicode(ip_addrress, "utf-8"))
                 except Exception:
                     unicode_row.append(unicode(r, "utf-8"))
