@@ -209,9 +209,13 @@ class UnicodeReader:
             if not match or not match[0]:
                 unicode_row.append(unicode(r, "utf-8"))
             else:
-                addr_long = int(match[0], 16)
-                ip_addrress = socket.inet_ntoa(struct.pack("<L", addr_long))
-                unicode_row.append(unicode(ip_addrress, "utf-8"))
+                try:
+                    addr_long = int(match[0], 16)
+                    ip_addrress = socket.inet_ntoa(
+                        struct.pack("<L", addr_long))
+                    unicode_row.append(unicode(ip_addrress, "utf-8"))
+                except Exception:
+                    unicode_row.append(unicode(r, "utf-8"))
         return unicode_row
 
     def __iter__(self):
