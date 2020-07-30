@@ -648,11 +648,12 @@ def refactor_data(data):
     if ip:
         data['_source']['ip'] = ip[0] if len(ip) == 1 else ip
     if address:
-        merged_addr = f"{address.get('address', '')} "\
-                      f"{address.get('a1', '')} "\
-                      f"{address.get('a2', '')} "\
-                      f"{address.get('a3', '')} "\
-                      f"{address.get('a4', '')}"
+        merged_addr = address.get('address', '') + ' ' + \
+            address.get('a1', '') + ' ' + \
+            address.get('a2', '') + ' ' + \
+            address.get('a3', '') + ' ' + \
+            address.get('a4', '')
+
         merged_addr = re.sub(r'\s{2,}', ' ', merged_addr.strip())
         data['_source']['address'] = merged_addr
 
