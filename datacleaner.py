@@ -101,6 +101,29 @@ EMAILS = ['e', 'e1', 'e2', 'e3', 'e4', 'e5']
 IPS = ['ip', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5']
 TELEPHONES = ['t', 't1', 't2', 't3', 't4', 't5']
 ADDRESS = ['address', 'a1', 'a2', 'a3', 'a4']
+MAPPER = {
+    "a": "address",
+    "n": "name",
+    "s": "salt",
+    "h": "hash",
+    "p": "password",
+    "m": "mobile",
+    "u": "username",
+    "e": "email",
+    "de": "device",
+    "lat": "latitude",
+    "long": "longitude",
+    "did": "device_id",
+    "fb": "fb_user",
+    "telegramid": "tgid",
+    "d": "domain",
+    "r": "breach",
+    "t": "phone",
+    "c": "company",
+    "o": "other",
+    "url1": "linkedin",
+    "liid": "linkedin"
+}
 
 csv.field_size_limit(sys.maxsize)
 
@@ -637,7 +660,7 @@ def refactor_data(data):
         elif key in ADDRESS:
             address.update({key: value})
         else:
-            new_key = mapper.get(key, key)
+            new_key = MAPPER.get(key, key)
             data['_source'][new_key] = value
     if email:
         data['_source']['email'] = email[0]\
