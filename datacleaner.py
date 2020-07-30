@@ -96,6 +96,12 @@ HEADER2ABBR = {
     for header in headers
 }
 
+# for refactoring the json
+EMAILS = ['e', 'e1', 'e2', 'e3', 'e4', 'e5']
+IPS = ['ip', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5']
+TELEPHONES = ['t', 't1', 't2', 't3', 't4', 't5']
+ADDRESS = ['address', 'a1', 'a2', 'a3', 'a4']
+
 csv.field_size_limit(sys.maxsize)
 
 parser = argparse.ArgumentParser()
@@ -614,6 +620,43 @@ def wrap_fields(l, wrapper='"'):
     return ['{0}{1}{0}'.format(wrapper, x) for x in l]
 
 
+def refactor_data(data):
+    temp_data = deepcopy(data['_source'])
+    email = list()
+    ip = list()
+    telephone = list()
+    address = dict()
+    for key, value in temp_data.items():
+        data['_source'].pop(key)
+        if key in EMAILS:
+            email.append(value)
+        elif key in IPS:
+            ip.append(value)
+        elif key in TELEPHONES:
+            telephone.append(value)
+        elif key in ADDRESS:
+            address.update({key: value})
+        else:
+            new_key = mapper.get(key, key)
+            data['_source'][new_key] = value
+    if email:
+        data['_source']['email'] = email[0]\
+            if len(email) == 1 else email
+    if telephone:
+        data['_source']['telephone'] = telephone[0]\
+            if len(telephone) == 1 else telephone
+    if ip:
+        data['_source']['ip'] = ip[0] if len(ip) == 1 else ip
+    if address:
+        merged_addr = f"{address.get('address', '')} "\
+                      f"{address.get('a1', '')} "\
+                      f"{address.get('a2', '')} "\
+                      f"{address.get('a3', '')} "\
+                      f"{address.get('a4', '')}"
+        merged_addr = re.sub(r'\s{2,}', ' ', merged_addr.strip())
+        data['_source']['address'] = merged_addr
+
+
 def write_json(source):
     print "Writing json file for", source
     fbasename = os.path.basename(source)
@@ -649,9 +692,8 @@ def write_json(source):
                     filename = filename.replace(undesirable, '')
                 filename = filename.replace('_', ' ')
                 source['r'] = filename
-
             data = {'_source': source}
-
+            refactor_data(data)
             outfile.write(json.dumps(data))
             line_count += 1
             pbar.update(1)
