@@ -1220,7 +1220,34 @@ def main():
     dialect = myDialect()
 
     if len(args.path) == 0 and not args.jm:
-        raise ValueError("Please input path.")
+        help_message = """
+            usage: datacleaner.py [-h] [-a] [-ah] [-c C] [-cl] [-d D] [-j] [-m] [-o] [-p]
+                                  [-jm] [-r R] [-s] [-sci SCI] [-scl SCL] [-sh SH]
+                                  [path [path ...]]
+
+            positional arguments:
+              path        Path to one or more csv file(s) or folder(s)
+
+            optional arguments:
+              -h, --help  show this help message and exit
+              -a          Don't ask if delimiter is guessed
+              -ah         Ask for headers to add to CSVs. No file cleaning.
+              -c C        Number of columns
+              -cl         Cleanse filename(s) of unwanted text. No file cleaning.
+              -d D        Delimiter
+              -j          Write JSON file. No file cleaning.
+              -m          Merge remaining columns into last
+              -o          Organize CSVs by column number
+              -p          Pass if delimiter can't guessed
+              -jm         Merge similar csv into list json
+              -r R        Release Name
+              -s          Create sample of csv(s). No file cleaning.
+              -sci SCI    Sampling Confidence interval (float) [default: 3.0]
+              -scl SCL    Sampling Confidence level required (percent) [default: 95]
+              -sh SH      Specify headers to use for multiple files. No file cleaning.
+  """
+        print(help_message)
+        return
 
     files = gather_files(args.path, DIRS['skipped'])
     nonsql_files = [x for x in files if not is_sqldump(x)]
@@ -1382,4 +1409,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    print "\nFINISHED\n"
