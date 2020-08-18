@@ -14,7 +14,7 @@
     "p": ["pass", "password", "token", "usr_pass", "user_password", "userpassword", "user_pass"], 
     "ln": ["last_name", "last", "lastname", "lname", "lastname", "apellido", "customer_last_name", "customer_lastname"], 
     "a1": ["address1", "address_1", "street", "street_address", "streetaddress", "RESIDENTIAL_ADDRESS", "address1", "customer_address"], 
-    "a2": ["address_2", "city", "RESIDENTIAL_CITY", "address2", "customer_city"], 
+    "a2": ["city", "RESIDENTIAL_CITY", "customer_city"], 
     "a3": ["state", "RESIDENTIAL_STATE", "address3", "customer_state"], 
     "a4": ["zip", "postcode", "zip_code", "zipcode", "RESIDENTIAL_ZIP_CODE", "postalcode", "postal_code", "address4"], 
     "a5": ["country"], 
