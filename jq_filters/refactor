@@ -1,0 +1,108 @@
+with_entries(
+  if (.value | type) == "object" then
+    .value = (
+      .value |
+      if .a then
+        .address = .a
+      else
+        .
+      end |
+      if .fn then
+        .name = .fn
+      else
+        .
+      end |
+      if .ln then
+        if .name then
+          .name = .name + " " + .ln
+        else
+          .name = .ln
+        end
+      else
+        .
+      end |
+      with_entries(
+        if .key == "p" then
+          {"key": "password", "value": .value}
+        else
+          .
+        end |
+        if .key == "u" then
+          {"key": "username", "value": .value}
+        else
+          .
+        end |
+        if .key == "r" then
+          {"key": "breach", "value": .value}
+        else
+          .
+        end |
+        if .key == "e" then
+          {"key": "email", "value": .value}
+        else
+          .
+        end |
+        if .key == "n" then
+          {"key": "name", "value": .value}
+        else
+          .
+        end |
+        if .key == "a" then
+          {"key": "address", "value": .value}
+        else
+          .
+        end |
+        if .key == "h" then
+          {"key": "hash", "value": .value}
+        else
+          .
+        end |
+        if .key == "s" then
+          {"key": "salt", "value": .value}
+        else
+          .
+        end |
+        if .key == "t" then
+          {"key": "phone", "value": .value}
+        else
+          .
+        end |
+        if .key == "m" then
+          {"key": "mobile", "value": .value}
+        else
+          .
+        end |
+        if .key == "c" then
+          {"key": "company", "value": .value}
+        else
+          .
+        end |
+        if .key == "d" then
+          {"key": "domain", "value": .value}
+        else
+          .
+        end |
+        select(
+          .value != "" and
+          .value != "null" and
+          .value != "blank" and
+          (.key | test("x\\d+$") | not) and
+          .key != "fn" and
+	  .key != "x" and
+          .key != "ln" and
+          .key != "address" and
+          .key != "city" and
+          .key != "state" and
+          .key != "zipcode" and
+	  .key != "country" and
+          (.value | test("^,+$") | not))) |
+          if .e then
+            .d = (.e | split("@")[1])
+          else
+            .
+          end
+        )
+  else
+    .
+  end
+)
