@@ -97,9 +97,9 @@ HEADER2ABBR = {
 }
 
 # for refactoring the json
-EMAILS = ['e', 'e1', 'e2', 'e3', 'e4', 'e5']
-IPS = ['ip', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5']
-TELEPHONES = ['t', 't1', 't2', 't3', 't4', 't5']
+EMAILS = ['e', 'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8', 'e9']
+IPS = ['i', 'i1', 'i2', 'i3', 'i4', 'i5', 'i6', 'i7', 'i8', 'i9']
+TELEPHONES = ['t', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9']
 ADDRESS = ['address', 'a1', 'a2', 'a3', 'a4']
 MAPPER = {
     "a": "address",
