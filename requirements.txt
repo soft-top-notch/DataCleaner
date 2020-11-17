@@ -1,5 +1,4 @@
 attrs
-docopt
 elasticsearch
 pyparsing
 python-magic
@@ -9,4 +8,3 @@ colored
 sqlparse
 tqdm
 docopt
-sqlparse
