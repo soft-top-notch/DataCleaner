@@ -13,6 +13,7 @@ import glob
 import subprocess
 import socket
 import struct
+import datetime
 
 from shutil import copyfile
 from collections import Counter
@@ -145,6 +146,16 @@ exclusive_args.add_argument(
 parser.add_argument("-d", type=str, help="Delimiter")
 exclusive_args.add_argument(
     "-j", help="Write JSON file. No file cleaning.", action="store_true")
+
+def valid_date(s):
+    try:
+        return datetime.datetime.strptime(s, "%Y-%m-%d")
+    except ValueError:
+        msg = "Not a valid date: '{0}'".format(s) + " - Valid format: YYYY-MM-DD"
+        raise argparse.ArgumentTypeError(msg)
+
+parser.add_argument(
+    "--importdate", type=valid_date, help="Add import date to each line of the resulting json - Valid format YYYY-MM-DD")
 parser.add_argument(
     "-m", help="Merge remaining columns into last", action="store_true")
 parser.add_argument(
@@ -182,6 +193,10 @@ args = parser.parse_args()
 
 if (args.c and (not args.d)) or (not args.c and args.d):
     print "Warning: Argument -c and -d should be used together"
+    sys.exit(0)
+
+if (args.importdate and (not args.j)):
+    print "Warning: Cannot supply Arg --importdate without -j"
     sys.exit(0)
 
 guess = True
@@ -707,6 +722,10 @@ def write_json(source):
 
             source = data_prep(dict(zip(headers, row)))
 
+            # Set Import Date
+            if args.importdate:
+                source['importdate'] = str(args.importdate)[:10]
+
             # Set release name
             if args.r:
                 source['r'] = args.r
@@ -1222,7 +1241,7 @@ def main():
 
     if len(args.path) == 0 and not args.jm:
         help_message = """
-            usage: datacleaner.py [-h] [-a] [-ah] [-c C] [-cl] [-d D] [-j] [-m] [-o] [-p]
+            usage: datacleaner.py [-h] [-a] [-ah] [-c C] [-cl] [-d D] [-j] [--importdate DATE] [-m] [-o] [-p]
                                   [-jm] [-r R] [-s] [-sci SCI] [-scl SCL] [-sh SH]
                                   [path [path ...]]
 
@@ -1230,22 +1249,23 @@ def main():
               path        Path to one or more csv file(s) or folder(s)
 
             optional arguments:
-              -h, --help  show this help message and exit
-              -a          Don't ask if delimiter is guessed
-              -ah         Ask for headers to add to CSVs. No file cleaning.
-              -c C        Number of columns
-              -cl         Cleanse filename(s) of unwanted text. No file cleaning.
-              -d D        Delimiter
-              -j          Write JSON file. No file cleaning.
-              -m          Merge remaining columns into last
-              -o          Organize CSVs by column number
-              -p          Pass if delimiter can't guessed
-              -jm         Merge similar csv into list json
-              -r R        Release Name
-              -s          Create sample of csv(s). No file cleaning.
-              -sci SCI    Sampling Confidence interval (float) [default: 3.0]
-              -scl SCL    Sampling Confidence level required (percent) [default: 95]
-              -sh SH      Specify headers to use for multiple files. No file cleaning.
+              -h, --help            show this help message and exit
+              -a                    Don't ask if delimiter is guessed
+              -ah                   Ask for headers to add to CSVs. No file cleaning.
+              -c C                  Number of columns
+              -cl                   Cleanse filename(s) of unwanted text. No file cleaning.
+              -d D                  Delimiter
+              -j                    Write JSON file. No file cleaning.
+              --importdate DATE     Add import date to each line of the resulting json - Valid format YYYY-MM-DD
+              -m                    Merge remaining columns into last
+              -o                    Organize CSVs by column number
+              -p                    Pass if delimiter can't guessed
+              -jm                   Merge similar csv into list json
+              -r R                  Release Name
+              -s                    Create sample of csv(s). No file cleaning.
+              -sci SCI              Sampling Confidence interval (float) [default: 3.0]
+              -scl SCL              Sampling Confidence level required (percent) [default: 95]
+              -sh SH                Specify headers to use for multiple files. No file cleaning.
   """
         print(help_message)
         return
