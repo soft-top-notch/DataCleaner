@@ -195,8 +195,8 @@ if (args.c and (not args.d)) or (not args.c and args.d):
     print "Warning: Argument -c and -d should be used together"
     sys.exit(0)
 
-if (args.importdate and (not args.j)):
-    print "Warning: Cannot supply Arg --importdate without -j"
+if (args.importdate and (not args.j)) or (not args.importdate and args.j):
+    print "Warning: Arg --importdate and -j should be used together"
     sys.exit(0)
 
 guess = True
@@ -717,6 +717,7 @@ def write_json(source):
     # remove unwanted string from filename
     for undesirable in UNWANTED_RELEASE:
         json_file = json_file.replace(undesirable, '')
+    json_file = os.path.splitext(json_file)[0].strip("_").strip("-") + '.json'
 
     with open(os.path.join(DIRS['json_success'], json_file), 'a+') as outfile:
         # Add first line of json
