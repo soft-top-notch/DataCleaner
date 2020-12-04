@@ -710,7 +710,15 @@ def write_json(source):
     # grab the first line as headers
     headers = out_reader.next()
 
-    with open(os.path.join(DIRS['json_success'], json_file), 'w') as outfile:
+    # remove string in brackets from file name
+    json_file = re.sub("[\(\[].*?[\)\]]", "", json_file)
+    json_file = re.sub(r"\s*{.*}\s*", "", json_file)
+
+    # remove unwanted string from filename
+    for undesirable in UNWANTED_RELEASE:
+        json_file = json_file.replace(undesirable, '')
+
+    with open(os.path.join(DIRS['json_success'], json_file), 'a+') as outfile:
         # Add first line of json
         line_count = 0
         pbar = TqdmUpTo(desc='Writing JSON', unit=' row')
@@ -735,6 +743,10 @@ def write_json(source):
                 for undesirable in UNWANTED_RELEASE:
                     filename = filename.replace(undesirable, '')
                 filename = filename.replace('_', ' ')
+
+                # remove string in brackets from file name
+                filename = re.sub("[\(\[].*?[\)\]]", "", filename)
+                filename = re.sub(r"\s*{.*}\s*", "", filename)
                 source['r'] = filename
             data = {'_source': source}
             refactor_data(data)
