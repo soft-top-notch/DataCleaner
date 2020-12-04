@@ -710,6 +710,10 @@ def write_json(source):
     # grab the first line as headers
     headers = out_reader.next()
 
+    # remove string in brackets from file name
+    json_file = re.sub("[\(\[].*?[\)\]]", "", json_file)
+    json_file = re.sub(r"\s*{.*}\s*", "", json_file)
+
     with open(os.path.join(DIRS['json_success'], json_file), 'w') as outfile:
         # Add first line of json
         line_count = 0
