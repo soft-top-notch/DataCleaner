@@ -714,7 +714,7 @@ def write_json(source):
     json_file = re.sub("[\(\[].*?[\)\]]", "", json_file)
     json_file = re.sub(r"\s*{.*}\s*", "", json_file)
 
-    with open(os.path.join(DIRS['json_success'], json_file), 'w') as outfile:
+    with open(os.path.join(DIRS['json_success'], json_file), 'a+') as outfile:
         # Add first line of json
         line_count = 0
         pbar = TqdmUpTo(desc='Writing JSON', unit=' row')
