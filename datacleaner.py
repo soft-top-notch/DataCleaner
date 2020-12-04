@@ -739,6 +739,10 @@ def write_json(source):
                 for undesirable in UNWANTED_RELEASE:
                     filename = filename.replace(undesirable, '')
                 filename = filename.replace('_', ' ')
+
+                # remove string in brackets from file name
+                filename = re.sub("[\(\[].*?[\)\]]", "", filename)
+                filename = re.sub(r"\s*{.*}\s*", "", filename)
                 source['r'] = filename
             data = {'_source': source}
             refactor_data(data)
