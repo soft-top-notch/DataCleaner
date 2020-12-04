@@ -714,6 +714,10 @@ def write_json(source):
     json_file = re.sub("[\(\[].*?[\)\]]", "", json_file)
     json_file = re.sub(r"\s*{.*}\s*", "", json_file)
 
+    # remove unwanted string from filename
+    for undesirable in UNWANTED_RELEASE:
+        json_file = json_file.replace(undesirable, '')
+
     with open(os.path.join(DIRS['json_success'], json_file), 'a+') as outfile:
         # Add first line of json
         line_count = 0
