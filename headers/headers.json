@@ -4,7 +4,7 @@
     "dob": ["dob", "dateofbirth", "user_birthday", "birthday", "birthdate", "DATE_OF_BIRTH"], 
     "e": ["email", "mail", "usr_email", "email_address", "user_email", "emailaddress", "user_email", "customer_email"], 
     "fn": ["first_name", "first", "firstname", "fname", "nombre", "customer_firstname", "customer_first_name"], 
-    "h": ["hash", "password_secure", "members_pass_hash", "pass_hash", "password_hash", "passwordhash"], 
+    "h": ["hash", "password_secure", "members_pass_hash", "pass_hash", "password_hash", "passwordhash", "md5password"], 
     "c": ["company", "company_name"],
     "n": ["members_display_name", "display_name", "user_name", "real_name", "name", "display_name"], 
     "u": ["members_l_username", "members_username", "username", "user_login", "alias", "userid", "login", "customer_username"], 
