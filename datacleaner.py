@@ -63,8 +63,8 @@ HEX_IP_PATTERN = re.compile(r'UNHEX\(\'(.*?)\'\)')
 # Parts of filename not to include in release name
 UNWANTED_RELEASE = set(UNWANTED)
 UNWANTED_RELEASE.update({
-    '_part1', '_part2', '_part3', '_2017', '_cleaned', '_error', '_vb-2017', '_parsed', '_bcrypt', '_vB', '_md5', '_emailpass',
-    '[NOHASH]', '[HASH]', 'notfound', 'decrypted', '_notfound', 'nohash', '_dump', 'dump', '.sql', '2018', '2019',
+    '_part1', '_part2', '_part3', '_2017', '_cleaned', '_error', '_vb-2017', '_parsed', '_bcrypt', '_vB', '_md5', '_emailpass', 'users', '_users', '_accounts',
+    '[NOHASH]', '[HASH]', 'notfound', 'decrypted', '_notfound', 'nohash', '_dump', 'dump', '.sql', '2018', '2019', '2020',
     '-vb-2016', '_vb___17', '_vb___16', '_p2', '_p3', '_p4', '-2016', '-2017', '.sql', '_md5crypt', 'bcrypt'
 })
 
