@@ -617,7 +617,7 @@ def data_prep(source):
     # Consolidate name fields
     if source.get('fn') or source.get('ln'):
         source['n'] = '{} {}'.format(
-            source.pop('fn', ''), source.pop('ln', '')).strip()
+            source.pop('fn', '').encode('utf-8'), source.pop('ln', '').encode('utf-8')).strip()
 
     # Rename 'd' date of birth field to 'dob'
     if source.get('d'):
