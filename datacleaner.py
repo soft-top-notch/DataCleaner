@@ -696,6 +696,18 @@ def refactor_data(data):
         merged_addr = re.sub(r'\s{2,}', ' ', merged_addr.strip())
         data['_source']['address'] = merged_addr
 
+def tuplelist_to_json(source):
+    result = {}
+    for row in source:
+        key = row[0]
+        value = row[1]
+
+        if key in result:
+            result[key] = result[key] + ',' + value
+        else:
+            result[key] = value
+
+    return result
 
 def write_json(source):
     print "Writing json file for", source
@@ -1114,6 +1126,20 @@ def print_lines(f, num_of_lines):
     print
     f.seek(last_location)
 
+def clean_headers(headers):
+    # Add suffix to header if appear multiple columns with same name
+
+    cleaned_header = []
+    for i in range(0, len(headers)):
+        count = headers[:i].count(headers[i])
+        if count:
+            new_col = headers[i] + str(count)
+            cleaned_header.append(new_col)
+        else:
+            cleaned_header.append(headers[i])
+
+    return cleaned_header
+
 
 def set_headers(f, dialect, csv_column_count=0):
     headers = []
@@ -1124,6 +1150,7 @@ def set_headers(f, dialect, csv_column_count=0):
             csv_column_count = find_column_count(f)
         f.seek(0)
         headers = get_headers(f, dialect.delimiter, csv_column_count)
+        headers = clean_headers(headers)
         print_lines(f, 30)
         while True:
             # Add a new line
@@ -1138,6 +1165,7 @@ def set_headers(f, dialect, csv_column_count=0):
             else:
                 c_warning('Setting the headers for file {}\n'.format(f.name))
                 headers = ask_headers(csv_column_count)
+                headers = clean_headers(headers)
                 break
     return headers
 
