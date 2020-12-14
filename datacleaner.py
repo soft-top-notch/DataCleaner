@@ -103,6 +103,7 @@ EMAILS = ['e', 'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8', 'e9']
 IPS = ['i', 'i1', 'i2', 'i3', 'i4', 'i5', 'i6', 'i7', 'i8', 'i9']
 TELEPHONES = ['t', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9']
 ADDRESS = ['address', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7']
+HASHES = ['h', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8', 'h9']
 MAPPER = {
     "a": "address",
     "n": "name",
@@ -665,6 +666,7 @@ def refactor_data(data):
     ip = list()
     telephone = list()
     address = dict()
+    hash_ = list()
     for key, value in temp_data.items():
         data['_source'].pop(key)
         if key in EMAILS:
@@ -675,12 +677,17 @@ def refactor_data(data):
             telephone.append(value)
         elif key in ADDRESS:
             address.update({key: value})
+        elif key in HASHES:
+            hash_.append(value)
         else:
             new_key = MAPPER.get(key, key)
             data['_source'][new_key] = value
     if email:
         data['_source']['email'] = email[0]\
             if len(email) == 1 else email
+    if hash_:
+        data['_source']['hash'] = hash_[0]\
+            if len(hash_) == 1 else hash_
     if telephone:
         data['_source']['telephone'] = telephone[0]\
             if len(telephone) == 1 else telephone
@@ -721,7 +728,8 @@ def write_json(source):
 
     # grab the first line as headers
     headers = out_reader.next()
-
+    headers = clean_headers(headers)
+    
     # remove string in brackets from file name
     json_file = re.sub("[\(\[].*?[\)\]]", "", json_file)
     json_file = re.sub(r"\s*{.*}\s*", "", json_file)
