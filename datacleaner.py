@@ -1015,6 +1015,7 @@ def parse_file(tfile):
 
     l_count = 0
     headers = set_headers(F, dialect, csv_column_count)
+    headers = clean_headers(headers)
     if headers:
         write_headers(out_file_csv_file, headers)
         l_count += 1
@@ -1033,6 +1034,8 @@ def parse_file(tfile):
 
     # Loop line
     for line in F:
+        # Remove Spaces before and afer delimeter
+        line = re.sub(r'(?:(?<=\%s) | (?=\%s))' % (dialect.delimiter, dialect.delimiter),'',line)
         l_count += 1
 
         cleaned_row, failed_row = parse_row(line, csv_column_count, dialect)
