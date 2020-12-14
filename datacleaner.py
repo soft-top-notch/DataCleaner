@@ -730,7 +730,7 @@ def write_json(source):
     # grab the first line as headers
     headers = out_reader.next()
     headers = clean_headers(headers)
-    
+
     # remove string in brackets from file name
     json_file = re.sub("[\(\[].*?[\)\]]", "", json_file)
     json_file = re.sub(r"\s*{.*}\s*", "", json_file)
@@ -862,39 +862,40 @@ def ask_headers(column_count):
     headers = []
 
     while True:
-        print "Please provide the headers below:"
-        seen = []
-        for shortened, full_header in HEADERS.items():
-            if shortened not in seen:
-                print '{}:{}'.format(
-                    shortened,
-                    ", ".join(full_header)
-                )
-                seen.append(shortened)
-
         user_headers = raw_input(
             "Please enter {} headers as their abbreviation (i.e. u p x): ".
             format(column_count))
 
         if user_headers:
-            user_headers = user_headers.strip().split(' ')
-            header_len = len(user_headers)
-            if 'zz' in user_headers:
-                return headers
-            blank_header = False
-            for header in user_headers:
-                if not header:
-                    blank_header = True
-                    c_failure(
-                        '\nError: One of the provided headers was blank or'
-                        ' more than one space was used between headers')
-            if not blank_header:
-                if header_len == column_count:
-                    break
-                else:
-                    c_failure(
-                        '\nERROR: {} headers entered for {} columns\n'.format(
-                            header_len, column_count))
+            if user_headers == '?':
+                print "Please provide the headers below:"
+                seen = []
+                for shortened, full_header in HEADERS.items():
+                    if shortened not in seen:
+                        print '{}:{}'.format(
+                            shortened,
+                            ", ".join(full_header)
+                        )
+                        seen.append(shortened)
+            else:
+                user_headers = user_headers.strip().split(' ')
+                header_len = len(user_headers)
+                if 'zz' in user_headers:
+                    return headers
+                blank_header = False
+                for header in user_headers:
+                    if not header:
+                        blank_header = True
+                        c_failure(
+                            '\nError: One of the provided headers was blank or'
+                            ' more than one space was used between headers')
+                if not blank_header:
+                    if header_len == column_count:
+                        break
+                    else:
+                        c_failure(
+                            '\nERROR: {} headers entered for {} columns\n'.format(
+                                header_len, column_count))
         else:
             print '\nERROR: No headers entered\n'
 
