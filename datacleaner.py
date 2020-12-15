@@ -19,6 +19,7 @@ from shutil import copyfile
 from collections import Counter
 from validate_email import validate_email
 from copy import deepcopy
+from hashid import HashID
 
 import parse_sql
 from dc import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
@@ -780,6 +781,34 @@ def write_json(source):
         outfile.write('\n')
         pbar.close()
 
+def check_hash(identified_modes, hashcatMode=False, johnFormat=False, extended=False):
+    """Check hash"""
+    count = 0
+    hashTypes = ""
+    for mode in identified_modes:
+        if not mode.extended or extended:
+            count += 1
+            hashTypes += u"[+] {0} ".format(mode.name)
+            if hashcatMode and mode.hashcat is not None:
+                hashTypes += "[Hashcat Mode: {0}]".format(mode.hashcat)
+            if johnFormat and mode.john is not None:
+                hashTypes += "[JtR Format: {0}]".format(mode.john)
+            hashTypes += "\n"
+    return (count > 0)
+
+def detect_hash_columns(csv_file, delimiter):
+    """Return hash columns """ 
+    hash_columns = []
+    hashID = HashID()
+    for line in csv_file:
+        lowerrow = [
+            cc.lower().replace('\n', '').replace('"', '') for cc in line.split(delimiter)
+        ]
+        for i in range(len(lowerrow)):
+            if check_hash(hashID.identifyHash(lowerrow[i])):
+                if (i+1) not in hash_columns:
+                    hash_columns.append(i+1)
+    return hash_columns
 
 def get_headers(csv_file, delimiter, column_count):
     """Reads file and tries to determine if headers are present.
@@ -1153,6 +1182,9 @@ def clean_headers(headers):
 
     return cleaned_header
 
+def print_hash_columns(columns):
+    for column in columns:
+        c_warning('Hash Detected: Column #{}'.format(column))
 
 def set_headers(f, dialect, csv_column_count=0):
     headers = []
@@ -1165,6 +1197,11 @@ def set_headers(f, dialect, csv_column_count=0):
         headers = get_headers(f, dialect.delimiter, csv_column_count)
         headers = clean_headers(headers)
         print_lines(f, 30)
+
+        # Detect hash columns
+        hash_columns = detect_hash_columns(f, dialect.delimiter)
+        print_hash_columns(hash_columns)
+
         while True:
             # Add a new line
             if headers:

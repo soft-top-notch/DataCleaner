@@ -8,3 +8,4 @@ colored
 sqlparse
 tqdm
 docopt
+hashid
