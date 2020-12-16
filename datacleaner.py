@@ -1196,14 +1196,7 @@ def set_headers(f, dialect, csv_column_count=0):
         f.seek(0)
         headers = get_headers(f, dialect.delimiter, csv_column_count)
         headers = clean_headers(headers)
-
-        while True:
-            resp = raw_input('To display of the first rows, press ? ')
-            if resp.lower() == '?':
-                print_lines(f, 30)
-                break
-            else:
-                break
+        print_lines(f, 30)
 
         # Detect hash columns
         hash_columns = detect_hash_columns(f, dialect.delimiter)
