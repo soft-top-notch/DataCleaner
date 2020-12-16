@@ -53,7 +53,7 @@ DIRS = {
 
 # Entries to be skipped when writing JSON.  Case insensitive, and will also
 # match entries that are surrounded by a single charactor (#, <>, etc)
-JSON_ENTRIES_SKIP = ('null', 'blank', 'xxx', 'N')
+JSON_ENTRIES_SKIP = ('null', 'blank', 'xxx')
 
 # Parts of filename to be removed when cleaned
 UNWANTED = ('_cleaned', '_dump')
@@ -606,18 +606,6 @@ def clean_filename(source):
 def data_prep(source):
     """Clean/refactor source dictionary."""
 
-    # Remove unwanted fields/values
-    for header, value in source.items():
-        # Remove misc headers (x[0-9]) and entries with empty values
-        if re.search('^x(?:\d+)?$', header) or not value:
-            del source[header]
-        # Remove entries that are in JSON_ENTRIES_SKIP
-        elif found_in(value, JSON_ENTRIES_SKIP):
-            del source[header]
-        # Remove extra spaces at start or end
-        else:
-            source[header] = value.strip()
-
     # Consolidate address entries to 'a' field
     full_addy = ''
     for num in xrange(0, 9):
@@ -648,6 +636,19 @@ def data_prep(source):
             source['d'] = email.split('@')[-1]
         else:
             del source['e']
+
+    # Remove unwanted fields/values
+    for header, value in source.items():
+        # Remove misc headers (x[0-9]) and entries with empty values
+        if re.search('^x(?:\d+)?$', header) or not value:
+            del source[header]
+        # Remove entries that are in JSON_ENTRIES_SKIP
+        elif found_in(value, JSON_ENTRIES_SKIP):
+            del source[header]
+        # Remove extra spaces at start or end
+        else:
+            source[header] = value.strip()
+
     return source
 
 
@@ -1199,8 +1200,8 @@ def set_headers(f, dialect, csv_column_count=0):
         print_lines(f, 30)
 
         # Detect hash columns
-        hash_columns = detect_hash_columns(f, dialect.delimiter)
-        print_hash_columns(hash_columns)
+        # hash_columns = detect_hash_columns(f, dialect.delimiter)
+        # print_hash_columns(hash_columns)
 
         while True:
             # Add a new line
