@@ -808,11 +808,12 @@ def validate_ip(s):
             return False
     return True
 
-def detect_hash_columns(csv_file, delimiter):
+def detect_hash_columns(csv_file, delimiter, num_of_lines):
     """Return hash columns """ 
     hash_columns = []
     hashID = HashID()
-    for line in csv_file:
+    for x in range(num_of_lines):
+        line = csv_file.readline()
         lowerrow = [
             cc.lower().replace('\n', '').replace('"', '') for cc in line.split(delimiter)
         ]
@@ -1213,7 +1214,7 @@ def set_headers(f, dialect, csv_column_count=0):
         print_lines(f, 30)
 
         # Detect hash columns
-        hash_columns = detect_hash_columns(f, dialect.delimiter)
+        hash_columns = detect_hash_columns(f, dialect.delimiter, 30)
         print_hash_columns(hash_columns)
 
         while True:
