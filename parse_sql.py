@@ -315,6 +315,7 @@ def read_file(sqlfile):
 
         for line in lines:
             line = line.replace('\11\12\15\40-\176', '')
+            line = re.sub(r'\\\\\\"(\w*)\\\\\\"', r'\1', line)
             byte_num += len(line)
             valid_insert = None
 
