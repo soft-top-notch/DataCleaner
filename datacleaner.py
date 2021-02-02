@@ -671,19 +671,20 @@ def refactor_data(data):
     hash_ = list()
     for key, value in temp_data.items():
         data['_source'].pop(key)
-        if key in EMAILS:
-            email.append(value)
-        elif key in IPS:
-            ip.append(value)
-        elif key in TELEPHONES:
-            telephone.append(value)
-        elif key in ADDRESS:
-            address.update({key: value})
-        elif key in HASHES:
-            hash_.append(value)
-        else:
-            new_key = MAPPER.get(key, key)
-            data['_source'][new_key] = value
+        if value and value != "0" and value != "null":
+            if key in EMAILS:
+                email.append(value)
+            elif key in IPS:
+                ip.append(value)
+            elif key in TELEPHONES:
+                telephone.append(value)
+            elif key in ADDRESS:
+                address.update({key: value})
+            elif key in HASHES:
+                hash_.append(value)
+            else:
+                new_key = MAPPER.get(key, key)
+                data['_source'][new_key] = value
     if email:
         data['_source']['email'] = email[0]\
             if len(email) == 1 else email
