@@ -1528,7 +1528,7 @@ def main():
         for path in nonsql_files:
             with open(path, "rb") as f:
                 column_count = find_column_count(f)
-            if column_count <= 30:
+            if column_count <= 10:
                 existing_dir = os.path.dirname(path)
                 new_dir = "{}col".format(column_count)
                 new_path = os.path.join(existing_dir, new_dir)
