@@ -642,6 +642,14 @@ def data_prep(source):
     if source.get('d'):
         source['dob'] = source.pop('d').strip()
 
+    # Make the 'dob' field with 'doby', 'dobm', and 'dobd' fields
+    if not source.get('dob'):
+        source['dob'] = '{}-{}-{}'.format(
+            source.pop('doby', ''),
+            source.pop('dobm', '').zfill(2) if source.get('dobm') else '',
+            source.pop('dobd', '').zfill(2) if source.get('dobd') else ''
+        ).strip('-').strip()
+
     # Split out domain from email address
     if source.get('e'):
         email = source.get('e')
