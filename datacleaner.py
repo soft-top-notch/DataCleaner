@@ -22,136 +22,89 @@ from copy import deepcopy
 from hashid import HashID
 
 import parse_sql
-from dc import (
-    gather_files,
-    move,
-    c_failure,
-    c_success,
-    c_action,
-    c_action_info,
-    c_action_system,
-    c_sys_success,
-    c_warning,
-    c_darkgray,
-    c_darkgreen,
-    c_lightgreen,
-    c_lightgray,
-    c_lightblue,
-    c_blue,
-    TqdmUpTo,
-)
+from dc import gather_files, move, c_failure, c_success, c_action, c_action_info, c_action_system, c_sys_success,\
+    c_warning, c_darkgray, c_darkgreen, c_lightgreen, c_lightgray, c_lightblue, c_blue,\
+    TqdmUpTo
 from dc.sampling import create_sample
 
 # Full path to directories used
 DIRS = {
-    "clean_fail": "fail",
-    "clean_success": "done",
-    "headers_skip": "headers_skip",
-    "headers_success": "success",
-    "json_done": "csv_complete",
-    "json_success": "success",
-    "sample": "samples",
-    "skipped": (
-        "completed",
-        "error",
-        "failed",
-        "fail",
-        "done",
-        "success",
-        "headers_skip",
-    ),
-    "sql_fail": "sql_fail",
-    "sql_success": "success",
+    'clean_fail':
+    'fail',
+    'clean_success':
+    'done',
+    'headers_skip':
+    'headers_skip',
+    'headers_success':
+    'success',
+    'json_done':
+    'csv_complete',
+    'json_success':
+    'success',
+    'sample':
+    'samples',
+    'skipped': ('completed', 'error', 'failed', 'fail', 'done', 'success',
+                'headers_skip'),
+    'sql_fail':
+    'sql_fail',
+    'sql_success':
+    'success'
 }
 
 # Entries to be skipped when writing JSON.  Case insensitive, and will also
 # match entries that are surrounded by a single charactor (#, <>, etc)
-JSON_ENTRIES_SKIP = ("null", "blank", "xxx", "N")
+JSON_ENTRIES_SKIP = ('null', 'blank', 'xxx', 'N')
 
 # Parts of filename to be removed when cleaned
-UNWANTED = ("_cleaned", "_dump")
+UNWANTED = ('_cleaned', '_dump')
 
 # Detect encoded ip address like UNHEX('B960D2C0') and convert to ip address
-HEX_IP_PATTERN = re.compile(r"UNHEX\(\'(.*?)\'\)")
+HEX_IP_PATTERN = re.compile(r'UNHEX\(\'(.*?)\'\)')
 
 # Parts of filename not to include in release name
 UNWANTED_RELEASE = set(UNWANTED)
-UNWANTED_RELEASE.update(
-    {
-        "_part1",
-        "_part2",
-        "_part3",
-        "_part4",
-        "_part5",
-        "_part6",
-        "_part7",
-        "_2017",
-        "_2018",
-        "_2019",
-        "_2020",
-        "_2021",
-        "_cleaned",
-        "_error",
-        "_vb-2017",
-        "_parsed",
-        "_bcrypt",
-        "_vB",
-        "_md5",
-        "_emailpass",
-        "users",
-        "_users",
-        "_accounts",
-        "[NOHASH]",
-        "[HASH]",
-        "notfound",
-        "decrypted",
-        "_notfound",
-        "nohash",
-        "_dump",
-        "dump",
-        ".sql",
-        "2018",
-        "2019",
-        "2020",
-        "-vb-2016",
-        "_vb___17",
-        "_vb___16",
-        "_p2",
-        "_p3",
-        "_p4",
-        "-2016",
-        "-2017",
-        ".sql",
-        "_md5crypt",
-        "bcrypt",
-    }
-)
+UNWANTED_RELEASE.update({
+    '_part1', '_part2', '_part3', '_part4', '_part5', '_part6', '_part7', '_2017', '_2018', '_2019', '_2020', '_2021', '_cleaned', '_error', '_vb-2017', '_parsed', '_bcrypt', '_vB', '_md5', '_emailpass', 'users', '_users', '_accounts',
+    '[NOHASH]', '[HASH]', 'notfound', 'decrypted', '_notfound', 'nohash', '_dump', 'dump', '.sql', '2018', '2019', '2020',
+    '-vb-2016', '_vb___17', '_vb___16', '_p2', '_p3', '_p4', '-2016', '-2017', '.sql', '_md5crypt', 'bcrypt'
+})
 
 # Path to headers
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-HEADER_PATH = os.path.join(BASE_DIR, "headers/headers.json")
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+HEADER_PATH = os.path.join(
+    BASE_DIR,
+    "headers/headers.json"
+)
+
 
 # Headers matched
 with open(HEADER_PATH, "r") as file:
-    HEADERS = json.loads(file.read())
+    HEADERS = json.loads(
+        file.read()
+    )
 
 # Abbreviated headers that are enumerated
-ENUMERATED = ("x", "a", "i")
+ENUMERATED = ('x', 'a', 'i')
 
 # Abbreviations to headers
-ABBR2HEADER = {abbr: header[0].lower() for abbr, header in HEADERS.items()}
+ABBR2HEADER = {
+    abbr: header[0].lower() for abbr, header in HEADERS.items()
+}
 
 # Headers to abbreviations
 HEADER2ABBR = {
-    header.lower(): abbr for abbr, headers in HEADERS.items() for header in headers
+    header.lower(): abbr for abbr, headers in HEADERS.items()
+    for header in headers
 }
 
 # for refactoring the json
-EMAILS = ["e", "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9"]
-IPS = ["i", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "i8", "i9"]
-TELEPHONES = ["t", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"]
-ADDRESS = ["address", "a1", "a2", "a3", "a4", "a5", "a6", "a7"]
-HASHES = ["h", "h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "h9"]
+EMAILS = ['e', 'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8', 'e9']
+IPS = ['i', 'i1', 'i2', 'i3', 'i4', 'i5', 'i6', 'i7', 'i8', 'i9']
+TELEPHONES = ['t', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9']
+ADDRESS = ['address', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7']
+HASHES = ['h', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8', 'h9']
 MAPPER = {
     "a": "address",
     "n": "name",
@@ -173,32 +126,32 @@ MAPPER = {
     "c": "company",
     "o": "other",
     "url1": "linkedin",
-    "liid": "linkedin",
+    "liid": "linkedin"
 }
 
 csv.field_size_limit(sys.maxsize)
 
 parser = argparse.ArgumentParser()
 exclusive_args = parser.add_mutually_exclusive_group()
-parser.add_argument("-a", help="Don't ask if delimiter is guessed", action="store_true")
+parser.add_argument(
+    "-a", help="Don't ask if delimiter is guessed", action="store_true")
 exclusive_args.add_argument(
-    "-ah", help="Ask for headers to add to CSVs. No file cleaning.", action="store_true"
-)
+    "-ah",
+    help="Ask for headers to add to CSVs. No file cleaning.",
+    action="store_true")
 exclusive_args.add_argument(
-    "-fh", help="Force Headers / Auto use detected headers", action="store_true"
-)
+    "-fh",
+    help="Force Headers / Auto use detected headers",
+    action="store_true")
 parser.add_argument("-c", type=int, help="Number of columns")
 
 exclusive_args.add_argument(
     "-cl",
     help="Cleanse filename(s) of unwanted text. No file cleaning.",
-    action="store_true",
-)
+    action="store_true")
 parser.add_argument("-d", type=str, help="Delimiter")
 exclusive_args.add_argument(
-    "-j", help="Write JSON file. No file cleaning.", action="store_true"
-)
-
+    "-j", help="Write JSON file. No file cleaning.", action="store_true")
 
 def valid_date(s):
     try:
@@ -207,63 +160,61 @@ def valid_date(s):
         msg = "Not a valid date: '{0}'".format(s) + " - Valid format: YYYY-MM-DD"
         raise argparse.ArgumentTypeError(msg)
 
-
 parser.add_argument(
-    "--importdate",
-    type=valid_date,
-    help="Add import date to each line of the resulting json - Valid format YYYY-MM-DD",
-)
-parser.add_argument("-m", help="Merge remaining columns into last", action="store_true")
-parser.add_argument("-o", help="Organize CSVs by column number", action="store_true")
-parser.add_argument("-p", help="Pass if delimiter can't guessed", action="store_true")
-parser.add_argument("-jm", help="Merge similar csv into list json", action="store_true")
+    "--importdate", type=valid_date, help="Add import date to each line of the resulting json - Valid format YYYY-MM-DD")
+parser.add_argument(
+    "-m", help="Merge remaining columns into last", action="store_true")
+parser.add_argument(
+    "-o", help="Organize CSVs by column number", action="store_true")
+parser.add_argument(
+    "-p", help="Pass if delimiter can't guessed", action="store_true")
+parser.add_argument(
+    "-jm", help="Merge similar csv into list json", action="store_true")
 parser.add_argument(
     "path",
     type=str,
-    nargs="*",
+    nargs='*',
     help="Path to one or more csv file(s) or folder(s)",
 )
 parser.add_argument("-r", type=str, help="Release Name")
 exclusive_args.add_argument(
-    "-s", help="Create sample of csv(s). No file cleaning.", action="store_true"
-)
+    "-s",
+    help="Create sample of csv(s). No file cleaning.",
+    action="store_true")
 parser.add_argument(
     "-sci",
     type=float,
     default=3.0,
-    help="Sampling Confidence interval (float) [default: 3.0]",
-)
+    help="Sampling Confidence interval (float) [default: 3.0]")
 parser.add_argument(
     "-scl",
     type=int,
     default=95,
-    help="Sampling Confidence level required (percent) [default: 95]",
-)
+    help="Sampling Confidence level required (percent) [default: 95]")
 exclusive_args.add_argument(
-    "-sh", type=str, help="Specify headers to use for multiple files. No file cleaning."
-)
+    "-sh",
+    type=str,
+    help="Specify headers to use for multiple files. No file cleaning.")
 args = parser.parse_args()
 
 if (args.c and (not args.d)) or (not args.c and args.d):
-    print
-    "Warning: Argument -c and -d should be used together"
+    print "Warning: Argument -c and -d should be used together"
     sys.exit(0)
 
 if (args.importdate and (not args.j)) or (not args.importdate and args.j):
-    print
-    "Warning: Arg --importdate and -j should be used together"
+    print "Warning: Arg --importdate and -j should be used together"
     sys.exit(0)
 
 guess = True
 if args.c and args.d:
     guess = False
 
-delims = ("\t", " ", ";", ",", "|", ":")
+delims = ('\t', ' ', ';', ',', '|', ':')
 
 
 def valid_ip(address):
     try:
-        host_bytes = address.split(".")
+        host_bytes = address.split('.')
         valid = [int(b) for b in host_bytes]
         valid = [b for b in valid if b >= 0 and b <= 255]
         return len(host_bytes) == 4 and len(valid) == 4
@@ -271,9 +222,9 @@ def valid_ip(address):
         return False
 
 
-re_phone1 = re.compile("\d{3}-\d{3}-\d{3}")
-re_phone2 = re.compile("\d{9}")
-re_phone3 = re.compile("\+\d{4}-\d{3}-\d{4}")
+re_phone1 = re.compile('\d{3}-\d{3}-\d{3}')
+re_phone2 = re.compile('\d{9}')
+re_phone3 = re.compile('\+\d{4}-\d{3}-\d{4}')
 
 
 class UTF8Recoder:
@@ -311,7 +262,8 @@ class UnicodeReader:
             else:
                 try:
                     addr_long = int(match[0], 16)
-                    ip_addrress = socket.inet_ntoa(struct.pack("!L", addr_long))
+                    ip_addrress = socket.inet_ntoa(
+                        struct.pack("!L", addr_long))
                     unicode_row.append(unicode(ip_addrress, "utf-8"))
                 except Exception:
                     unicode_row.append(unicode(r, "utf-8"))
@@ -355,18 +307,18 @@ class UnicodeWriter:
 
 
 class myDialect(csv.Dialect):
-    delimiter = ","
+    delimiter = ','
     quotechar = '"'
-    lineterminator = "\n"
+    lineterminator = '\n'
     skipinitialspace = False
     quoting = csv.QUOTE_ALL
     doublequote = False
-    escapechar = "\\"
+    escapechar = '\\'
 
 
 class excelDialect(csv.excel):
     quoting = csv.QUOTE_NONE
-    quotechar = ""
+    quotechar = ''
     escapechar = "\\"
 
 
@@ -429,6 +381,7 @@ def find_column_count(f, dialect=csv.excel, show_freq=False):
 
 
 def guess_delimeter_by_csv(F):
+
     # Init stuffs
     sniffer = csv.Sniffer()
 
@@ -447,9 +400,7 @@ def guess_delimeter_by_csv(F):
         try:
             all_dialect = sniffer.sniff(sample_text, delimiters=sample_delims)
             F.seek(0)
-            all_column_count, all_column_freq = find_column_count(
-                F, all_dialect, show_freq=True
-            )
+            all_column_count, all_column_freq = find_column_count(F, all_dialect, show_freq=True)
             all_dialect_variables = [all_dialect, all_column_count, all_column_freq]
         except Exception as err:
             pass
@@ -460,21 +411,17 @@ def guess_delimeter_by_csv(F):
             none_dialect = sniffer.sniff(sample_text, delimiters=sample_delims)
             none_dialect.quoting = csv.QUOTE_NONE
             F.seek(0)
-            none_column_count, none_column_freq = find_column_count(
-                F, none_dialect, show_freq=True
-            )
+            none_column_count, none_column_freq = find_column_count(F, none_dialect, show_freq=True)
             none_dialect_variables = [none_dialect, none_column_count, none_column_freq]
         except Exception as err:
             pass
 
-        if (
-            not first_read
-            and all_dialect_variables[0] is None
-            and none_dialect_variables[0] is None
-        ):
+        if (not first_read
+                and all_dialect_variables[0] is None
+                and none_dialect_variables[0] is None):
             return
 
-        if none_dialect_variables[1] <= 1 and all_dialect_variables[1] <= 1:
+        if none_dialect_variables[1] <=1 and all_dialect_variables[1] <=1:
             # Total ignore delims pool
             ignore_delims = []
             if all_dialect_variables[0]:
@@ -484,7 +431,8 @@ def guess_delimeter_by_csv(F):
 
             # Reload sample delims
             sample_delims = [
-                delim for delim in sample_delims if delim not in ignore_delims
+                delim for delim in sample_delims
+                if delim not in ignore_delims
             ]
 
             if not sample_delims:
@@ -499,25 +447,23 @@ def guess_delimeter_by_csv(F):
     if all_dialect_variables[0] is None and none_dialect_variables[0] is None:
         return
 
-    if (
-        float(all_column_freq + all_column_count) / 2
-        >= float(none_column_count + none_column_freq) / 2
-    ):
+    if float(all_column_freq + all_column_count)/2 >= float(none_column_count + none_column_freq)/2:
         return all_dialect_variables
 
     return none_dialect_variables
 
 
 def ask_user_for_delimeter():
+
     csv_delimeter = raw_input(
-        "Please idetify delimeter to be used for parsing csv file: "
-    )
+        "Please idetify delimeter to be used for parsing csv file: ")
     csv_column_count = raw_input("Please identify column number: ")
 
     return csv_delimeter, int(csv_column_count)
 
 
 def strip_delimeter(ls, csv_delimeter):
+
     while True:
         if ls:
             if ls[0] == csv_delimeter:
@@ -539,6 +485,7 @@ def strip_delimeter(ls, csv_delimeter):
 
 
 def guess_delimeter(F):
+
     # Load sniff guess for compare
     sniff_guess = guess_delimeter_by_csv(F)
 
@@ -584,13 +531,10 @@ def guess_delimeter(F):
     rdialect = excelDialect()
     rdialect.delimiter = csv_delimeter
 
-    if sniff_guess and (
-        (
-            ((sniff_guess[1] + sniff_guess[2]) / 2)
-            > ((most_frequent[1] + most_frequent[2]) / 2)
-        )
-        or (most_frequent[1] == 0)
-    ):
+    if (sniff_guess
+            and ((((sniff_guess[1] + sniff_guess[2])/2) > ((most_frequent[1] + most_frequent[2])/2))
+                 or (most_frequent[1] == 0))):
+
         csv_delimeter = sniff_guess[0].delimiter
         rdialect = sniff_guess[0]
 
@@ -603,27 +547,23 @@ def guess_delimeter(F):
 
     if csv_delimeter:
 
-        print
-        "\033[38;5;244mGuess method: Custom delimiter -> {}\n".format(csv_delimeter)
+        print "\033[38;5;244mGuess method: Custom delimiter -> {}\n".format(
+            csv_delimeter)
     elif not args.p:
-        print
-        "\033[38;5;203m Delimiter could not determined"
+        print "\033[38;5;203m Delimiter could not determined"
         csv_delimeter, csv_column_count = ask_user_for_delimeter()
         rdialect = excelDialect()
         rdialect.delimiter = csv_delimeter
         return rdialect, csv_column_count
     else:
-        print
-        "\033[38;5;203m Delimiter could not determined, passing"
+        print "\033[38;5;203m Delimiter could not determined, passing"
         return False, False
 
     if args.a:
         return rdialect, csv_column_count
 
-    print
-    "\033[38;5;147m Guessed delimeter -> {}".format(repr(csv_delimeter))
-    print
-    "\033[38;5;147m Guessed column number", csv_column_count
+    print "\033[38;5;147m Guessed delimeter -> {}".format(repr(csv_delimeter))
+    print "\033[38;5;147m Guessed column number", csv_column_count
 
     confirmed = confirm()
     if confirmed:
@@ -657,14 +597,13 @@ def clean_fields(l):
 def clean_filename(source):
     """Remove unwanted parts of a filename."""
     source_filename = os.path.basename(source)
-    print
-    'Checking filename "{}" for conformity...'.format(source_filename)
+    print 'Checking filename "{}" for conformity...'.format(source_filename)
     new_name = source
     for unwanted in UNWANTED:
-        new_name = new_name.replace(unwanted, "")
+        new_name = new_name.replace(unwanted, '')
     if source != new_name:
-        print
-        "Renaming {} to {}".format(source_filename, os.path.basename(new_name))
+        print 'Renaming {} to {}'.format(source_filename,
+                                         os.path.basename(new_name))
         os.rename(source, new_name)
 
 
@@ -674,7 +613,7 @@ def data_prep(source):
     # Remove unwanted fields/values
     for header, value in source.items():
         # Remove misc headers (x[0-9]) and entries with empty values
-        if re.search("^x(?:\d+)?$", header) or not value:
+        if re.search('^x(?:\d+)?$', header) or not value:
             del source[header]
         # Remove entries that are in JSON_ENTRIES_SKIP
         elif found_in(value, JSON_ENTRIES_SKIP):
@@ -684,57 +623,58 @@ def data_prep(source):
             source[header] = value.strip()
 
     # Consolidate address entries to 'a' field
-    full_addy = ""
+    full_addy = ''
     for num in xrange(0, 9):
-        addy_header = "a" + str(num)
+        addy_header = 'a' + str(num)
         addy = source.get(addy_header)
         if addy:
-            full_addy += " {}".format(addy.strip())
+            full_addy += ' {}'.format(addy.strip())
             del source[addy_header]
     if full_addy:
-        source["a"] = full_addy
+        source['a'] = full_addy
 
     # Consolidate name fields
-    if source.get("fn") or source.get("ln"):
-        source["n"] = "{} {}".format(source.pop("fn", ""), source.pop("ln", "")).strip()
+    if source.get('fn') or source.get('ln'):
+        source['n'] = '{} {}'.format(
+            source.pop('fn', ''), source.pop('ln', '')).strip()
 
     # Rename 'd' date of birth field to 'dob'
-    if source.get("d"):
-        source["dob"] = source.pop("d").strip()
+    if source.get('d'):
+        source['dob'] = source.pop('d').strip()
 
     # Split out domain from email address
-    if source.get("e"):
-        email = source.get("e")
-        if "@@" in email:
-            email = "@".join(email.split("@@"))
+    if source.get('e'):
+        email = source.get('e')
+        if '@@' in email:
+            email = '@'.join(email.split('@@'))
         if validate_email(email):
-            source["e"] = email
-            source["d"] = email.split("@")[-1]
+            source['e'] = email
+            source['d'] = email.split('@')[-1]
         else:
-            del source["e"]
+            del source['e']
     return source
 
 
 def found_in(value, array):
     for item in array:
-        if re.match("[<#]?{}[#>]?$".format(item), value, flags=re.IGNORECASE):
+        if re.match('[<#]?{}[#>]?$'.format(item), value, flags=re.IGNORECASE):
             return True
     return False
 
 
 def wrap_fields(l, wrapper='"'):
-    return ["{0}{1}{0}".format(wrapper, x) for x in l]
+    return ['{0}{1}{0}'.format(wrapper, x) for x in l]
 
 
 def refactor_data(data):
-    temp_data = deepcopy(data["_source"])
+    temp_data = deepcopy(data['_source'])
     email = list()
     ip = list()
     telephone = list()
     address = dict()
     hash_ = list()
     for key, value in temp_data.items():
-        data["_source"].pop(key)
+        data['_source'].pop(key)
         if value and value != "0" and value != "null":
             if key in EMAILS:
                 email.append(value)
@@ -748,33 +688,27 @@ def refactor_data(data):
                 hash_.append(value)
             else:
                 new_key = MAPPER.get(key, key)
-                data["_source"][new_key] = value
+                data['_source'][new_key] = value
     if email:
-        data["_source"]["email"] = email[0] if len(email) == 1 else email
+        data['_source']['email'] = email[0]\
+            if len(email) == 1 else email
     if hash_:
-        data["_source"]["hash"] = hash_[0] if len(hash_) == 1 else hash_
+        data['_source']['hash'] = hash_[0]\
+            if len(hash_) == 1 else hash_
     if telephone:
-        data["_source"]["telephone"] = (
-            telephone[0] if len(telephone) == 1 else telephone
-        )
+        data['_source']['telephone'] = telephone[0]\
+            if len(telephone) == 1 else telephone
     if ip:
-        data["_source"]["ip"] = ip[0] if len(ip) == 1 else ip
+        data['_source']['ip'] = ip[0] if len(ip) == 1 else ip
     if address:
-        merged_addr = (
-            address.get("address", "")
-            + " "
-            + address.get("a1", "")
-            + " "
-            + address.get("a2", "")
-            + " "
-            + address.get("a3", "")
-            + " "
-            + address.get("a4", "")
-        )
+        merged_addr = address.get('address', '') + ' ' + \
+            address.get('a1', '') + ' ' + \
+            address.get('a2', '') + ' ' + \
+            address.get('a3', '') + ' ' + \
+            address.get('a4', '')
 
-        merged_addr = re.sub(r"\s{2,}", " ", merged_addr.strip())
-        data["_source"]["address"] = merged_addr
-
+        merged_addr = re.sub(r'\s{2,}', ' ', merged_addr.strip())
+        data['_source']['address'] = merged_addr
 
 def tuplelist_to_json(source):
     result = {}
@@ -783,21 +717,19 @@ def tuplelist_to_json(source):
         value = row[1]
 
         if key in result:
-            result[key] = result[key] + "," + value
+            result[key] = result[key] + ',' + value
         else:
             result[key] = value
 
     return result
 
-
 def write_json(source):
-    print
-    "Writing json file for", source
+    print "Writing json file for", source
     fbasename = os.path.basename(source)
-    json_file = os.path.splitext(fbasename)[0] + ".json"
+    json_file = os.path.splitext(fbasename)[0] + '.json'
 
-    if not os.path.exists(DIRS["json_success"]):
-        os.mkdir(DIRS["json_success"])
+    if not os.path.exists(DIRS['json_success']):
+        os.mkdir(DIRS['json_success'])
 
     out_reader = UnicodeReader(open(source), dialect=myDialect)
 
@@ -811,49 +743,48 @@ def write_json(source):
 
     # remove unwanted string from filename
     for undesirable in UNWANTED_RELEASE:
-        json_file = json_file.replace(undesirable, "")
-    json_file = os.path.splitext(json_file)[0].strip("_").strip("-") + ".json"
+        json_file = json_file.replace(undesirable, '')
+    json_file = os.path.splitext(json_file)[0].strip("_").strip("-") + '.json'
 
-    with open(os.path.join(DIRS["json_success"], json_file), "a+") as outfile:
+    with open(os.path.join(DIRS['json_success'], json_file), 'a+') as outfile:
         # Add first line of json
         line_count = 0
-        pbar = TqdmUpTo(desc="Writing JSON", unit=" row")
+        pbar = TqdmUpTo(desc='Writing JSON', unit=' row')
 
         for row in out_reader:
             # If this is not the first row, add a new line
             if line_count > 0:
-                outfile.write("\n")
+                outfile.write('\n')
 
             source = data_prep(dict(zip(headers, row)))
 
             # Set Import Date
             if args.importdate:
-                source["importdate"] = str(args.importdate)[:10]
+                source['importdate'] = str(args.importdate)[:10]
 
             # Set release name
             if args.r:
-                source["r"] = args.r
+                source['r'] = args.r
             # Use filename without extension as release name
             else:
                 filename = os.path.splitext(fbasename)[0]
                 for undesirable in UNWANTED_RELEASE:
-                    filename = filename.replace(undesirable, "")
-                filename = filename.replace("_", " ")
+                    filename = filename.replace(undesirable, '')
+                filename = filename.replace('_', ' ')
 
                 # remove string in brackets from file name
                 filename = re.sub("[\(\[].*?[\)\]]", "", filename)
                 filename = re.sub(r"\s*{.*}\s*", "", filename)
-                source["r"] = filename
-            data = {"_source": source}
+                source['r'] = filename
+            data = {'_source': source}
             refactor_data(data)
             outfile.write(json.dumps(data))
             line_count += 1
             pbar.update(1)
 
         # Write final newline (no comma) and close json brackets
-        outfile.write("\n")
+        outfile.write('\n')
         pbar.close()
-
 
 def check_hash(identified_modes, hashcatMode=False, johnFormat=False, extended=False):
     """Check hash"""
@@ -868,11 +799,10 @@ def check_hash(identified_modes, hashcatMode=False, johnFormat=False, extended=F
             if johnFormat and mode.john is not None:
                 hashTypes += "[JtR Format: {0}]".format(mode.john)
             hashTypes += "\n"
-    return count > 0
-
+    return (count > 0)
 
 def validate_ip(s):
-    a = s.split(".")
+    a = s.split('.')
     if len(a) != 4:
         return False
     for x in a:
@@ -883,7 +813,6 @@ def validate_ip(s):
             return False
     return True
 
-
 def detect_hash_columns(csv_file, delimiter, num_of_lines):
     """Return hash columns """
     hash_columns = []
@@ -891,19 +820,15 @@ def detect_hash_columns(csv_file, delimiter, num_of_lines):
     for x in range(num_of_lines):
         line = csv_file.readline()
         lowerrow = [
-            cc.lower().replace("\n", "").replace('"', "")
-            for cc in line.split(delimiter)
+            cc.lower().replace('\n', '').replace('"', '') for cc in line.split(delimiter)
         ]
         for i in range(len(lowerrow)):
-            if check_hash(hashID.identifyHash(lowerrow[i])) and not validate_ip(
-                lowerrow[i]
-            ):
-                if (i + 1) not in hash_columns:
-                    hash_columns.append(i + 1)
+            if check_hash(hashID.identifyHash(lowerrow[i])) and not validate_ip(lowerrow[i]):
+                if (i+1) not in hash_columns:
+                    hash_columns.append(i+1)
 
     csv_file.seek(0)
     return hash_columns
-
 
 def get_headers(csv_file, delimiter, column_count):
     """Reads file and tries to determine if headers are present.
@@ -916,10 +841,12 @@ def get_headers(csv_file, delimiter, column_count):
     while True:
         line = csv_file.readline()
         # Skip comment rows
-        if line.startswith("#"):
+        if line.startswith('#'):
             continue
 
-        lowerrow = [cc.lower().replace("\n", "") for cc in line.split(delimiter)]
+        lowerrow = [
+            cc.lower().replace('\n', '') for cc in line.split(delimiter)
+        ]
 
         # Set them enumerated headers to zero
         tracked = {}
@@ -929,19 +856,17 @@ def get_headers(csv_file, delimiter, column_count):
         for i in lowerrow:
             i = i.strip()
             # Match headers in double quotes on both sides or no double quotes
-            matches = re.search("\"(\w+)\"|'(\w+)'|^(\w+)$", i)
+            matches = re.search('"(\w+)"|\'(\w+)\'|^(\w+)$', i)
 
-            if matches or i in ["", '""', "''"]:
+            if matches or i in ["", "\"\"", "''"]:
                 # Take whichever one matched
                 try:
-                    field_name = (
-                        matches.group(1) or matches.group(2) or matches.group(3)
-                    )
+                    field_name = matches.group(1) or matches.group(2) or matches.group(3)
                 except Exception as err:
                     field_name = "x"
 
                 # match if this is an enumerated field
-                enumerated = re.search("^([a-z])\d+", field_name)
+                enumerated = re.search('^([a-z])\d+', field_name)
                 if enumerated:
                     header = enumerated.group(1)
                 # match if it is a known abbreviation for a header
@@ -949,11 +874,11 @@ def get_headers(csv_file, delimiter, column_count):
                     header = field_name
                 else:
                     # Make it the header abbreviation or make it misc (x)
-                    header = HEADER2ABBR.get(field_name, "x")
+                    header = HEADER2ABBR.get(field_name, 'x')
 
                 if header in ENUMERATED:
                     if tracked[header]:
-                        header_format = "{}{}".format(header, tracked[header])
+                        header_format = '{}{}'.format(header, tracked[header])
                         tracked[header] += 1
                         header = header_format
                     else:
@@ -970,9 +895,9 @@ def get_headers(csv_file, delimiter, column_count):
         headers.append("x")
 
     if len(headers) == column_count:
-        if "s" in headers and "p" in headers:
-            idx = headers.index("p")
-            headers[idx] = "h"
+        if 's' in headers and 'p' in headers:
+            idx = headers.index('p')
+            headers[idx] = 'h'
         return headers
     else:
         return []
@@ -987,46 +912,41 @@ def ask_headers(column_count):
 
     while True:
         user_headers = raw_input(
-            "Please enter {} headers as their abbreviation (i.e. u p x): ".format(
-                column_count
-            )
-        )
+            "Please enter {} headers as their abbreviation (i.e. u p x): ".
+            format(column_count))
 
         if user_headers:
-            if user_headers == "?":
-                print
-                "Please provide the headers below:"
+            if user_headers == '?':
+                print "Please provide the headers below:"
                 seen = []
                 for shortened, full_header in HEADERS.items():
                     if shortened not in seen:
-                        print
-                        "{}:{}".format(shortened, ", ".join(full_header))
+                        print '{}:{}'.format(
+                            shortened,
+                            ", ".join(full_header)
+                        )
                         seen.append(shortened)
             else:
-                user_headers = user_headers.strip().split(" ")
+                user_headers = user_headers.strip().split(' ')
                 header_len = len(user_headers)
-                if "zz" in user_headers:
+                if 'zz' in user_headers:
                     return headers
                 blank_header = False
                 for header in user_headers:
                     if not header:
                         blank_header = True
                         c_failure(
-                            "\nError: One of the provided headers was blank or"
-                            " more than one space was used between headers"
-                        )
+                            '\nError: One of the provided headers was blank or'
+                            ' more than one space was used between headers')
                 if not blank_header:
                     if header_len == column_count:
                         break
                     else:
                         c_failure(
-                            "\nERROR: {} headers entered for {} columns\n".format(
-                                header_len, column_count
-                            )
-                        )
+                            '\nERROR: {} headers entered for {} columns\n'.format(
+                                header_len, column_count))
         else:
-            print
-            "\nERROR: No headers entered\n"
+            print '\nERROR: No headers entered\n'
 
     # Set them enumerated headers to zero
     tracked = {}
@@ -1038,7 +958,7 @@ def ask_headers(column_count):
             header = user_headers[hi]
             if header in ENUMERATED:
                 if tracked[header]:
-                    header_format = "{}{}".format(header, tracked[header])
+                    header_format = '{}{}'.format(header, tracked[header])
                     tracked[header] += 1
                     header = header_format
                 else:
@@ -1050,7 +970,7 @@ def ask_headers(column_count):
 
 def remove_quote(values):
     # All possible quote chars
-    possible_quote_chars = ["'", '"']
+    possible_quote_chars = ["'", "\""]
 
     # Loop valid count
     valid_count = 0
@@ -1073,7 +993,10 @@ def remove_quote(values):
 def clean_ascii(source, target):
     # Load ascii clean bash script
     clean_ascii_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "clean_ascii.sh"
+        os.path.dirname(
+            os.path.realpath(__file__)
+        ),
+        "clean_ascii.sh"
     )
 
     # Provide permission for bash script
@@ -1087,23 +1010,26 @@ def clean_ascii(source, target):
     )
 
     print(
-        "Done remove ascii char on file %s, new file %s generated." % (source, target)
+        "Done remove ascii char on file %s, new file %s generated." % (
+            source, target
+        )
     )
 
 
 def parse_file(tfile):
+
     org_tfile = tfile
 
-    tfile = org_tfile.replace("(", "")
-    tfile = tfile.replace(")", "")
-    tfile = tfile.replace(" ", "")
-    tfile = tfile.replace(",", "")
+    tfile = org_tfile.replace('(', '')
+    tfile = tfile.replace(')', '')
+    tfile = tfile.replace(' ', '')
+    tfile = tfile.replace(',', '')
 
     os.rename(org_tfile, tfile)
 
     f_name, f_ext = os.path.splitext(tfile)
 
-    c_action_system("   Escaping garbage characters")
+    c_action_system('   Escaping garbage characters')
 
     gc_file = "{0}_gc~".format(tfile)
 
@@ -1115,41 +1041,36 @@ def parse_file(tfile):
 
     # Load gc file
 
-    F = open(gc_file, "rb")
+    F = open(gc_file, 'rb')
     dialect = None
 
     if guess:
-        # c_action_system('   Guessing delimiter \n')
+        #c_action_system('   Guessing delimiter \n')
         try:
             dialect, csv_column_count = guess_delimeter(F)
         except TypeError as e:
-            print
-            "Guessing delimiter failed, aborting."
+            print "Guessing delimiter failed, aborting."
         except ValueError as e:
-            print
-            "Blank file, aborting."
+            print "Blank file, aborting."
 
     if not dialect and args.p:
         return
     elif not dialect:
         dialect = csv.excel
-        dialect.delimiter = args.d.decode("string_escape")
+        dialect.delimiter = args.d.decode('string_escape')
         csv_column_count = args.c
 
-    c_sys_success(
-        "Using column number [{}] and delimiter [{}]\n".format(
-            csv_column_count, repr(dialect.delimiter)
-        )
-    )
+    c_sys_success('Using column number [{}] and delimiter [{}]\n'.format(
+        csv_column_count, repr(dialect.delimiter)))
 
     F.seek(0)
 
-    out_file_csv_name = f_name + "_cleaned.csv"
-    out_file_csv_temp = out_file_csv_name + "~"
-    out_file_err_name = f_name + "_error.csv"
-    out_file_err_temp = out_file_err_name + "~"
+    out_file_csv_name = f_name + '_cleaned.csv'
+    out_file_csv_temp = out_file_csv_name + '~'
+    out_file_err_name = f_name + '_error.csv'
+    out_file_err_temp = out_file_err_name + '~'
 
-    out_file_csv_file = open(out_file_csv_temp, "wb")
+    out_file_csv_file = open(out_file_csv_temp, 'wb')
 
     l_count = 0
     headers = set_headers(F, dialect, csv_column_count)
@@ -1158,10 +1079,11 @@ def parse_file(tfile):
         write_headers(out_file_csv_file, headers)
         l_count += 1
 
-    pbar = TqdmUpTo(desc="Writing ", unit=" bytes ", total=os.path.getsize(gc_file))
+    pbar = TqdmUpTo(
+        desc='Writing ', unit=' bytes ', total=os.path.getsize(gc_file))
 
     # Load result files
-    error_file = io.open(out_file_err_temp, "w", encoding="utf-8")
+    error_file = io.open(out_file_err_temp, 'w', encoding='utf-8')
 
     # Load clean dialect
     clean_dialect = myDialect()
@@ -1172,9 +1094,7 @@ def parse_file(tfile):
     # Loop line
     for line in F:
         # Remove Spaces before and afer delimeter
-        line = re.sub(
-            r"(?:(?<=\%s) | (?=\%s))" % (dialect.delimiter, dialect.delimiter), "", line
-        )
+        line = re.sub(r'(?:(?<=\%s) | (?=\%s))' % (dialect.delimiter, dialect.delimiter),'',line)
         l_count += 1
 
         cleaned_row, failed_row = parse_row(line, csv_column_count, dialect)
@@ -1182,7 +1102,9 @@ def parse_file(tfile):
         if failed_row:
             error_file.write(unicode(failed_row))
         else:
-            clean_writer.writerow(remove_quote(cleaned_row))
+            clean_writer.writerow(
+                remove_quote(cleaned_row)
+            )
 
         pbar.update_to(clean_writer.tell() + error_file.tell())
 
@@ -1195,24 +1117,18 @@ def parse_file(tfile):
     output_stats = os.stat(out_file_csv_temp)
     errors_stats = os.stat(out_file_err_temp)
 
-    c_action_info(
-        "Output file {} had {} bytes written/".format(
-            out_file_csv_temp, output_stats.st_size
-        )
-    )
-    c_action_info(
-        "Error file {} had {} bytes written/".format(
-            out_file_err_temp, errors_stats.st_size
-        )
-    )
+    c_action_info('Output file {} had {} bytes written/'.format(
+        out_file_csv_temp, output_stats.st_size))
+    c_action_info('Error file {} had {} bytes written/'.format(
+        out_file_err_temp, errors_stats.st_size))
 
     if headers:
-        move(tfile, DIRS["headers_success"])
+        move(tfile, DIRS['headers_success'])
     else:
-        move(tfile, DIRS["clean_success"])
+        move(tfile, DIRS['clean_success'])
 
     if errors_stats.st_size > 0:
-        move(out_file_err_temp, DIRS["clean_fail"])
+        move(out_file_err_temp, DIRS['clean_fail'])
     else:
         os.remove(out_file_err_temp)
 
@@ -1225,7 +1141,7 @@ def parse_file(tfile):
         os.rename(out_file_csv_temp, out_file_csv_name)
 
         # Move cleaned file to success
-        # move(out_file_csv_name, DIRS['json_success'])
+        #move(out_file_csv_name, DIRS['json_success'])
 
     if args.j:
         write_json(out_file_csv_name)
@@ -1247,8 +1163,8 @@ def parse_row(line, csv_column_count, dialect):
     if len(row_escaped) == csv_column_count:
         return row_escaped, None
     if args.m and csv_column_count > 1:
-        lx = row_escaped[: csv_column_count - 1]
-        lt = dialect.delimiter.join(row_escaped[csv_column_count - 1 :])
+        lx = row_escaped[:csv_column_count - 1]
+        lt = dialect.delimiter.join(row_escaped[csv_column_count - 1:])
         lx.append(lt)
         return lx, None
     return None, line
@@ -1256,26 +1172,21 @@ def parse_row(line, csv_column_count, dialect):
 
 def write_headers(f, headers):
     """Write headers to file."""
-    header_line = ",".join(headers)
-    return f.write(header_line + "\n")
+    header_line = ','.join(headers)
+    return f.write(header_line + '\n')
 
 
 def print_lines(f, num_of_lines):
     last_location = f.tell()
     f.seek(0)
-    print
-    "The first {} lines:".format(num_of_lines)
-    print
-    "-" * 20
+    print 'The first {} lines:'.format(num_of_lines)
+    print '-' * 20
     for x in range(num_of_lines):
-        print
-        f.readline(),
+        print f.readline(),
     print
-    print
-    "-" * 20
+    print '-' * 20
     print
     f.seek(last_location)
-
 
 def clean_headers(headers):
     # Add suffix to header if appear multiple columns with same name
@@ -1291,16 +1202,14 @@ def clean_headers(headers):
 
     return cleaned_header
 
-
 def print_hash_columns(columns):
     for column in columns:
-        c_warning("Hash Detected: Column #{}".format(column))
-
+        c_warning('Hash Detected: Column #{}'.format(column))
 
 def set_headers(f, dialect, csv_column_count=0):
     headers = []
     if args.sh:
-        headers = args.sh.split(",")
+        headers = args.sh.split(',')
     elif args.ah or args.fh:
         if not csv_column_count:
             csv_column_count = find_column_count(f)
@@ -1315,23 +1224,23 @@ def set_headers(f, dialect, csv_column_count=0):
 
         if args.fh:
             if headers:
-                c_success("Headers found for {}\n".format(f.name))
-                c_warning("Headers to be used: {}".format(" ".join(headers)))
+                c_success('Headers found for {}\n'.format(f.name))
+                c_warning('Headers to be used: {}'.format(' '.join(headers)))
             else:
-                c_warning("Headers not found for {}\n".format(f.name))
+                c_warning('Headers not found for {}\n'.format(f.name))
         else:
             while True:
                 # Add a new line
                 if headers:
-                    c_success("Headers found for {}\n".format(f.name))
-                    c_warning("Headers to be used: {}".format(" ".join(headers)))
+                    c_success('Headers found for {}\n'.format(f.name))
+                    c_warning('Headers to be used: {}'.format(' '.join(headers)))
                     correct = confirm()
                     if correct:
                         break
                     else:
                         headers = []
                 else:
-                    c_warning("Setting the headers for file {}\n".format(f.name))
+                    c_warning('Setting the headers for file {}\n'.format(f.name))
                     headers = ask_headers(csv_column_count)
                     headers = clean_headers(headers)
                     break
@@ -1344,20 +1253,23 @@ def confirm():
     Default is y (just pressing enter).
     """
     while True:
-        resp = raw_input("Is this correct? [Y/n] ")
-        if not resp or resp.lower() == "y":
+        resp = raw_input('Is this correct? [Y/n] ')
+        if not resp or resp.lower() == 'y':
             return True
-        elif resp.lower() == "n":
+        elif resp.lower() == 'n':
             return False
         else:
-            c_failure("Please answer y or n")
+            c_failure('Please answer y or n')
 
 
 def is_sqldump(file_path):
-    sql_pattern = re.compile("insert into \`?.*?\`?", re.IGNORECASE)
+    sql_pattern = re.compile(
+        "insert into \`?.*?\`?",
+        re.IGNORECASE
+    )
 
     try:
-        with open(file_path, "rb") as file:
+        with open(file_path, 'rb') as file:
             text = file.read(100000)
     except IOError:
         return
@@ -1366,10 +1278,14 @@ def is_sqldump(file_path):
 
 
 def scan_json_merge(source_folder, dest_folder):
+
     # Check if correct folder
     if not os.path.isdir(source_folder):
         raise ValueError(
-            "Provided source folder %s is incorrect" % (source_folder, dest_folder)
+            "Provided source folder %s is incorrect" % (
+                source_folder,
+                dest_folder
+            )
         )
 
     # Check exist dest folder
@@ -1378,7 +1294,12 @@ def scan_json_merge(source_folder, dest_folder):
         print("%s not existing, created." % dest_folder)
 
     # Load and cluster all files
-    all_files = glob.glob(os.path.join(source_folder, "*.json"))
+    all_files = glob.glob(
+        os.path.join(
+            source_folder,
+            "*.json"
+        )
+    )
 
     # Init release pool
     release_pool = {}
@@ -1399,13 +1320,19 @@ def scan_json_merge(source_folder, dest_folder):
     for release_name, list_file in release_pool.items():
         if len(list_file) == 1:
             # Load copy path
-            copy_path = os.path.join(dest_folder, os.path.basename(list_file[0]))
+            copy_path = os.path.join(
+                dest_folder,
+                os.path.basename(list_file[0])
+            )
             # Do copy
-            copyfile(list_file[0], copy_path)
+            copyfile(list_file[0],copy_path)
             print("Finish copy %s into %s" % (list_file[0], copy_path))
         else:
             # Load release path
-            release_path = os.path.join(dest_folder, "%s.json" % release_name)
+            release_path = os.path.join(
+                dest_folder,
+                "%s.json" % release_name
+            )
 
             # If release path exist than remove
             if os.path.exists(release_path):
@@ -1462,17 +1389,18 @@ def main():
         print(help_message)
         return
 
-    files = gather_files(args.path, DIRS["skipped"])
+    files = gather_files(args.path, DIRS['skipped'])
     nonsql_files = [x for x in files if not is_sqldump(x)]
 
     if args.cl:
-        print
-        "Cleaning filenames..."
+        print 'Cleaning filenames...'
         for file in files:
             clean_filename(file)
     elif args.jm:
         if len(args.path) > 2:
-            raise ValueError("Only accept source and destination folder.")
+            raise ValueError(
+                "Only accept source and destination folder."
+            )
         else:
             try:
                 source_folder, dest_folder = args.path
@@ -1484,74 +1412,75 @@ def main():
                     source_folder = os.getcwd()
 
                 # Init dest folder
-                dest_folder = os.path.join(source_folder, "processed")
+                dest_folder = os.path.join(
+                    source_folder,
+                    "processed"
+                )
 
         scan_json_merge(source_folder, dest_folder)
     elif args.sh or args.ah or args.fh:
         for filepath in nonsql_files:
-            c_action_info("{}: Checking for headers".format(filepath))
-            with open(filepath, "rb") as cf:
+            headers = []
+            c_action_info('{}: Checking for headers'.format(filepath))
+            with open(filepath, 'rb') as cf:
                 headers = set_headers(cf, dialect)
                 if headers:
                     c_sys_success(
-                        "{}: Headers found, writing new file".format(filepath)
-                    )
-                    pbar = TqdmUpTo(total=os.path.getsize(filepath), unit=" bytes")
-                    with open(filepath + "~", "wb") as new_csv:
+                        '{}: Headers found, writing new file'.format(filepath))
+                    pbar = TqdmUpTo(
+                        total=os.path.getsize(filepath), unit=' bytes')
+                    with open(filepath + '~', 'wb') as new_csv:
                         write_headers(new_csv, headers)
                         pbar.update_to(new_csv.tell())
                         for line in cf:
                             new_csv.write(line)
                             pbar.update_to(new_csv.tell())
                     pbar.close()
-                    c_action_info("{}: New file written".format(filepath))
+                    c_action_info('{}: New file written'.format(filepath))
             if headers:
-                c_action_info(
-                    "{}: Moving to {}/".format(filepath, DIRS["headers_success"])
-                )
-                os.rename(filepath + "~", filepath)
-                move(filepath, DIRS["headers_success"])
+                c_action_info('{}: Moving to {}/'.format(
+                    filepath, DIRS['headers_success']))
+                os.rename(filepath + '~', filepath)
+                move(filepath, DIRS['headers_success'])
             else:
-                c_warning(
-                    "{}: Skipping setting headers, moving to {}/".format(
-                        filepath, DIRS["headers_skip"]
-                    )
-                )
-                move(filepath, DIRS["headers_skip"])
+                c_warning('{}: Skipping setting headers, moving to {}/'.format(
+                    filepath, DIRS['headers_skip']))
+                move(filepath, DIRS['headers_skip'])
     elif args.j:
         if not nonsql_files:
-            c_failure("No non-sql files found to write json for")
+            c_failure('No non-sql files found to write json for')
         for cf in nonsql_files:
             write_json(cf)
-            move(cf, DIRS["json_done"])
+            move(cf, DIRS['json_done'])
     elif args.o:
         for path in nonsql_files:
-            with open(path, "rb") as f:
+            with open(path, 'rb') as f:
                 column_count = find_column_count(f)
             if column_count <= 10:
                 existing_dir = os.path.dirname(path)
-                new_dir = "{}col".format(column_count)
+                new_dir = '{}col'.format(column_count)
                 new_path = os.path.join(existing_dir, new_dir)
-                c_action_system("Moving {} to {}".format(path, new_path))
+                c_action_system('Moving {} to {}'.format(path, new_path))
                 move(path, new_path)
             else:
-                c_warning("{} has {} columns, skipping".format(path, column_count))
+                c_warning('{} has {} columns, skipping'.format(
+                    path, column_count))
     elif args.s:
-        c_action_system("Creating samples of CSV(s)\n")
+        c_action_system('Creating samples of CSV(s)\n')
         for path in nonsql_files:
-            c_action_info("\nSampling {}".format(path))
-            create_sample(path, args.scl, args.sci, DIRS["sample"])
+            c_action_info('\nSampling {}'.format(path))
+            create_sample(path, args.scl, args.sci, DIRS['sample'])
     elif files:
         if nonsql_files:
             print
-            c_lightgray("PARSING TXT and CSV FILES")
-            c_darkgray("-------------------------")
+            c_lightgray('PARSING TXT and CSV FILES')
+            c_darkgray('-------------------------')
 
             fc = 0
             nf = len(nonsql_files)
         for filename in nonsql_files:
             # Skip files with _cleaned in filename
-            if "_cleaned" in filename:
+            if '_cleaned' in filename:
                 continue
             # print "\n \033[1;34mProcessing", f
             # print "\033[0m"
@@ -1561,10 +1490,10 @@ def main():
 
             for char in fbasename:
                 if char in "&+@'":
-                    clean_name.append("_")
+                    clean_name.append('_')
                 else:
                     clean_name.append(char)
-            new_basename = "".join(clean_name)
+            new_basename = ''.join(clean_name)
 
             if new_basename != fbasename:
                 new_filename = os.path.join(fdirname, new_basename)
@@ -1572,30 +1501,32 @@ def main():
                 filename = new_filename
 
             fc += 1
-            c_darkgray("------------------------------------------")
+            c_darkgray('------------------------------------------')
 
-            c_action_info("File {}/{}".format(fc, nf))
-            c_action("Processing {}".format(filename))
+            c_action_info('File {}/{}'.format(fc, nf))
+            c_action('Processing {}'.format(filename))
 
             if os.path.exists(filename):
                 if os.stat(filename).st_size > 0:
                     parse_file(filename)
                 else:
-                    print
-                    "File {} is empty, passing".format(filename)
+                    print "File {} is empty, passing".format(filename)
             else:
-                c_warning("Unable to find file {}".format(filename))
+                c_warning('Unable to find file {}'.format(filename))
 
         sql_files = [x for x in files if is_sqldump(x)]
         if sql_files:
             print
-            c_action("PARSING SQL FILES")
-            c_darkgray("------------------------------------------\n")
+            c_action('PARSING SQL FILES')
+            c_darkgray('------------------------------------------\n')
 
         for sf in sql_files:
 
             # Load file cleaned of ascii
-            gf = os.path.join(os.path.dirname(sf), "~%s" % os.path.basename(sf))
+            gf = os.path.join(
+                os.path.dirname(sf),
+                "~%s" % os.path.basename(sf)
+            )
             clean_ascii(sf, gf)
 
             # Clean old ascii file
@@ -1607,13 +1538,13 @@ def main():
             try:
                 parse_sql.parse(sf)
             except KeyboardInterrupt:
-                c_warning("Control-c pressed...")
+                c_warning('Control-c pressed...')
                 sys.exit(138)
             except Exception as error:
-                move(sf, DIRS["sql_fail"])
-                c_failure("ERROR: {}".format(str(error)))
+                move(sf, DIRS['sql_fail'])
+                c_failure('ERROR: {}'.format(str(error)))
             else:
-                move(sf, DIRS["sql_success"])
+                move(sf, DIRS['sql_success'])
 
 
 if __name__ == "__main__":
