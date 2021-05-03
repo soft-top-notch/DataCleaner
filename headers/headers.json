@@ -21,6 +21,7 @@
     "a3": ["state", "RESIDENTIAL_STATE", "address3", "customer_state"], 
     "a4": ["zip", "postcode", "zip_code", "zipcode", "RESIDENTIAL_ZIP_CODE", "postalcode", "postal_code", "address4"], 
     "a5": ["country"], 
+    "ssn": ["SOCIAL_SECURITY_NUMBER", "ssn", "socialsecurity","social_security","social_security_number"],
     "xmpp": ["jabber", "xmpp"], 
     "de": ["device"],
     "lat": ["latitude"],
