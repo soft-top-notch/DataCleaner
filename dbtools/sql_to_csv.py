@@ -202,7 +202,7 @@ def write_csv(sqlpath, table, columns, values, encoding='utf-8'):
     return lines
 
 
-def parse(filepath, tables, encoding):
+def parse(filepath, tables, encoding, schema_only=False):
     if tables:
         tables_re = re.compile(
             r'.*?(%s).*?' % tables.replace(",", "|"),
@@ -222,14 +222,17 @@ def parse(filepath, tables, encoding):
             pbar.update(len(line))
 
             if statement is None:
-                if line.startswith('INSERT INTO'):
-                    statement = InsertInto
-                elif line.startswith('COPY'):
-                    statement = Copy
-                elif line.startswith('CREATE TABLE'):
+                if line.startswith('CREATE TABLE'):
                     statement = CreateTable
                 else:
-                    continue
+                    if schema_only:
+                        continue
+                    if line.startswith('INSERT INTO'):
+                        statement = InsertInto
+                    elif line.startswith('COPY'):
+                        statement = Copy
+                    else:
+                        continue
 
             lines += line
 
@@ -240,6 +243,7 @@ def parse(filepath, tables, encoding):
                 if prev_quote:
                     continue
                 parser = InsertInto.parse(lines, encoding)
+
                 table, columns = next(parser)
                 if not tables or tables_re.match(table):
                     total_lines += write_csv(filepath, table, None, parser)
@@ -249,6 +253,7 @@ def parse(filepath, tables, encoding):
                     continue
                 parser = Copy.parse(lines, encoding)
                 table, columns = next(parser)
+
                 if not tables or tables_re.match(table):
                     total_lines += write_csv(filepath, table, None, parser)
 

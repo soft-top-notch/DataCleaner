@@ -4,6 +4,7 @@
 Usage:
   dbtool.py --showtables <file_path>
   dbtool.py --extract <file_path> --tables=tables [--encoding=enc]
+  dbtool.py --extract <file_path> --tables=tables [--schema] [--encoding=enc]
   dbtool.py --mergeuser [--exit-on-error] [--user_id=user_id] [--pm_id=pm_id] [--pm_file_path=pm_file_path] <user_file_path> <csv_file_path>
   dbtool.py --json --type=type [--exit-on-error] [--forum=forum] \
     [--topic=topic] [--recipient=recipient] [--pm=pm] \
@@ -12,6 +13,7 @@ Usage:
 Options:
   -h --help                 Show this screen.
   --version                 Show version.
+  --schema                  Export only schema
   --encoding=enc            Encoding for sql parser
   --exit-on-error           Exit if error happen
   --input=input             Input for csv to json
@@ -37,6 +39,7 @@ from dbtools.merge_user import (
 
 __version__ = '0.1.0'
 __license__ = """
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -284,9 +287,10 @@ def main(args):
     # Handle extract detail tables
     if args.get("--extract") and args.get("--tables"):
         parse(
-            args.get("<file_path>"),
-            args.get("--tables"),
-            args.get("--encoding")
+            filepath=args.get("<file_path>"),
+            tables=args.get("--tables"),
+            encoding=args.get("--encoding"),
+            schema_only=args.get("--schema")
         )
 
     # Handle merge user csv
